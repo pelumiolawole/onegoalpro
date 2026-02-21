@@ -1,0 +1,48 @@
+# One Goal — Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# ─── Web Framework ───────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1        # ASGI server with auto-reload
+python-multipart==0.0.12         # Form data parsing
+
+# ─── Database ────────────────────────────────────────────────
+sqlalchemy==2.0.36               # Async ORM
+asyncpg==0.30.0                  # Async PostgreSQL driver
+alembic==1.14.0                  # Database migrations
+pgvector==0.3.5                  # Vector similarity for embeddings
+
+# ─── Redis ───────────────────────────────────────────────────
+redis[asyncio]==5.2.0            # Async Redis client
+
+# ─── Auth ────────────────────────────────────────────────────
+pyjwt==2.10.0                    # JWT tokens
+bcrypt==4.2.0                    # Password hashing
+supabase==2.9.1                  # Supabase client for OAuth
+
+# ─── AI ──────────────────────────────────────────────────────
+openai==1.57.0                   # OpenAI API client
+langchain==0.3.9                 # LLM orchestration
+langchain-openai==0.2.10         # LangChain OpenAI integration
+
+# ─── Validation ──────────────────────────────────────────────
+pydantic==2.10.2                 # Data validation
+pydantic-settings==2.6.1         # Environment config
+
+# ─── Background Jobs ─────────────────────────────────────────
+apscheduler==3.10.4              # Cron job scheduler
+
+# ─── Logging ─────────────────────────────────────────────────
+structlog==24.4.0                # Structured logging
+
+# ─── Utilities ───────────────────────────────────────────────
+python-dateutil==2.9.0           # Date parsing utilities
+pytz==2024.2                     # Timezone handling
+httpx==0.28.0                    # Async HTTP client (for external APIs)
+
+# ─── Dev / Testing ───────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.0                    # TestClient for FastAPI
+factory-boy==3.3.1               # Test data factories
