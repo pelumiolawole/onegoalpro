@@ -132,26 +132,22 @@ def create_app() -> FastAPI:
 def _register_routers(app: FastAPI) -> None:
     """Mount all API routers under /api prefix."""
     from api.routers.auth import router as auth_router
-
-    # Import remaining routers as they're built in subsequent steps
-    # from api.routers.onboarding import router as onboarding_router
-    # from api.routers.goals import router as goals_router
-    # from api.routers.tasks import router as tasks_router
-    # from api.routers.reflections import router as reflections_router
-    # from api.routers.coach import router as coach_router
-    # from api.routers.progress import router as progress_router
-    # from api.routers.data import router as data_router
+    from api.routers.onboarding import router as onboarding_router
+    from api.routers.goals import router as goals_router
+    from api.routers.tasks import router as tasks_router
+    from api.routers.reflections import router as reflections_router
+    from api.routers.coach import router as coach_router
+    from api.routers.progress import router as progress_router
 
     API_PREFIX = "/api"
 
-    app.include_router(auth_router, prefix=API_PREFIX)
-    # app.include_router(onboarding_router, prefix=API_PREFIX)
-    # app.include_router(goals_router, prefix=API_PREFIX)
-    # app.include_router(tasks_router, prefix=API_PREFIX)
-    # app.include_router(reflections_router, prefix=API_PREFIX)
-    # app.include_router(coach_router, prefix=API_PREFIX)
-    # app.include_router(progress_router, prefix=API_PREFIX)
-    # app.include_router(data_router, prefix=API_PREFIX)
+    app.include_router(auth_router,        prefix=API_PREFIX)
+    app.include_router(onboarding_router,  prefix=API_PREFIX)
+    app.include_router(goals_router,       prefix=API_PREFIX)
+    app.include_router(tasks_router,       prefix=API_PREFIX)
+    app.include_router(reflections_router, prefix=API_PREFIX)
+    app.include_router(coach_router,       prefix=API_PREFIX)
+    app.include_router(progress_router,    prefix=API_PREFIX)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
