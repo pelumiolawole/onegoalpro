@@ -58,15 +58,25 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("database_connected")
 
-    # Verify Redis connection
-    redis = await get_redis()
-    await redis.ping()
-    logger.info("redis_connected")
+    # Verify Redis connection (non-fatal — app starts even if Redis is unavailable)
+    try:
+        redis = await get_redis()
+        await redis.ping()
+        logger.info("redis_connected")
+    except Exception as e:
+        logger.warning(
+            f"Could not connect to Redis at startup: {e}. "
+            "The app will start anyway — Redis will be retried per request."
+        )
 
-    # Start background job scheduler
-    from services.scheduler import start_scheduler
-    scheduler = await start_scheduler()
-    logger.info("scheduler_started")
+    # Start background job scheduler (non-fatal)
+    try:
+        from services.scheduler import start_scheduler
+        scheduler = await start_scheduler()
+        logger.info("scheduler_started")
+    except Exception as e:
+        scheduler = None
+        logger.warning(f"Could not start scheduler: {e}. Background jobs will be unavailable.")
 
     logger.info("one_goal_ready", port=settings.port)
 
@@ -75,7 +85,8 @@ async def lifespan(app: FastAPI):
     # ── Shutdown ─────────────────────────────────────────────────────
     logger.info("shutting_down")
 
-    scheduler.shutdown(wait=True)
+    if scheduler:
+        scheduler.shutdown(wait=True)
     await close_db()
     await close_redis()
 
@@ -212,3 +223,4 @@ if __name__ == "__main__":
         log_level=settings.log_level.lower(),
         access_log=False,  # We handle request logging in middleware
     )
+    
