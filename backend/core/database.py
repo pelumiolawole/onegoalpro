@@ -10,6 +10,7 @@ Usage in route handlers:
         result = await db.execute(select(User).where(User.id == user_id))
 """
 
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -23,6 +24,8 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
 
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -41,17 +44,19 @@ def _create_engine() -> AsyncEngine:
     In testing, NullPool prevents connection leaks between test cases.
     """
     kwargs: dict = {
-        "echo": settings.debug,           # log SQL in development
-        "pool_size": settings.database_pool_size,
-        "max_overflow": settings.database_max_overflow,
-        "pool_timeout": settings.database_pool_timeout,
-        "pool_pre_ping": True,            # verify connections before use
-        "pool_recycle": 3600,             # recycle connections every hour
+        "echo": settings.debug,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
     }
 
     if settings.environment == "testing":
-        # NullPool for tests: each connection is independent
         kwargs = {"echo": True, "poolclass": NullPool}
+    else:
+        kwargs.update({
+            "pool_size": settings.database_pool_size,
+            "max_overflow": settings.database_max_overflow,
+            "pool_timeout": settings.database_pool_timeout,
+        })
 
     return create_async_engine(settings.async_database_url, **kwargs)
 
@@ -65,7 +70,7 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     autocommit=False,
     autoflush=False,
-    expire_on_commit=False,  # prevent lazy-load errors after commit
+    expire_on_commit=False,
 )
 
 
@@ -74,13 +79,6 @@ AsyncSessionLocal = async_sessionmaker(
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI dependency that provides a database session per request.
-    Session is committed on success, rolled back on any exception,
-    and always closed at the end of the request.
-
-    Example:
-        @router.get("/users/{id}")
-        async def get_user(id: UUID, db: AsyncSession = Depends(get_db)):
-            ...
     """
     async with AsyncSessionLocal() as session:
         try:
@@ -98,10 +96,6 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
     """
     Context manager version for use outside of FastAPI request context.
     Used by background jobs and scheduled tasks.
-
-    Example:
-        async with get_db_context() as db:
-            await db.execute(...)
     """
     async with AsyncSessionLocal() as session:
         try:
@@ -119,27 +113,36 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 async def init_db() -> None:
     """
     Called at application startup.
-    Does NOT run migrations — use Alembic for that.
-    Just verifies the connection and pgvector extension.
+    Attempts to verify DB connection but does NOT crash the app if it fails.
+    This allows the app to start even if the DB is momentarily unreachable.
     """
     from sqlalchemy import text
 
-    async with engine.begin() as conn:
-        # Verify connection
-        await conn.execute(text("SELECT 1"))
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+            logger.info("Database connection verified successfully.")
 
-        # Verify pgvector is installed
-        result = await conn.execute(
-            text("SELECT COUNT(*) FROM pg_extension WHERE extname = 'vector'")
-        )
-        count = result.scalar()
-        if count == 0:
-            raise RuntimeError(
-                "pgvector extension is not installed. "
-                "Run: CREATE EXTENSION vector; in your PostgreSQL instance."
+            result = await conn.execute(
+                text("SELECT COUNT(*) FROM pg_extension WHERE extname = 'vector'")
             )
+            count = result.scalar()
+            if count == 0:
+                logger.warning(
+                    "pgvector extension not found. Vector features will not work. "
+                    "Run: CREATE EXTENSION vector; in your PostgreSQL instance."
+                )
+            else:
+                logger.info("pgvector extension confirmed.")
+
+    except Exception as e:
+        logger.warning(
+            f"Could not connect to database at startup: {e}. "
+            "The app will start anyway — DB connections will be retried per request."
+        )
 
 
 async def close_db() -> None:
     """Called at application shutdown to cleanly close the connection pool."""
     await engine.dispose()
+    
