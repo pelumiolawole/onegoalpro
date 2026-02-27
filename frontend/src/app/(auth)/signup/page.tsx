@@ -48,7 +48,7 @@ export default function SignupPage() {
         timezone,
       })
       setAuth(data)
-      router.push('/onboarding')
+      router.push('/interview')
     } catch (err: any) {
       const detail = err.detail
       if (typeof detail === 'string') {
