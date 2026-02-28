@@ -28,7 +28,7 @@ export default function LoginPage() {
       // Route based on onboarding status
       const step = data.user.onboarding_step
       if (step < 5) {
-        router.push('/onboarding')
+        router.push('/login')
       } else {
         router.push('/dashboard')
       }
