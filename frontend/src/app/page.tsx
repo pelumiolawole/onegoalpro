@@ -330,6 +330,8 @@ export default function LandingPage() {
           >
             Get started
           </Link>
+        </div>
+      </motion.nav>
 
       {/* ── Hero ──────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 text-center overflow-hidden">
