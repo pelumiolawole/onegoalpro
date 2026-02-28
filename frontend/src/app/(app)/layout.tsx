@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
+import OneGoalLogo from '@/components/OneGoalLogo'
 
 const NAV = [
   { href: '/dashboard', label: 'Today',    icon: HomeIcon },
@@ -22,10 +23,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) { router.replace('/login'); return }
     if (user && user.onboarding_step < 5) {
       const step = user.onboarding_step
-      if (step <= 1) router.replace('/interview')
+      if (step === 0 || step === 1) router.replace('/interview')
       else if (step === 2) router.replace('/goal-setup')
       else if (step === 3) router.replace('/preview')
-      else router.replace('/activate')
+      else if (step === 4) router.replace('/activate')
     }
   }, [isAuthenticated, user])
 
@@ -34,10 +35,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* ── Sidebar (desktop) ──────────────────────────── */}
       <aside className="hidden md:flex flex-col w-60 border-r border-white/5 p-5 shrink-0">
+        {/* Logo */}
         <div className="mb-10 px-2">
-          <span className="font-display text-xl text-[#F5F1ED]">One Goal</span>
+          <OneGoalLogo size={26} textSize="text-lg" />
         </div>
 
+        {/* Nav */}
         <nav className="flex-1 space-y-1">
           {NAV.map(item => {
             const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -58,6 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        {/* User */}
         {user && (
           <div className="border-t border-white/5 pt-4">
             <Link
@@ -116,6 +120,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+// ── Icons ─────────────────────────────────────────────────────
 
 function HomeIcon({ size = 16 }: { size?: number }) {
   return (

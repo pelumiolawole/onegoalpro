@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
+import OneGoalLogo from '@/components/OneGoalLogo'
 
 // ── Fade-in-on-scroll wrapper ──────────────────────────────────
 function Reveal({
@@ -319,7 +320,7 @@ export default function LandingPage() {
         transition={{ duration: 0.5 }}
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0A0908]/80 backdrop-blur-md"
       >
-        <span className="font-display text-xl text-[#F5F1ED]">One Goal</span>
+        <OneGoalLogo size={26} textSize="text-lg" />
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm text-[#7A6E65] hover:text-[#F5F1ED] transition-colors">
             Sign in
@@ -754,7 +755,7 @@ export default function LandingPage() {
       {/* ── Footer ────────────────────────────────────────── */}
       <footer className="px-6 py-10 border-t border-white/5">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="font-display text-lg text-[#F5F1ED]">One Goal</span>
+          <OneGoalLogo size={22} textSize="text-lg" />
           <p className="text-[#3D3630] text-xs text-center">One Goal. One Identity. One Day at a Time.</p>
           <div className="flex gap-6 text-xs text-[#3D3630]">
             <Link href="/login" className="hover:text-[#7A6E65] transition-colors">Sign in</Link>

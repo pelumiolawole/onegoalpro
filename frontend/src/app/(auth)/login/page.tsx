@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import OneGoalLogo from '@/components/OneGoalLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -60,7 +61,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-between p-16 w-full">
           {/* Logo */}
           <div>
-            <span className="font-display text-2xl text-[#F5F1ED]">One Goal</span>
+            <OneGoalLogo size={30} textSize="text-2xl" />
           </div>
 
           {/* Quote */}
@@ -100,7 +101,7 @@ export default function LoginPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden mb-10">
-            <span className="font-display text-2xl text-[#F5F1ED]">One Goal</span>
+            <OneGoalLogo size={30} textSize="text-2xl" />
           </div>
 
           <h1 className="font-display text-3xl text-[#F5F1ED] mb-2">

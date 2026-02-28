@@ -4,12 +4,13 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
+import OneGoalLogo from '@/components/OneGoalLogo'
 
 const STEPS = [
-  { label: 'Discovery' },
-  { label: 'Your Goal', path: '/goal-setup' },
-  { label: 'Strategy' },
-  { label: 'Activate' },
+  { label: 'Discovery',  path: '/onboarding/interview' },
+  { label: 'Your Goal',  path: '/onboarding/goal' },
+  { label: 'Strategy',   path: '/onboarding/preview' },
+  { label: 'Activate',   path: '/onboarding/activate' },
 ]
 
 export default function OnboardingLayout({
@@ -31,9 +32,9 @@ export default function OnboardingLayout({
     <div className="min-h-screen bg-[#0A0908] flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-8 py-6 border-b border-white/5">
-        <span className="font-display text-xl text-[#F5F1ED]">One Goal</span>
+        <OneGoalLogo size={26} textSize="text-lg" />
 
-        {/* Step indicators — desktop */}
+        {/* Step indicators */}
         <div className="hidden sm:flex items-center gap-2">
           {STEPS.map((step, i) => (
             <div key={step.label} className="flex items-center gap-2">

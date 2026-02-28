@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import OneGoalLogo from '@/components/OneGoalLogo'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -71,8 +72,8 @@ export default function SignupPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-sm"
       >
-        <Link href="/" className="font-display text-2xl text-[#F5F1ED] block mb-10">
-          One Goal
+        <Link href="/" className="block mb-10">
+          <OneGoalLogo size={30} textSize="text-2xl" />
         </Link>
 
         <h1 className="font-display text-3xl text-[#F5F1ED] mb-2">
