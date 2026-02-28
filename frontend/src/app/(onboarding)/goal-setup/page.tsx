@@ -30,7 +30,7 @@ export default function GoalPage() {
         setStage('clarifying')
       } else {
         setStage('done')
-        setTimeout(() => router.push('/onboarding/preview'), 800)
+        setTimeout(() => router.push('preview'), 800)
       }
     } catch (err: any) {
       setError(err.detail || 'Something went wrong. Please try again.')
@@ -45,7 +45,7 @@ export default function GoalPage() {
     try {
       await api.onboarding.clarifyGoal(rawGoal, clarifyAnswers)
       setStage('done')
-      setTimeout(() => router.push('/onboarding/preview'), 800)
+      setTimeout(() => router.push('/preview'), 800)
     } catch (err: any) {
       setError(err.detail || 'Something went wrong.')
       setStage('clarifying')
