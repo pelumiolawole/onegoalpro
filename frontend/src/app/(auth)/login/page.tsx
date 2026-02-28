@@ -27,11 +27,17 @@ export default function LoginPage() {
 
       // Route based on onboarding status
       const step = data.user.onboarding_step
-      if (step < 5) {
-        router.push('/interview')
-      } else {
-        router.push('/dashboard')
-      }
+if (step === 0 || step === 1) {
+  router.push('/interview')
+} else if (step === 2) {
+  router.push('/goal-setup')
+} else if (step === 3) {
+  router.push('/preview')
+} else if (step === 4) {
+  router.push('/activate')
+} else {
+  router.push('/dashboard')
+}
     } catch (err: any) {
       setError(err.detail || 'Login failed. Check your email and password.')
     } finally {

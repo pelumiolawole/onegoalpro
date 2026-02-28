@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const STEPS = [
   { label: 'Discovery' },
-  { label: 'Your Goal' },
+  { label: 'Your Goal', path: '/goal-setup' },
   { label: 'Strategy' },
   { label: 'Activate' },
 ]
