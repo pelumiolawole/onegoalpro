@@ -1,57 +1,67 @@
-# TODO: Fix Login Redirect Routing
+# OneGoal Pro — Current Status
 
-## Issue
-After login, the app checks `onboarding_step` and redirects users who haven't completed onboarding.
-Currently it redirects all incomplete users to `/onboarding` — a route that **does not exist** — causing a 404.
+## ✅ Completed
+- Supabase DB (one-goal-v2) with pgvector
+- All migrations executed
+- Railway backend deployed and running
+- Redis connected
+- OpenAI API key configured
+- Login / signup flow working
+- Interview engine working (SQL CAST fix applied)
+- Interview completes and saves to DB
+- Routing fixed: login now routes by onboarding_step
 
-## Present Error
-- User logs in
-- `onboarding_step < 5` → `router.push('/onboarding')` fires
-- Page 404s because the Next.js route group is `(onboarding)` (parentheses = no URL prefix)
-- Real routes are: `/interview`, `/goal-setup`, `/preview`, `/activate`
+## 🔧 In Progress
+- Login redirect to /onboarding bug
+  - app-layout.tsx and login/page.tsx cleaned up and provided
+  - Awaiting commit + deploy
 
-**File:** `frontend/src/app/(auth)/login/page.tsx` lines 29–33
+## ⏭️ Next Steps (in order)
 
-```typescript
-// CURRENT (BROKEN):
-const step = data.user.onboarding_step
-if (step < 5) {
-  router.push('/onboarding')   // ← does not exist
-} else {
-  router.push('/dashboard')
-}
-```
+### 1. Verify login routing works after deploy
+- Visit onegoalpro.vercel.app
+- Sign in → should land on /goal-setup (your step is 2)
 
-## Fix Required
-Replace the redirect logic with step-aware routing:
+### 2. Test /goal-setup page
+- This is where the user defines their One Goal from interview data
+- Backend endpoint: POST /api/onboarding/goal-setup
+- Check if page loads and goal submission works
 
-```typescript
-// FIXED:
-const step = data.user.onboarding_step
-if (step === 0 || step === 1) {
-  router.push('/interview')
-} else if (step === 2) {
-  router.push('/goal-setup')
-} else if (step === 3) {
-  router.push('/preview')
-} else if (step === 4) {
-  router.push('/activate')
-} else {
-  router.push('/dashboard')
-}
-```
+### 3. Test /preview page
+- Shows the AI-generated strategy
+- Backend endpoint: GET /api/onboarding/goal-setup/preview
 
-## Step → Status Mapping (for reference)
-| Step | onboarding_status     | Route        |
-|------|-----------------------|--------------|
-| 0    | created               | /interview   |
-| 1    | interview_started     | /interview   |
-| 2    | interview_complete    | /goal-setup  |
-| 3    | goal_defined          | /preview     |
-| 4    | strategy_generated    | /activate    |
-| 5    | active                | /dashboard   |
+### 4. Test /activate page
+- Confirms goal and generates first tasks
+- Backend endpoint: POST /api/onboarding/activate
 
-## Also check
-- `src/app/(onboarding)/interview/page.tsx` — post-interview redirect should go to `/goal-setup` not `/onboarding/goal`
-- `src/app/(onboarding)/layout.tsx` — nav path should be `/goal-setup` not `/onboarding/goal`
-- `src/app/(onboarding)/preview/page.tsx` — back-navigation should use `/goal-setup` not `/onboarding/goal`
+### 5. Verify dashboard loads after activation
+- onboarding_step should be 5
+- Tasks, scores, streak should render
+
+## Known Issues
+- "od" display bug on dashboard streak/days (cosmetic, low priority)
+- Interview history still visible but AI returns "I didn't catch that"
+  after completion (expected — interview is done, state is is_complete=true)
+
+## Deployments
+- Frontend: onegoalpro.vercel.app (Vercel)
+- Backend:  onegoalclaude-production.up.railway.app (Railway)
+- Database: Supabase one-goal-v2
+
+## Your Account
+- Email: olawolepelumisunday@gmail.com
+- onboarding_step: 2 (interview_complete → should route to /goal-setup)
+
+## 🐛 Active Bug — Fix in Next Session
+
+**`invalid input syntax for type date: "999"`**
+- Triggered by: `POST /api/onboarding/goal-setup` → "Build my strategy"
+- Error location: `get_user_ai_context` Postgres function, called from `context_builder.py` line 65
+- Cause: A date column is storing "999" (likely AI returning a number instead of a date for estimated_timeline or target_date)
+- Suspect tables: goals.target_date, identity_profiles.last_active_date
+- Fix: Clean bad data in Supabase OR patch the function to handle non-date values safely
+- Diagnose with:
+  SELECT target_date FROM goals WHERE user_id = 'fa5a16ab-e6ed-4217-bffd-73447c22459c';
+  SELECT last_active_date FROM identity_profiles WHERE user_id = 'fa5a16ab-e6ed-4217-bffd-73447c22459c';
+  SELECT * FROM identity_profiles WHERE user_id = 'fa5a16ab-e6ed-4217-bffd-73447c22459c';
