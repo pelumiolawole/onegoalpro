@@ -326,7 +326,7 @@ async def submit_goal(
 
 
 @router.post(
-    "/goal/clarify",
+    "/goal-setup/clarify",
     response_model=GoalDecompositionResponse,
     summary="Answer AI clarifying questions about your goal",
 )
@@ -349,7 +349,7 @@ async def clarify_goal(
 
 
 @router.get(
-    "/goal/preview",
+    "/goal-setup/preview",
     summary="Preview the decomposed goal strategy",
 )
 async def preview_goal_strategy(
@@ -453,7 +453,7 @@ async def preview_goal_strategy(
 
 
 @router.post(
-    "/goal/confirm",
+    "/goal-setup/confirm",
     summary="Confirm goal strategy and advance to activation",
 )
 async def confirm_goal(
