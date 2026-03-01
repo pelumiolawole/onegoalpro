@@ -10,10 +10,10 @@ Onboarding stages and their endpoints:
         POST /onboarding/interview/restart     — start over
 
     Stage 2: Goal Definition
-        POST /onboarding/goal-setup                  — submit raw goal for decomposition
-        POST /onboarding/goal-setup/clarify          — answer AI clarifying questions
-        GET  /onboarding/goal-setup/preview          — preview decomposed strategy before confirming
-        POST /onboarding/goal-setup/confirm          — confirm and activate goal
+        POST /onboarding/goal                  — submit raw goal for decomposition
+        POST /onboarding/goal/clarify          — answer AI clarifying questions
+        GET  /onboarding/goal/preview          — preview decomposed strategy before confirming
+        POST /onboarding/goal/confirm          — confirm and activate goal
 
     Stage 3: Strategy Review
         GET  /onboarding/strategy              — get full generated strategy
@@ -284,7 +284,7 @@ async def restart_interview(
 # ─── Stage 2: Goal Definition ─────────────────────────────────────────────────
 
 @router.post(
-    "/goal",
+    "/goal-setup",
     response_model=GoalDecompositionResponse,
     summary="Submit goal for AI decomposition",
 )
