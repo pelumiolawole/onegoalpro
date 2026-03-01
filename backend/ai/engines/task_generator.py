@@ -165,6 +165,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                     day=i,
                     error=str(e),
                 )
+                await db.rollback()
 
         return tasks
 
@@ -219,7 +220,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                     :date, :task_type,
                     :identity_focus, :title, :description,
                     :execution_guidance, :time_estimate,
-                    :difficulty, TRUE, :gen_context::jsonb
+                    :difficulty, TRUE, CAST(:gen_context AS jsonb)
                 )
                 RETURNING id
             """),
