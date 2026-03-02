@@ -149,6 +149,7 @@ def _register_routers(app: FastAPI) -> None:
     from api.routers.reflections import router as reflections_router
     from api.routers.coach import router as coach_router
     from api.routers.progress import router as progress_router
+    from api.routers.profile import router as profile_router
 
     API_PREFIX = "/api"
 
@@ -159,6 +160,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(reflections_router, prefix=API_PREFIX)
     app.include_router(coach_router,       prefix=API_PREFIX)
     app.include_router(progress_router,    prefix=API_PREFIX)
+    app.include_router(profile_router,     prefix=API_PREFIX)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
@@ -223,4 +225,3 @@ if __name__ == "__main__":
         log_level=settings.log_level.lower(),
         access_log=False,  # We handle request logging in middleware
     )
-    
