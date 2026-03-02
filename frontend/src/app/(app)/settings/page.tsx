@@ -43,7 +43,6 @@ export default function SettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [bioGenerating, setBioGenerating] = useState(false)
   const [bio, setBio] = useState<string | null>(null)
 
   const [shareLoading, setShareLoading] = useState(false)
@@ -80,15 +79,6 @@ export default function SettingsPage() {
     } finally {
       setAvatarUploading(false)
     }
-  }
-
-  async function handleGenerateBio() {
-    setBioGenerating(true)
-    try {
-      const { bio: newBio } = await api.profile.generateBio()
-      setBio(newBio)
-    } catch {}
-    finally { setBioGenerating(false) }
   }
 
   async function handleInvite() {
@@ -169,16 +159,10 @@ export default function SettingsPage() {
 
           {/* Bio */}
           <div className="border-t border-white/5 pt-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">Who you're becoming</p>
-              <button onClick={handleGenerateBio} disabled={bioGenerating} className="text-[#3D3630] hover:text-[#F59E0B] text-xs transition-colors disabled:opacity-40 flex items-center gap-1.5">
-                {bioGenerating ? <Spinner small /> : <RefreshIcon />}
-                {bio ? 'Regenerate' : 'Generate'}
-              </button>
-            </div>
+            <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono mb-3">Who you're becoming</p>
             {bio
               ? <p className="text-[#C4BBB5] text-sm leading-relaxed italic">{bio}</p>
-              : <p className="text-[#3D3630] text-sm">{bioGenerating ? 'Writing your identity statement...' : 'Tap generate to create your identity statement.'}</p>
+              : <p className="text-[#3D3630] text-sm">{profileLoading ? 'Writing your identity statement…' : 'Complete a goal to unlock your identity statement.'}</p>
             }
           </div>
 
@@ -295,9 +279,6 @@ function Spinner({ small }: { small?: boolean }) {
 }
 function CameraIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-}
-function RefreshIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
 }
 function ShareIcon({ dark }: { dark?: boolean }) {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={dark ? '#0A0908' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>

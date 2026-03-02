@@ -262,6 +262,30 @@ async def complete_task(
         {"user_id": uid, "date": row.scheduled_date},
     )
 
+    # Update streak immediately (don't wait for end-of-day scheduler)
+    # Increment streak if not already done today, update days_active
+    await db.execute(
+        text("""
+            UPDATE identity_profiles
+            SET
+                current_streak = CASE
+                    WHEN last_active_date = CURRENT_DATE THEN current_streak  -- already counted today
+                    ELSE current_streak + 1
+                END,
+                longest_streak = CASE
+                    WHEN last_active_date = CURRENT_DATE THEN longest_streak
+                    ELSE GREATEST(longest_streak, current_streak + 1)
+                END,
+                days_active = CASE
+                    WHEN last_active_date = CURRENT_DATE THEN days_active
+                    ELSE days_active + 1
+                END,
+                last_active_date = CURRENT_DATE
+            WHERE user_id = :user_id
+        """),
+        {"user_id": uid},
+    )
+
     # Log engagement
     await _log_engagement(uid, "task_complete", db)
     await invalidate_user_context(uid)

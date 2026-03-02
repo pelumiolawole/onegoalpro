@@ -9,11 +9,9 @@ Profile management endpoints.
     POST /profile/share-message    — AI generates personal invite message + ref link
 """
 
-import io
 import uuid
 from typing import Optional
 
-import httpx
 import structlog
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
@@ -65,14 +63,18 @@ async def get_profile(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return profile data including avatar, bio, and key stats."""
-    # Get days active + streak from identity_profiles
+    """Return profile data including avatar, bio, and key stats.
+
+    Auto-generates bio on first visit (if user has none). Subsequent visits
+    return the saved bio instantly — no user action required.
+    """
+    # Get days active + streak from identity_profiles, use refined_statement not title
     result = await db.execute(
         text("""
             SELECT
                 COALESCE(ip.days_active, 0),
                 COALESCE(ip.current_streak, 0),
-                g.title
+                g.refined_statement
             FROM users u
             LEFT JOIN identity_profiles ip ON ip.user_id = u.id
             LEFT JOIN goals g ON g.user_id = u.id AND g.status = 'active'
@@ -83,15 +85,24 @@ async def get_profile(
     row = result.fetchone()
     days_active = row[0] if row else 0
     current_streak = row[1] if row else 0
-    goal_area = row[2] if row else None
+    goal_statement = row[2] if row else None
 
-    # Get bio from users table (stored after generation)
+    # Get saved bio
     bio_result = await db.execute(
         text("SELECT bio FROM users WHERE id = :user_id"),
         {"user_id": str(current_user.id)},
     )
     bio_row = bio_result.fetchone()
     bio = bio_row[0] if bio_row else None
+
+    # Auto-generate bio if user has none yet (saves it so next visit is instant)
+    if not bio and goal_statement:
+        try:
+            bio = await _generate_bio_for_user(current_user.id, db)
+        except Exception as e:
+            logger.warning("auto_bio_failed", error=str(e))
+
+    goal_area = _extract_goal_area(goal_statement)
 
     return ProfileResponse(
         user_id=str(current_user.id),
@@ -101,7 +112,7 @@ async def get_profile(
         bio=bio,
         days_active=days_active,
         current_streak=current_streak,
-        goal_area=goal_area,
+        goal_area=goal_area if goal_statement else None,
     )
 
 
@@ -111,16 +122,16 @@ async def upload_avatar(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload profile photo to Supabase Storage and save URL to user record."""
-
-    # Validate type
+    """
+    Upload profile photo to Supabase Storage using supabase-py.
+    Using the SDK avoids the signature verification issue with raw httpx calls.
+    """
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File type {file.content_type} not allowed. Use JPEG, PNG, or WebP.",
         )
 
-    # Read and validate size
     contents = await file.read()
     if len(contents) > MAX_IMAGE_BYTES:
         raise HTTPException(
@@ -128,41 +139,31 @@ async def upload_avatar(
             detail="File too large. Maximum size is 5MB.",
         )
 
-    # Build storage path: avatars/{user_id}/{uuid}.{ext}
     ext = file.content_type.split("/")[1]
     if ext == "jpeg":
         ext = "jpg"
     object_path = f"{current_user.id}/{uuid.uuid4()}.{ext}"
-    bucket_name = "avatars"
 
-    # Upload to Supabase Storage via REST API
-    # URL format: /storage/v1/object/{bucket}/{object_path}
-    storage_url = f"{settings.supabase_url}/storage/v1/object/{bucket_name}/{object_path}"
+    try:
+        from supabase import create_client
+        supabase_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            storage_url,
-            content=contents,
-            headers={
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
-                "Content-Type": file.content_type,
-                "x-upsert": "true",
-            },
+        supabase_client.storage.from_("avatars").upload(
+            path=object_path,
+            file=contents,
+            file_options={"content-type": file.content_type, "upsert": "true"},
         )
 
-    if response.status_code not in (200, 201):
-        logger.error("avatar_upload_failed", status=response.status_code, body=response.text)
+        public_url = supabase_client.storage.from_("avatars").get_public_url(object_path)
+
+    except Exception as e:
+        logger.error("avatar_upload_failed", error=str(e), user_id=str(current_user.id))
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to upload image. Please try again.",
+            detail=f"Failed to upload image. Please try again.",
         )
 
-    # Build public URL
-    public_url = (
-        f"{settings.supabase_url}/storage/v1/object/public/{bucket_name}/{object_path}"
-    )
-
-    # Save to users table
+    # Save public URL to user record
     await db.execute(
         text("UPDATE users SET avatar_url = :url WHERE id = :user_id"),
         {"url": public_url, "user_id": str(current_user.id)},
@@ -179,63 +180,18 @@ async def generate_bio(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    AI generates a 2-line 'who you're becoming' bio
-    based on interview data and goal. Saves to users table.
+    Generates (or regenerates) the who-you're-becoming bio.
+    Called automatically by GET /profile when bio is null.
+    No user-facing button — runs silently in the background.
     """
     try:
-        context = await context_builder.get_context(current_user.id, db)
-    except ValueError:
+        bio = await _generate_bio_for_user(current_user.id, db)
+        return BioResponse(bio=bio)
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No profile context found. Complete onboarding first.",
         )
-
-    # Pull relevant context
-    identity = context.get("identity", {})
-    goal = context.get("goal", {})
-    scores = context.get("scores", {})
-
-    life_direction = identity.get("life_direction", "")
-    vision = identity.get("personal_vision", "")
-    goal_statement = goal.get("statement", "")
-    required_identity = goal.get("required_identity", "")
-    transformation_score = scores.get("transformation", 0)
-
-    prompt = f"""You write ultra-concise identity statements for people on transformation journeys.
-
-USER CONTEXT:
-- Life direction: {life_direction}
-- Vision: {vision}
-- Their one goal: {goal_statement}
-- The identity they're building: {required_identity}
-- Transformation progress: {transformation_score}/100
-
-TASK:
-Write exactly 2 lines that capture WHO THIS PERSON IS BECOMING — not what they do, not their job title, not their current state.
-
-Think of it like a compass statement. It should feel aspirational but grounded. Personal but not overly specific. Like something they'd want to read every day.
-
-RULES:
-- Exactly 2 lines
-- No quotation marks
-- No "I am" or "I will" — use present-tense identity language ("Someone who..." or "A person who..." or similar)
-- No corporate jargon
-- No emojis
-- Make it feel earned, not generic
-
-OUTPUT: Just the 2 lines. Nothing else."""
-
-    bio = await _call_openai(prompt, max_tokens=120)
-
-    # Save bio
-    await db.execute(
-        text("UPDATE users SET bio = :bio WHERE id = :user_id"),
-        {"bio": bio, "user_id": str(current_user.id)},
-    )
-    await db.commit()
-
-    logger.info("bio_generated", user_id=str(current_user.id))
-    return BioResponse(bio=bio)
 
 
 @router.post("/share-message", response_model=ShareMessageResponse)
@@ -323,6 +279,59 @@ async def _call_openai(prompt: str, max_tokens: int = 200) -> str:
         temperature=0.85,
     )
     return response.choices[0].message.content.strip()
+
+
+async def _generate_bio_for_user(user_id, db: AsyncSession) -> str:
+    """
+    Shared bio generation logic used by GET /profile (auto) and POST /bio/generate (manual refresh).
+    Saves the result to users.bio and returns the bio string.
+    """
+    context = await context_builder.get_context(user_id, db)
+
+    identity = context.get("identity", {})
+    goal = context.get("goal", {})
+    scores = context.get("scores", {})
+
+    life_direction = identity.get("life_direction", "")
+    vision = identity.get("personal_vision", "")
+    goal_statement = goal.get("statement", "")
+    required_identity = goal.get("required_identity", "")
+    transformation_score = scores.get("transformation", 0)
+
+    prompt = f"""You write ultra-concise identity statements for people on transformation journeys.
+
+USER CONTEXT:
+- Life direction: {life_direction}
+- Vision: {vision}
+- Their one goal: {goal_statement}
+- The identity they're building: {required_identity}
+- Transformation progress: {transformation_score}/100
+
+TASK:
+Write exactly 2 lines that capture WHO THIS PERSON IS BECOMING — not what they do, not their job title, not their current state.
+
+Think of it like a compass statement. It should feel aspirational but grounded. Personal but not overly specific. Like something they'd want to read every day.
+
+RULES:
+- Exactly 2 lines
+- No quotation marks
+- No "I am" or "I will" — use present-tense identity language ("Someone who..." or "A person who..." or similar)
+- No corporate jargon
+- No emojis
+- Make it feel earned, not generic
+
+OUTPUT: Just the 2 lines. Nothing else."""
+
+    bio = await _call_openai(prompt, max_tokens=120)
+
+    await db.execute(
+        text("UPDATE users SET bio = :bio WHERE id = :user_id"),
+        {"bio": bio, "user_id": str(user_id)},
+    )
+    await db.commit()
+
+    logger.info("bio_generated", user_id=str(user_id))
+    return bio
 
 
 def _extract_goal_area(goal_title: Optional[str]) -> str:
