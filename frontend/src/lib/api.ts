@@ -235,22 +235,22 @@ class ApiClient {
         needs_clarification: boolean
         clarifying_questions: string[]
         strategy: any | null
-      }>('/onboarding/goal-setup', {
+      }>('/onboarding/goal', {
         method: 'POST',
         body: JSON.stringify({ raw_goal }),
       }),
 
     clarifyGoal: (raw_goal: string, answers: string) =>
-      this.request<any>('/onboarding/goal-setup/clarify', {
+      this.request<any>('/onboarding/goal/clarify', {
         method: 'POST',
         body: JSON.stringify({ raw_goal, answers }),
       }),
 
     previewStrategy: () =>
-      this.request<any>('/onboarding/goal-setup/preview'),
+      this.request<any>('/onboarding/goal/preview'),
 
     confirmGoal: () =>
-      this.request<{ status: string }>('/onboarding/goal-setup/confirm', { method: 'POST' }),
+      this.request<{ status: string }>('/onboarding/goal/confirm', { method: 'POST' }),
 
     activate: () =>
       this.request<{ status: string; message: string; tasks_generated: number }>('/onboarding/activate', { method: 'POST' }),
@@ -358,6 +358,46 @@ class ApiClient {
 
     getStreak: () =>
       this.request<any>('/progress/streak'),
+  }
+
+  // ── Profile ──────────────────────────────────────────────────
+
+  profile = {
+    get: () =>
+      this.request<{
+        user_id: string
+        display_name: string | null
+        email: string
+        avatar_url: string | null
+        bio: string | null
+        days_active: number
+        current_streak: number
+        goal_area: string | null
+      }>('/profile'),
+
+    uploadAvatar: (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const token = this.getToken()
+      return fetch(`${BASE_URL}/profile/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      }).then(res => {
+        if (!res.ok) throw new Error('Upload failed')
+        return res.json() as Promise<{ avatar_url: string }>
+      })
+    },
+
+    generateBio: () =>
+      this.request<{ bio: string }>('/profile/bio/generate', { method: 'POST' }),
+
+    generateShareMessage: () =>
+      this.request<{
+        message: string
+        share_url: string
+        full_text: string
+      }>('/profile/share-message', { method: 'POST' }),
   }
 }
 
