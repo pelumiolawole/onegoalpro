@@ -118,7 +118,7 @@ class MemoryRetrieval(BaseAIEngine):
         embedding_str = f"[{','.join(str(v) for v in query_embedding)}]"
 
         result = await db.execute(
-            text("""
+            text(f"""
                 SELECT
                     r.id,
                     r.reflection_date,
@@ -129,15 +129,14 @@ class MemoryRetrieval(BaseAIEngine):
                     r.ai_insight,
                     r.resistance_detected,
                     r.breakthrough_detected,
-                    1 - (r.content_embedding <=> :embedding::vector) AS similarity
+                    1 - (r.content_embedding <=> '{embedding_str}'::vector) AS similarity
                 FROM reflections r
                 WHERE r.user_id = :user_id
                   AND r.content_embedding IS NOT NULL
-                ORDER BY r.content_embedding <=> :embedding::vector
+                ORDER BY r.content_embedding <=> '{embedding_str}'::vector
                 LIMIT :limit
             """),
             {
-                "embedding": embedding_str,
                 "user_id": str(user_id),
                 "limit": limit,
             },
@@ -175,7 +174,7 @@ class MemoryRetrieval(BaseAIEngine):
         embedding_str = f"[{','.join(str(v) for v in query_embedding)}]"
 
         result = await db.execute(
-            text("""
+            text(f"""
                 WITH ranked_messages AS (
                     SELECT
                         m.id,
@@ -183,7 +182,7 @@ class MemoryRetrieval(BaseAIEngine):
                         m.content,
                         m.role,
                         m.created_at,
-                        1 - (m.content_embedding <=> :embedding::vector) AS similarity,
+                        1 - (m.content_embedding <=> '{embedding_str}'::vector) AS similarity,
                         LEAD(m.content) OVER (
                             PARTITION BY m.session_id
                             ORDER BY m.created_at
@@ -192,13 +191,12 @@ class MemoryRetrieval(BaseAIEngine):
                     WHERE m.user_id = :user_id
                       AND m.role = 'user'
                       AND m.content_embedding IS NOT NULL
-                    ORDER BY m.content_embedding <=> :embedding::vector
+                    ORDER BY m.content_embedding <=> '{embedding_str}'::vector
                     LIMIT :limit
                 )
                 SELECT * FROM ranked_messages WHERE similarity > 0.75
             """),
             {
-                "embedding": embedding_str,
                 "user_id": str(user_id),
                 "limit": limit,
             },
