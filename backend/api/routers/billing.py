@@ -1,19 +1,23 @@
 """
 api/routers/billing.py
 
-Billing endpoints for subscriptions and checkout.
+Stripe billing endpoints for subscription management.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies.auth import get_current_user
 from core.database import get_db
+from core.security import get_current_user
 from db.models.user import User
-from services.billing import billing_service, STRIPE_PUBLISHABLE_KEY
+from services.billing import billing_service
 
-router = APIRouter(prefix="/billing", tags=["Billing"])
+router = APIRouter(prefix="/billing", tags=["billing"])
+
+
+# Frontend URL - update this to match your deployment
+FRONTEND_URL = "https://onegoalpro.vercel.app"
 
 
 class CheckoutRequest(BaseModel):
@@ -21,45 +25,15 @@ class CheckoutRequest(BaseModel):
     billing_cycle: str = Field(..., pattern="^(monthly|annual)$")
 
 
-class CheckoutResponse(BaseModel):
-    session_id: str
-    url: str
-
-
-@router.get("/config")
-async def get_stripe_config():
-    """Get Stripe publishable key for frontend."""
-    return {
-        "publishable_key": STRIPE_PUBLISHABLE_KEY,
-        "prices": {
-            "forge_monthly": "$3.99",
-            "forge_annual": "$2.99",
-            "identity_monthly": "$8.99",
-            "identity_annual": "$6.99",
-        }
-    }
-
-
-@router.post("/checkout", response_model=CheckoutResponse)
+@router.post("/checkout")
 async def create_checkout(
     request: CheckoutRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
-    """Create Stripe Checkout session for subscription."""
+    """Create Stripe checkout session."""
     
-    # Prevent duplicate subscriptions
-    if current_user.subscription_plan in ["forge", "identity"]:
-        if current_user.subscription_status == "active":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Already has active subscription. Use customer portal to manage.",
-            )
-    
-    # Build URLs
-    base_url = "https://onegoalpro.vercel.app"  # Update with your domain
-    success_url = f"{base_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{base_url}/billing/cancel"
+    success_url = f"{FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{FRONTEND_URL}/billing/cancel"
     
     result = await billing_service.create_checkout_session(
         user_id=str(current_user.id),
@@ -70,30 +44,104 @@ async def create_checkout(
         cancel_url=cancel_url,
     )
     
-    return CheckoutResponse(**result)
+    return result
 
 
 @router.post("/portal")
-async def create_portal_session(
+async def create_portal(
     current_user: User = Depends(get_current_user),
 ):
-    """Create Stripe Customer Portal session to manage subscription."""
+    """Create Stripe customer portal session."""
     
     if not current_user.stripe_customer_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No subscription found",
+            status_code=400,
+            detail="No Stripe customer found"
         )
-    
-    base_url = "https://onegoalpro.vercel.app"
     
     result = await billing_service.create_customer_portal_session(
         user_id=str(current_user.id),
         stripe_customer_id=current_user.stripe_customer_id,
-        return_url=f"{base_url}/settings/billing",
+        return_url=f"{FRONTEND_URL}/settings/subscription",
     )
     
     return result
+
+
+@router.get("/subscription")
+async def get_subscription(
+    current_user: User = Depends(get_current_user),
+):
+    """Get current user's subscription details."""
+    
+    return {
+        "plan": current_user.subscription_plan,
+        "status": current_user.subscription_status,
+        "current_period_start": current_user.current_period_start.isoformat() if current_user.current_period_start else None,
+        "current_period_end": current_user.current_period_end.isoformat() if current_user.current_period_end else None,
+        "stripe_customer_id": current_user.stripe_customer_id,
+        "stripe_subscription_id": current_user.stripe_subscription_id,
+    }
+
+
+@router.post("/cancel-subscription")
+async def cancel_subscription(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel subscription at period end."""
+    
+    if not current_user.stripe_subscription_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No active subscription found"
+        )
+    
+    success = await billing_service.cancel_subscription(
+        subscription_id=current_user.stripe_subscription_id,
+        db=db,
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to cancel subscription"
+        )
+    
+    return {
+        "status": "canceling",
+        "message": "Your subscription will cancel at the end of this billing period. You'll keep access until then."
+    }
+
+
+@router.post("/reactivate-subscription")
+async def reactivate_subscription(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reactivate a subscription scheduled to cancel."""
+    
+    if not current_user.stripe_subscription_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No subscription found"
+        )
+    
+    success = await billing_service.reactivate_subscription(
+        subscription_id=current_user.stripe_subscription_id,
+        db=db,
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to reactivate subscription"
+        )
+    
+    return {
+        "status": "active",
+        "message": "Your subscription has been reactivated."
+    }
 
 
 @router.post("/webhook")
@@ -121,22 +169,3 @@ async def stripe_webhook(
         )
     
     return {"status": "success"}
-
-
-@router.get("/status")
-async def get_subscription_status(
-    current_user: User = Depends(get_current_user),
-):
-    """Get current user's subscription status."""
-    
-    return {
-        "plan": current_user.subscription_plan or "spark",
-        "status": current_user.subscription_status or "inactive",
-        "period_start": current_user.current_period_start,
-        "period_end": current_user.current_period_end,
-        "features": {
-            "coach_messages": "unlimited" if current_user.subscription_plan in ["forge", "identity"] else "5/day",
-            "weekly_reviews": current_user.subscription_plan in ["forge", "identity"],
-            "priority_support": current_user.subscription_plan == "identity",
-        }
-    }

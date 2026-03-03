@@ -58,8 +58,8 @@ class BillingService:
         self,
         user_id: str,
         user_email: str,
-        plan: str,  # "forge" or "identity"
-        billing_cycle: str,  # "monthly" or "annual"
+        plan: str,
+        billing_cycle: str,
         success_url: str,
         cancel_url: str,
     ) -> dict:
@@ -72,10 +72,8 @@ class BillingService:
             raise ValueError(f"Invalid plan or billing cycle: {price_key}")
 
         try:
-            # Create or get Stripe customer
             customer = await self._get_or_create_customer(user_id, user_email)
             
-            # Create checkout session
             session = self.stripe.checkout.Session.create(
                 customer=customer["id"],
                 payment_method_types=["card"],
@@ -134,6 +132,68 @@ class BillingService:
             logger.error("portal_session_error", user_id=user_id, error=str(e))
             raise
 
+    async def cancel_subscription(
+        self,
+        subscription_id: str,
+        db: AsyncSession,
+    ) -> bool:
+        """Cancel subscription at period end."""
+        
+        try:
+            self.stripe.Subscription.modify(
+                subscription_id,
+                cancel_at_period_end=True
+            )
+            
+            await db.execute(
+                text("""
+                    UPDATE users 
+                    SET subscription_status = 'canceling',
+                        subscription_updated_at = NOW()
+                    WHERE stripe_subscription_id = :subscription_id
+                """),
+                {"subscription_id": subscription_id}
+            )
+            await db.commit()
+            
+            logger.info("subscription_cancel_scheduled", subscription_id=subscription_id)
+            return True
+            
+        except stripe.error.StripeError as e:
+            logger.error("cancel_subscription_error", error=str(e))
+            return False
+
+    async def reactivate_subscription(
+        self,
+        subscription_id: str,
+        db: AsyncSession,
+    ) -> bool:
+        """Reactivate a subscription that was scheduled to cancel."""
+        
+        try:
+            self.stripe.Subscription.modify(
+                subscription_id,
+                cancel_at_period_end=False
+            )
+            
+            await db.execute(
+                text("""
+                    UPDATE users 
+                    SET subscription_status = 'active',
+                        subscription_updated_at = NOW()
+                    WHERE stripe_subscription_id = :subscription_id
+                """),
+                {"subscription_id": subscription_id}
+            )
+            await db.commit()
+            
+            logger.info("subscription_reactivated", subscription_id=subscription_id)
+            return True
+            
+        except stripe.error.StripeError as e:
+            logger.error("reactivate_subscription_error", error=str(e))
+            return False
+
     async def handle_webhook(
         self,
         payload: bytes,
@@ -158,20 +218,17 @@ class BillingService:
         
         logger.info("stripe_webhook_received", type=event_type)
 
-        if event_type == "checkout.session.completed":
-            await self._handle_subscription_created(data, db)
-        
-        elif event_type == "invoice.paid":
-            await self._handle_invoice_paid(data, db)
-        
-        elif event_type == "invoice.payment_failed":
-            await self._handle_payment_failed(data, db)
-        
-        elif event_type == "customer.subscription.deleted":
-            await self._handle_subscription_cancelled(data, db)
-        
-        elif event_type == "customer.subscription.updated":
-            await self._handle_subscription_updated(data, db)
+        handlers = {
+            "checkout.session.completed": self._handle_subscription_created,
+            "invoice.paid": self._handle_invoice_paid,
+            "invoice.payment_failed": self._handle_payment_failed,
+            "customer.subscription.deleted": self._handle_subscription_cancelled,
+            "customer.subscription.updated": self._handle_subscription_updated,
+        }
+
+        handler = handlers.get(event_type)
+        if handler:
+            await handler(data, db)
 
         return True
 
@@ -182,12 +239,10 @@ class BillingService:
     ) -> dict:
         """Get existing Stripe customer or create new one."""
         
-        # Search for existing customer by email
         customers = self.stripe.Customer.list(email=email, limit=1)
         
         if customers.data:
             customer = customers.data[0]
-            # Update metadata if needed
             if customer.metadata.get("user_id") != user_id:
                 customer = self.stripe.Customer.modify(
                     customer.id,
@@ -195,7 +250,6 @@ class BillingService:
                 )
             return customer
         
-        # Create new customer
         return self.stripe.Customer.create(
             email=email,
             metadata={"user_id": user_id},
@@ -215,11 +269,9 @@ class BillingService:
             logger.error("checkout_missing_metadata", session_id=session.get("id"))
             return
 
-        # Get subscription details
         subscription_id = session.get("subscription")
         subscription = self.stripe.Subscription.retrieve(subscription_id)
         
-        # Update user record
         await db.execute(
             text("""
                 UPDATE users
@@ -236,13 +288,14 @@ class BillingService:
             {
                 "user_id": user_id,
                 "plan": plan,
-                "status": subscription.status,  # active, trialing, etc.
+                "status": subscription.status,
                 "customer_id": session.get("customer"),
                 "subscription_id": subscription_id,
                 "period_start": datetime.fromtimestamp(subscription.current_period_start),
                 "period_end": datetime.fromtimestamp(subscription.current_period_end),
             },
         )
+        await db.commit()
         
         logger.info("subscription_activated", user_id=user_id, plan=plan)
 
@@ -253,7 +306,6 @@ class BillingService:
         if not subscription_id:
             return
         
-        # Update period dates
         subscription = self.stripe.Subscription.retrieve(subscription_id)
         
         await db.execute(
@@ -272,6 +324,7 @@ class BillingService:
                 "period_end": datetime.fromtimestamp(subscription.current_period_end),
             },
         )
+        await db.commit()
         
         logger.info("subscription_renewed", subscription_id=subscription_id)
 
@@ -279,6 +332,8 @@ class BillingService:
         """Handle failed payment — mark for retry."""
         
         subscription_id = invoice.get("subscription")
+        if not subscription_id:
+            return
         
         await db.execute(
             text("""
@@ -288,6 +343,7 @@ class BillingService:
             """),
             {"subscription_id": subscription_id},
         )
+        await db.commit()
         
         logger.warning("payment_failed", subscription_id=subscription_id)
 
@@ -299,6 +355,8 @@ class BillingService:
         """Handle subscription cancellation (end of period)."""
         
         subscription_id = subscription.get("id")
+        if not subscription_id:
+            return
         
         await db.execute(
             text("""
@@ -311,6 +369,7 @@ class BillingService:
             """),
             {"subscription_id": subscription_id},
         )
+        await db.commit()
         
         logger.info("subscription_cancelled", subscription_id=subscription_id)
 
@@ -323,6 +382,9 @@ class BillingService:
         
         subscription_id = subscription.get("id")
         status = subscription.get("status")
+        
+        if not subscription_id:
+            return
         
         await db.execute(
             text("""
@@ -337,6 +399,7 @@ class BillingService:
                 "status": status,
             },
         )
+        await db.commit()
         
         logger.info("subscription_updated", subscription_id=subscription_id, status=status)
 

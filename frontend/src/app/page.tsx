@@ -203,6 +203,7 @@ export default function LandingPage() {
     else router.replace('/dashboard')
   }, [isAuthenticated, user])
 
+  // ── UPDATED PRICING ─────────────────────────────────────
   const PLANS = {
     monthly: [
       {
@@ -224,7 +225,7 @@ export default function LandingPage() {
       {
         name: 'The Forge',
         tagline: 'For people who want results.',
-        price: '$3.99',
+        price: '$4.99',
         period: '/month',
         features: [
           'Everything in The Spark',
@@ -240,7 +241,7 @@ export default function LandingPage() {
       {
         name: 'The Identity',
         tagline: 'Maximum discipline. No excuses.',
-        price: '$8.99',
+        price: '$10.99',
         period: '/month',
         features: [
           'Everything in The Forge',
@@ -274,9 +275,10 @@ export default function LandingPage() {
       {
         name: 'The Forge',
         tagline: 'For people who want results.',
-        price: '$2.99',
+        price: '$3.99',
         period: '/month',
-        savings: 'Save 25%',
+        annualPrice: '$47.88',
+        savings: 'Save 20%',
         features: [
           'Everything in The Spark',
           'Unlimited AI Coach',
@@ -291,9 +293,10 @@ export default function LandingPage() {
       {
         name: 'The Identity',
         tagline: 'Maximum discipline. No excuses.',
-        price: '$6.99',
+        price: '$8.99',
         period: '/month',
-        savings: 'Save 22%',
+        annualPrice: '$107.88',
+        savings: 'Save 18%',
         features: [
           'Everything in The Forge',
           'Re-interview anytime',
@@ -643,7 +646,7 @@ export default function LandingPage() {
               >
                 Annual
                 <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#0A0908]/20' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
-                  Save 25%
+                  Save up to 20%
                 </span>
               </button>
             </div>
@@ -678,10 +681,19 @@ export default function LandingPage() {
                   <div className="mb-6">
                     <h3 className="font-display text-xl text-[#F5F1ED] mb-1">{plan.name}</h3>
                     <p className="text-[#5C524A] text-sm mb-4">{plan.tagline}</p>
+                    
+                    {/* Price display */}
                     <div className="flex items-baseline gap-1">
                       <span className="font-display text-4xl text-[#F5F1ED]">{plan.price}</span>
                       <span className="text-[#5C524A] text-sm">{plan.period}</span>
                     </div>
+                    
+                    {/* Annual billing info */}
+                    {'annualPrice' in plan && plan.annualPrice && (
+                      <p className="mt-2 text-sm text-[#7A6E65]">
+                        Billed as {plan.annualPrice}/year
+                      </p>
+                    )}
                   </div>
 
                   <ul className="space-y-3 mb-8 flex-1">
