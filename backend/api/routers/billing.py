@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from core.security import get_current_user
+from api.dependencies.auth import get_current_user
 from db.models.user import User
 from services.billing import billing_service
 
