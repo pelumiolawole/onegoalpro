@@ -176,6 +176,85 @@ async def run_nightly_task_generation() -> None:
         await release_lock("nightly_task_generation")
 
 
-# [Other functions remain the same...]
-# run_score_updates, run_weekly_review_generation, 
-# run_intervention_check, run_behavioral_snapshots
+async def run_score_updates() -> None:
+    """Update transformation scores for all active users."""
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("score_updates", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            result = await db.execute(text("""
+                SELECT id FROM users
+                WHERE is_active = TRUE
+                  AND onboarding_status = 'active'
+            """))
+            user_ids = [str(row[0]) for row in result.fetchall()]
+
+            for user_id in user_ids:
+                try:
+                    await db.execute(
+                        text("SELECT update_user_scores(:user_id)"),
+                        {"user_id": user_id},
+                    )
+                    # Also check if intervention is needed
+                    await db.execute(
+                        text("SELECT check_momentum_and_queue_intervention(:user_id)"),
+                        {"user_id": user_id},
+                    )
+                except Exception as e:
+                    logger.error("score_update_failed", user_id=user_id, error=str(e))
+
+        logger.info("score_updates_complete", user_count=len(user_ids))
+
+    finally:
+        await release_lock("score_updates")
+
+
+async def run_weekly_review_generation() -> None:
+    """
+    Generate weekly evolution letters for all active users.
+    Runs Monday 2am UTC.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("weekly_review_generation", ttl_seconds=7200)
+    if not lock_acquired:
+        logger.warning("weekly_review_lock_not_acquired")
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+            from ai.engines.reflection_analyzer import WeeklyReviewEngine
+
+            # Find users who need a weekly review for the current week
+            # (Monday morning, looking back at previous week)
+            result = await db.execute(text("""
+                SELECT u.id 
+                FROM users u
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM weekly_reviews wr
+                    WHERE wr.user_id = u.id
+                      AND wr.week_start_date = date_trunc('week', CURRENT_DATE - INTERVAL '7 days')::DATE
+                  )
+            """))
+            user_ids = [str(row[0]) for row in result.fetchall()]
+
+        if not user_ids:
+            logger.info("no_users_need_weekly_review")
+            return
+
+        logger.info("weekly_review_started", user_count=len(user_ids))
+
+        engine = WeeklyReviewEngine()
+        success_count = 0
+        error_count =
