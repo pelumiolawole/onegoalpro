@@ -151,6 +151,7 @@ def _register_routers(app: FastAPI) -> None:
     from api.routers.progress import router as progress_router
     from api.routers.profile import router as profile_router
     from api.routers.admin import router as admin_router  # NEW
+    from api.routers.settings import router as settings_router  # NEW
 
     API_PREFIX = "/api"
 
@@ -163,6 +164,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(progress_router,    prefix=API_PREFIX)
     app.include_router(profile_router,     prefix=API_PREFIX)
     app.include_router(admin_router,       prefix=API_PREFIX)  # NEW
+    app.include_router(settings_router, prefix=API_PREFIX)  # NEW
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

@@ -87,6 +87,17 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
+    # ── Job 6: Data purge (daily) ────────────────────────────────────
+    scheduler.add_job(
+        func=run_data_purge,
+        trigger=CronTrigger(hour=3, minute=0),  # 3am UTC daily
+        id="data_purge",
+        name="Permanently delete accounts past grace period",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
     return scheduler
@@ -258,3 +269,92 @@ async def run_weekly_review_generation() -> None:
         engine = WeeklyReviewEngine()
         success_count = 0
         error_count =
+
+async def run_data_purge() -> None:
+    """Permanently delete user data after grace period."""
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("data_purge", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            # Get users ready for purge
+            result = await db.execute(
+                text("""
+                    SELECT id, email
+                    FROM users
+                    WHERE deletion_scheduled_at IS NOT NULL
+                      AND deletion_scheduled_at <= NOW()
+                    LIMIT 100
+                """)
+            )
+            users_to_purge = result.fetchall()
+
+            if not users_to_purge:
+                logger.info("no_users_to_purge")
+                return
+
+            purged_count = 0
+            for user_id, email in users_to_purge:
+                try:
+                    # Anonymize all personal data
+                    await db.execute(
+                        text("""
+                            UPDATE users
+                            SET 
+                                email = CONCAT('deleted.', MD5(id::text), '@deleted.onegoal.pro'),
+                                display_name = NULL,
+                                hashed_password = 'DELETED',
+                                avatar_url = NULL,
+                                timezone = 'UTC',
+                                locale = 'en',
+                                is_active = FALSE,
+                                deletion_scheduled_at = NULL,
+                                deletion_completed_at = NOW()
+                            WHERE id = :user_id
+                        """),
+                        {"user_id": str(user_id)},
+                    )
+
+                    # Delete sensitive related data
+                    await db.execute(
+                        text("""
+                            DELETE FROM ai_coach_messages 
+                            WHERE user_id = :user_id
+                        """),
+                        {"user_id": str(user_id)},
+                    )
+
+                    await db.execute(
+                        text("""
+                            DELETE FROM onboarding_interview_state 
+                            WHERE user_id = :user_id
+                        """),
+                        {"user_id": str(user_id)},
+                    )
+
+                    # Note: We keep aggregated metrics but anonymize them
+                    await db.execute(
+                        text("""
+                            UPDATE progress_metrics
+                            SET user_id = '00000000-0000-0000-0000-000000000000'
+                            WHERE user_id = :user_id
+                        """),
+                        {"user_id": str(user_id)},
+                    )
+
+                    purged_count += 1
+                    logger.info("user_data_purged", user_id=str(user_id), original_email=email)
+
+                except Exception as e:
+                    logger.error("user_purge_failed", user_id=str(user_id), error=str(e))
+
+            logger.info("data_purge_complete", purged_count=purged_count, total_found=len(users_to_purge))
+
+    finally:
+        await release_lock("data_purge")
