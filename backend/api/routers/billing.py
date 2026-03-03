@@ -17,8 +17,8 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 
 
 class CheckoutRequest(BaseModel):
-    plan: str = Field(..., regex="^(forge|identity)$")
-    billing_cycle: str = Field(..., regex="^(monthly|annual)$")
+    plan: str = Field(..., pattern="^(forge|identity)$")
+    billing_cycle: str = Field(..., pattern="^(monthly|annual)$")
 
 
 class CheckoutResponse(BaseModel):
