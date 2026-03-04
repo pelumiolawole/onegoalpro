@@ -127,7 +127,7 @@ export default function SettingsPage() {
     }
   }
 
-  const planInfo = getPlanDisplay(subscription?.plan)
+  const planInfo = getPlanDisplay(subscription?.plan ?? null)
 
   if (loading) {
     return (
