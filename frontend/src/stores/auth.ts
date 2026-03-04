@@ -13,6 +13,7 @@ interface AuthState {
 
   setAuth: (data: TokenResponse) => void
   clearAuth: () => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -33,6 +34,18 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         set({ user: null, isAuthenticated: false })
+      },
+
+      logout: async () => {
+        try {
+          await api.auth.logout()
+        } catch (err) {
+          console.log('Logout API call failed, clearing locally')
+        } finally {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          set({ user: null, isAuthenticated: false })
+        }
       },
 
       refreshUser: async () => {
