@@ -12,6 +12,12 @@ interface Subscription {
   stripe_subscription_id: string | null;
 }
 
+interface PlanDetails {
+  name: string;
+  price: string;
+  color: string;
+}
+
 export default function SubscriptionSettingsPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,13 +115,16 @@ export default function SubscriptionSettingsPage() {
     );
   }
 
-  const planDetails = {
+  const planDetails: Record<string, PlanDetails> = {
     spark: { name: 'Spark', price: 'Free', color: 'bg-gray-100 text-gray-800' },
     forge: { name: 'The Forge', price: '$4.99/month', color: 'bg-indigo-100 text-indigo-800' },
     identity: { name: 'The Identity', price: '$10.99/month', color: 'bg-purple-100 text-purple-800' }
   };
 
-  const currentPlan = planDetails[subscription?.plan as keyof typeof planDetails] || planDetails.spark;
+  // Safe lookup with fallback to spark
+  const currentPlan = subscription?.plan 
+    ? planDetails[subscription.plan] || planDetails.spark 
+    : planDetails.spark;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -147,7 +156,7 @@ export default function SubscriptionSettingsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
-              <p className="font-medium capitalize text-gray-900">{subscription?.status}</p>
+              <p className="font-medium capitalize text-gray-900">{subscription?.status || 'Unknown'}</p>
             </div>
           </div>
 
