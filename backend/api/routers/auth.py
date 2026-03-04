@@ -2,8 +2,8 @@
 api/routers/auth.py
 
 Authentication endpoints:
-    POST /auth/signup          — Email/password registration
-    POST /auth/login           — Email/password login
+    POST /auth/signup          — Email/password registration (NOW REQUIRES VERIFICATION)
+    POST /auth/login           — Email/password login (NOW REQUIRES VERIFIED EMAIL)
     POST /auth/oauth/callback  — Google/Apple OAuth callback
     POST /auth/refresh         — Refresh access token
     POST /auth/logout          — Revoke session
@@ -11,6 +11,8 @@ Authentication endpoints:
     POST /auth/reset-password  — Complete password reset
     GET  /auth/me              — Get current user
     PUT  /auth/me              — Update profile
+    GET  /auth/verify-email    — NEW: Verify email with token
+    POST /auth/resend-verification — NEW: Resend verification email
 """
 
 from datetime import datetime, timedelta, timezone
@@ -76,7 +78,7 @@ def _build_token_response(user: User) -> TokenResponse:
     )
 
 
-# ─── Email/Password Signup ────────────────────────────────────────────────────
+# ─── Email/Password Signup (MODIFIED FOR VERIFICATION) ─────────────────────────
 
 @router.post(
     "/signup",
@@ -91,8 +93,7 @@ async def signup(
 ) -> TokenResponse:
     """
     Create a new account with email and password.
-    Automatically creates identity_profile and onboarding_state
-    via database triggers (see migration 001).
+    User must verify email before they can log in.
     """
     # Check for existing account
     existing = await db.execute(
@@ -104,7 +105,8 @@ async def signup(
             detail="An account with this email already exists.",
         )
 
-    # Create user
+    # Create user with verification token
+    verification_token = secrets.token_urlsafe(32)
     user = User(
         email=payload.email.lower(),
         display_name=payload.display_name,
@@ -112,13 +114,24 @@ async def signup(
         hashed_password=hash_password(payload.password),
         timezone=payload.timezone,
         onboarding_status=OnboardingStatus.CREATED,
+        email_verification_token=verification_token,
+        email_verification_sent_at=datetime.now(timezone.utc),
+        is_active=False,  # Inactive until verified
     )
     db.add(user)
-    await db.flush()  # Get the generated ID before commit
+    await db.flush()
 
     logger.info("user_signed_up", user_id=str(user.id), email=user.email)
 
-    # Store refresh token in Redis
+    # Send verification email
+    verification_url = f"{settings.frontend_url}/verify-email?token={verification_token}"
+    await email_service.send_verification_email(
+        to_email=user.email,
+        first_name=user.display_name,
+        verification_url=verification_url
+    )
+
+    # Store refresh token (so they can auto-login after verification)
     tokens = create_token_pair(
         user_id=user.id,
         extra_claims={"onboarding_status": user.onboarding_status.value},
@@ -137,7 +150,103 @@ async def signup(
     )
 
 
-# ─── Email/Password Login ─────────────────────────────────────────────────────
+# ─── Email Verification (NEW ENDPOINTS) ───────────────────────────────────────
+
+@router.get(
+    "/verify-email",
+    summary="Verify email with magic link token",
+)
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Verify email with magic link token"""
+    result = await db.execute(
+        select(User).where(User.email_verification_token == token)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification link"
+        )
+    
+    # Check if token is expired (24 hours)
+    if user.email_verification_sent_at:
+        expiry = user.email_verification_sent_at + timedelta(hours=24)
+        if datetime.now(timezone.utc) > expiry:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification link has expired. Please request a new one."
+            )
+    
+    # Check if already verified
+    if user.email_verified_at:
+        return {"message": "Email already verified", "verified": True}
+    
+    # Verify user
+    user.email_verified_at = datetime.now(timezone.utc)
+    user.is_active = True
+    user.email_verification_token = None
+    user.onboarding_status = OnboardingStatus.INTERVIEW  # Ready for interview
+    
+    await db.commit()
+    
+    # Send welcome email
+    await email_service.send_welcome_email(
+        to_email=user.email,
+        display_name=user.display_name
+    )
+    
+    logger.info("email_verified", user_id=str(user.id))
+    
+    return {
+        "message": "Email verified successfully",
+        "verified": True,
+        "redirect_to": "/interview"
+    }
+
+
+@router.post(
+    "/resend-verification",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Resend verification email",
+)
+async def resend_verification(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Resend verification email"""
+    result = await db.execute(
+        select(User).where(User.email == payload.email.lower())
+    )
+    user = result.scalar_one_or_none()
+    
+    # Always return success to prevent email enumeration
+    if not user or user.email_verified_at:
+        return {
+            "status": "accepted",
+            "message": "If an account exists with this email, a verification link has been sent."
+        }
+    
+    # Generate new token
+    user.email_verification_token = secrets.token_urlsafe(32)
+    user.email_verification_sent_at = datetime.now(timezone.utc)
+    
+    await db.commit()
+    
+    # Send verification email
+    verification_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
+    await email_service.send_verification_email(
+        to_email=user.email,
+        first_name=user.display_name,
+        verification_url=verification_url
+    )
+    
+    logger.info("verification_resent", user_id=str(user.id))
+    
+    return {
+        "status": "accepted",
+        "message": "If an account exists with this email, a verification link has been sent."
+    }
+
+
+# ─── Email/Password Login (MODIFIED TO CHECK VERIFICATION) ────────────────────
 
 @router.post(
     "/login",
@@ -150,9 +259,9 @@ async def login(
 ) -> TokenResponse:
     """
     Authenticate with email and password.
-    Returns access + refresh tokens on success.
+    Requires verified email.
     """
-    # Find user — use consistent error message to prevent email enumeration
+    # Find user
     result = await db.execute(
         select(User).where(User.email == payload.email.lower())
     )
@@ -169,6 +278,13 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password.",
+        )
+
+    # NEW: Check if email is verified
+    if not user.email_verified_at:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please check your email or request a new verification link."
         )
 
     if not user.is_active:
@@ -205,7 +321,7 @@ async def login(
     )
 
 
-# ─── OAuth Callback (Google / Apple) ─────────────────────────────────────────
+# ─── OAuth Callback (UNCHANGED) ───────────────────────────────────────────────
 
 @router.post(
     "/oauth/callback",
@@ -218,14 +334,7 @@ async def oauth_callback(
 ) -> TokenResponse:
     """
     Called by the frontend after Google/Apple OAuth completes via Supabase.
-    Flow:
-        1. User authenticates with Google/Apple via Supabase on the frontend
-        2. Frontend sends us the Supabase token
-        3. We verify it, find/create our own user record
-        4. Return our own JWT pair
-
-    This decouples our auth from Supabase — we use Supabase only for
-    the OAuth handshake, then issue our own tokens.
+    OAuth users are auto-verified (email already verified by provider).
     """
     if not settings.feature_google_auth and not settings.feature_apple_auth:
         raise HTTPException(
@@ -252,7 +361,7 @@ async def oauth_callback(
     user = result.scalar_one_or_none()
 
     if user is None:
-        # New user — create account
+        # New user — create account (auto-verified via OAuth)
         display_name = (
             payload.display_name
             or user_metadata.get("full_name")
@@ -266,10 +375,18 @@ async def oauth_callback(
             auth_provider_id=provider_id,
             timezone=payload.timezone,
             onboarding_status=OnboardingStatus.CREATED,
+            email_verified_at=datetime.now(timezone.utc),  # Auto-verified
+            is_active=True,
         )
         db.add(user)
         await db.flush()
         logger.info("oauth_user_created", user_id=str(user.id), provider=provider_str)
+        
+        # Send welcome email for OAuth users too
+        await email_service.send_welcome_email(
+            to_email=user.email,
+            display_name=user.display_name
+        )
     else:
         # Existing user — update provider info if needed
         if user.auth_provider_id != provider_id:
@@ -298,7 +415,7 @@ async def oauth_callback(
     )
 
 
-# ─── Token Refresh ────────────────────────────────────────────────────────────
+# ─── Token Refresh (UNCHANGED) ────────────────────────────────────────────────
 
 @router.post(
     "/refresh",
@@ -357,7 +474,7 @@ async def refresh_token(
     )
 
 
-# ─── Logout ───────────────────────────────────────────────────────────────────
+# ─── Logout (UNCHANGED) ───────────────────────────────────────────────────────
 
 @router.post(
     "/logout",
@@ -377,7 +494,7 @@ async def logout(
     logger.info("user_logged_out", user_id=str(current_user.id))
 
 
-# ─── Current User ─────────────────────────────────────────────────────────────
+# ─── Current User (UNCHANGED) ─────────────────────────────────────────────────
 
 @router.get(
     "/me",
@@ -460,7 +577,7 @@ async def change_password(
     logger.info("password_changed", user_id=str(current_user.id))
 
 
-# ─── Password Reset ───────────────────────────────────────────────────────────
+# ─── Password Reset (UNCHANGED) ───────────────────────────────────────────────
 
 @router.post(
     "/forgot-password",
@@ -585,7 +702,7 @@ async def reset_password(
     }
 
 
-# ─── Data Rights ──────────────────────────────────────────────────────────────
+# ─── Data Rights (UNCHANGED) ──────────────────────────────────────────────────
 
 @router.get(
     "/export",

@@ -70,6 +70,7 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
     # Add to User class:
     subscription_plan: Mapped[str] = mapped_column(String(20), nullable=False, default="spark")
     subscription_status: Mapped[str | None] = mapped_column(String(20))
@@ -80,11 +81,18 @@ class User(Base):
     subscription_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     billing_cycle: Mapped[str | None] = mapped_column(String(20))  # 'monthly' or 'annual'
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
+    
     # Password reset fields (added in migration 005)
     password_reset_token: Mapped[str | None] = mapped_column(String(255))
     password_reset_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_reset_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
+   
+    # Email verification fields (added in migration 008)
+    email_verification_token: Mapped[str | None] = mapped_column(String(255))
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    email_verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    email_reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    
     # ─── Relationships ─────────────────────────────────────────────────
     # lazy="selectin" means relationships are loaded automatically
     # on access without triggering lazy-load errors in async context

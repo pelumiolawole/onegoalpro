@@ -3,9 +3,6 @@ services/scheduler.py
 
 Background job scheduler using APScheduler.
 Runs nightly AI jobs that power the adaptive system.
-
-Key change: Task generation now runs hourly, checking which users
-are at 11pm in their local timezone (instead of 9pm UTC for everyone).
 """
 
 import structlog
@@ -98,12 +95,80 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
+    # ── Job 7: Verification reminders ────────────────────────────────
+    scheduler.add_job(
+        func=send_verification_reminders,
+        trigger=CronTrigger(hour="*", minute=30),  # Run every hour at :30
+        id="verification_reminders",
+        name="Send email verification reminders at 24 hours",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
     return scheduler
 
 
 # ─── Job Implementations ──────────────────────────────────────────────────────
+
+async def send_verification_reminders() -> None:
+    """Send reminder emails 24 hours after initial verification email"""
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import select
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("verification_reminders", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            # Find users who:
+            # - Have verification token (not verified)
+            # - Verification sent 24-48 hours ago
+            # - No reminder sent yet
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+            max_time = datetime.now(timezone.utc) - timedelta(hours=48)
+            
+            from db.models.user import User
+            
+            result = await db.execute(
+                select(User).where(
+                    User.email_verification_token.is_not(None),
+                    User.email_verified_at.is_(None),
+                    User.email_verification_sent_at <= cutoff_time,
+                    User.email_verification_sent_at > max_time,
+                    User.email_reminder_sent_at.is_(None)
+                )
+            )
+            users = result.scalars().all()
+            
+            for user in users:
+                try:
+                    verification_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
+                    
+                    await email_service.send_verification_reminder(
+                        to_email=user.email,
+                        first_name=user.display_name,
+                        verification_url=verification_url
+                    )
+                    
+                    user.email_reminder_sent_at = datetime.now(timezone.utc)
+                    await db.commit()
+                    
+                    logger.info("verification_reminder_sent", user_id=str(user.id))
+                    
+                except Exception as e:
+                    logger.error("verification_reminder_failed", user_id=str(user.id), error=str(e))
+                    await db.rollback()
+
+    finally:
+        await release_lock("verification_reminders")
+
 
 async def run_nightly_task_generation() -> None:
     """
@@ -268,7 +333,108 @@ async def run_weekly_review_generation() -> None:
 
         engine = WeeklyReviewEngine()
         success_count = 0
-        error_count =
+        error_count = 0
+
+        for user_id in user_ids:
+            try:
+                await engine.generate_weekly_review(user_id)
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                logger.error("weekly_review_failed", user_id=user_id, error=str(e))
+
+        logger.info(
+            "weekly_review_complete",
+            success=success_count,
+            errors=error_count,
+        )
+
+    finally:
+        await release_lock("weekly_review_generation")
+
+
+async def run_intervention_check() -> None:
+    """Check for users who need coach interventions."""
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("intervention_check", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            # Find users with declining momentum or other triggers
+            result = await db.execute(text("""
+                SELECT u.id 
+                FROM users u
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND EXISTS (
+                    SELECT 1 FROM progress_metrics pm
+                    WHERE pm.user_id = u.id
+                      AND pm.momentum_state = 'declining'
+                      AND pm.updated_at > NOW() - INTERVAL '24 hours'
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1 FROM coach_interventions ci
+                    WHERE ci.user_id = u.id
+                      AND ci.created_at > NOW() - INTERVAL '7 days'
+                  )
+            """))
+            user_ids = [str(row[0]) for row in result.fetchall()]
+
+            for user_id in user_ids:
+                try:
+                    await db.execute(
+                        text("SELECT check_momentum_and_queue_intervention(:user_id)"),
+                        {"user_id": user_id},
+                    )
+                except Exception as e:
+                    logger.error("intervention_check_failed", user_id=user_id, error=str(e))
+
+        logger.info("intervention_check_complete", user_count=len(user_ids))
+
+    finally:
+        await release_lock("intervention_check")
+
+
+async def run_behavioral_snapshots() -> None:
+    """Build weekly behavioral fingerprints."""
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("behavioral_snapshots", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            result = await db.execute(text("""
+                SELECT id FROM users
+                WHERE is_active = TRUE
+                  AND onboarding_status = 'active'
+            """))
+            user_ids = [str(row[0]) for row in result.fetchall()]
+
+            for user_id in user_ids:
+                try:
+                    await db.execute(
+                        text("SELECT build_behavioral_snapshot(:user_id)"),
+                        {"user_id": user_id},
+                    )
+                except Exception as e:
+                    logger.error("behavioral_snapshot_failed", user_id=user_id, error=str(e))
+
+        logger.info("behavioral_snapshots_complete", user_count=len(user_ids))
+
+    finally:
+        await release_lock("behavioral_snapshots")
+
 
 async def run_data_purge() -> None:
     """Permanently delete user data after grace period."""

@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
 
+    # ─── Frontend URLs ──────────────────────────────────────────────────
+    frontend_url: str = Field(
+        default="http://localhost:3000",
+        description="Frontend URL for email verification links and redirects",
+    )
+
+    @property
+    def password_reset_frontend_url(self) -> str:
+        """Derived from frontend_url for password reset links."""
+        return f"{self.frontend_url}/reset-password"
+
     # ─── Database ───────────────────────────────────────────────────────
     database_url: PostgresDsn = Field(
         ...,
@@ -128,10 +139,6 @@ class Settings(BaseSettings):
     
     # Password reset settings
     password_reset_token_expire_hours: int = 24
-    password_reset_frontend_url: str = Field(
-        default="http://localhost:3000/reset-password",
-        description="Frontend URL for password reset link",
-    )
 
     # ─── Stripe ─────────────────────────────────────────────────────────
     stripe_webhook_secret: str = Field(

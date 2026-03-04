@@ -219,6 +219,20 @@ class ApiClient {
         method: 'POST',
         body: JSON.stringify({ token, new_password }),
       }, false),
+
+    // NEW: Email verification methods
+    verifyEmail: (token: string) =>
+      this.request<{ verified: boolean; message: string; redirect_to?: string }>(
+        `/auth/verify-email?token=${encodeURIComponent(token)}`,
+        { method: 'GET' },
+        false
+      ),
+
+    resendVerification: (email: string) =>
+      this.request<{ status: string; message: string }>('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }, false),
   }
 
   // ── Onboarding ───────────────────────────────────────────────
