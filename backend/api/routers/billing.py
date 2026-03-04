@@ -74,10 +74,23 @@ async def get_subscription(
 ):
     """Get current user's subscription details."""
     
+    # Handle case where user has no subscription data yet (free tier)
+    if not current_user.subscription_plan or current_user.subscription_plan == "spark":
+        return {
+            "plan": "spark",
+            "status": "active",
+            "billing_cycle": None,
+            "current_period_start": None,
+            "current_period_end": None,
+            "cancel_at_period_end": False,
+            "stripe_customer_id": None,
+            "stripe_subscription_id": None,
+        }
+    
     return {
         "plan": current_user.subscription_plan,
         "status": current_user.subscription_status,
-        "billing_cycle": current_user.billing_cycle,
+        "billing_cycle": current_user.billing_cycle or "monthly",  # Default to monthly if null
         "current_period_start": current_user.current_period_start.isoformat() if current_user.current_period_start else None,
         "current_period_end": current_user.current_period_end.isoformat() if current_user.current_period_end else None,
         "cancel_at_period_end": current_user.cancel_at_period_end or False,

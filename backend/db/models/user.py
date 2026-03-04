@@ -78,7 +78,9 @@ class User(Base):
     current_period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     subscription_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    
+    billing_cycle: Mapped[str | None] = mapped_column(String(20))  # 'monthly' or 'annual'
+    cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # ─── Relationships ─────────────────────────────────────────────────
     # lazy="selectin" means relationships are loaded automatically
     # on access without triggering lazy-load errors in async context
