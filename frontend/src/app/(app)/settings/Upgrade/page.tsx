@@ -2,13 +2,14 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2, Sparkles, Shield, Check, ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 
-export default function UpgradePage() {
+// Separate component that uses useSearchParams
+function UpgradeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan') as 'forge' | 'identity' | null
@@ -41,7 +42,6 @@ export default function UpgradePage() {
     setLoading(true)
     setError('')
     try {
-      // FIX: Use createCheckout, not createCheckoutSession
       const response = await api.billing.createCheckout({
         plan: plan || 'forge',
         billing_cycle: billingCycle
@@ -132,5 +132,23 @@ export default function UpgradePage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback
+function UpgradeLoading() {
+  return (
+    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#F59E0B] animate-spin" />
+    </div>
+  )
+}
+
+// Main export with Suspense wrapper
+export default function UpgradePage() {
+  return (
+    <Suspense fallback={<UpgradeLoading />}>
+      <UpgradeContent />
+    </Suspense>
   )
 }
