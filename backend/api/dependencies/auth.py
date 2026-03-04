@@ -160,12 +160,12 @@ def require_ai_quota(engine: str):
         
         # Determine limit based on subscription tier
         plan = (current_user.subscription_plan or "spark").lower()
-        status = (current_user.subscription_status or "inactive").lower()
+        sub_status = (current_user.subscription_status or "inactive").lower()
         
         # Check if user has active paid subscription
         is_paid_active = (
             plan in ["forge", "identity"] and 
-            status == "active"
+            sub_status == "active"
         )
         
         if is_paid_active:
