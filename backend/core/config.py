@@ -21,9 +21,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ... other settings ...
-    STRIPE_WEBHOOK_SECRET: str = "",
-
     # ─── App ────────────────────────────────────────────────────────────
     app_name: str = "One Goal"
     app_version: str = "0.1.0"
@@ -116,6 +113,31 @@ class Settings(BaseSettings):
     # UTC hour to run the nightly task generation job
     task_generation_utc_hour: int = 21  # 9pm UTC
     weekly_review_utc_hour: int = 20    # 8pm UTC Sunday
+
+    # ─── Email (Resend) ─────────────────────────────────────────────────
+    resend_api_key: str = Field(
+        default="",
+        description="Resend API key for transactional emails",
+    )
+    # Use placeholder until domain is purchased
+    email_from_address: str = Field(
+        default="OneGoal <onboarding@resend.dev>",
+        description="From address for transactional emails",
+    )
+    email_from_name: str = "OneGoal"
+    
+    # Password reset settings
+    password_reset_token_expire_hours: int = 24
+    password_reset_frontend_url: str = Field(
+        default="http://localhost:3000/reset-password",
+        description="Frontend URL for password reset link",
+    )
+
+    # ─── Stripe ─────────────────────────────────────────────────────────
+    stripe_webhook_secret: str = Field(
+        default="",
+        description="Stripe webhook endpoint secret for signature verification",
+    )
 
     @field_validator("environment")
     @classmethod

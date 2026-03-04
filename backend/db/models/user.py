@@ -80,6 +80,10 @@ class User(Base):
     subscription_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     billing_cycle: Mapped[str | None] = mapped_column(String(20))  # 'monthly' or 'annual'
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Password reset fields (added in migration 005)
+    password_reset_token: Mapped[str | None] = mapped_column(String(255))
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    password_reset_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # ─── Relationships ─────────────────────────────────────────────────
     # lazy="selectin" means relationships are loaded automatically

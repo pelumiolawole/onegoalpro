@@ -13,7 +13,8 @@ Authentication endpoints:
     PUT  /auth/me              — Update profile
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import secrets
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -23,9 +24,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies.auth import get_current_active_user
 from api.schemas.auth import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     OAuthCallbackRequest,
     RefreshTokenRequest,
+    ResetPasswordRequest,
     SignUpRequest,
     TokenResponse,
     UserSummary,
@@ -46,6 +49,7 @@ from core.security import (
     verify_supabase_token,
 )
 from db.models.user import AuthProvider, OnboardingStatus, User
+from services.email import email_service
 
 logger = structlog.get_logger()
 
@@ -454,6 +458,131 @@ async def change_password(
     await revoke_refresh_token(str(current_user.id))
 
     logger.info("password_changed", user_id=str(current_user.id))
+
+
+# ─── Password Reset ───────────────────────────────────────────────────────────
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Request password reset email",
+)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Request a password reset email.
+    Always returns 202 to prevent email enumeration attacks.
+    """
+    # Find user by email
+    result = await db.execute(
+        select(User).where(User.email == payload.email.lower())
+    )
+    user = result.scalar_one_or_none()
+    
+    # Generate token regardless of whether user exists (prevents enumeration)
+    token = secrets.token_urlsafe(32)
+    
+    if user:
+        # Only store token if user exists and has password auth
+        if user.hashed_password:
+            expires_at = datetime.now(timezone.utc) + timedelta(
+                hours=settings.password_reset_token_expire_hours
+            )
+            
+            await db.execute(
+                update(User)
+                .where(User.id == user.id)
+                .values(
+                    password_reset_token=token,
+                    password_reset_expires_at=expires_at,
+                    password_reset_used_at=None,
+                )
+            )
+            await db.commit()
+            
+            # Send email (async, don't block response)
+            await email_service.send_password_reset(user.email, token)
+            
+            logger.info("password_reset_requested", user_id=str(user.id))
+        else:
+            # OAuth user trying to reset password — log for support
+            logger.warning("oauth_password_reset_attempt", 
+                         user_id=str(user.id), 
+                         email=user.email)
+    
+    # Always return same response to prevent enumeration
+    return {
+        "status": "accepted",
+        "message": "If an account exists with this email, you will receive a password reset link."
+    }
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_200_OK,
+    summary="Reset password using token",
+)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Complete password reset using the token from the email.
+    """
+    # Find user by token
+    result = await db.execute(
+        select(User).where(User.password_reset_token == payload.token)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token.",
+        )
+    
+    # Validate token
+    now = datetime.now(timezone.utc)
+    
+    if user.password_reset_used_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link has already been used.",
+        )
+    
+    if not user.password_reset_expires_at or user.password_reset_expires_at < now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired. Please request a new one.",
+        )
+    
+    # Update password and invalidate token
+    new_hash = hash_password(payload.new_password)
+    
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            hashed_password=new_hash,
+            password_reset_used_at=now,
+            password_reset_token=None,  # Clear token
+            password_reset_expires_at=None,
+        )
+    )
+    
+    # Revoke all existing sessions for security
+    await revoke_refresh_token(str(user.id))
+    
+    await db.commit()
+    
+    logger.info("password_reset_completed", user_id=str(user.id))
+    
+    return {
+        "status": "success",
+        "message": "Password has been reset successfully. Please log in with your new password."
+    }
 
 
 # ─── Data Rights ──────────────────────────────────────────────────────────────
