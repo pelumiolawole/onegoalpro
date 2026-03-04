@@ -62,7 +62,8 @@ export default function SettingsPage() {
         api.billing.getSubscription(),
         api.billing.getInvoices().catch(() => ({ invoices: [] })) // Graceful fallback
       ])
-      setSubscription(subData)
+      // Type assertion to match strict Subscription interface
+      setSubscription(subData as Subscription)
       setInvoices(invoiceData.invoices || [])
     } catch (err: any) {
       setError('Failed to load subscription data')
