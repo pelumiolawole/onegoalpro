@@ -35,10 +35,9 @@ function SuccessContent() {
 
     const verifySession = async () => {
       try {
-        const response = await api.post('/billing/verify-session', {
-          session_id: sessionId
-        })
-        setSubscription(response.data)
+        // Use api.billing.verifySession if available, otherwise use fetch
+        const response = await api.billing.verifySession({ session_id: sessionId })
+        setSubscription(response)
       } catch (err) {
         setError('Failed to verify subscription')
       } finally {
