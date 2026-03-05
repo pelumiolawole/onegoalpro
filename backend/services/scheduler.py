@@ -21,20 +21,20 @@ async def start_scheduler() -> AsyncIOScheduler:
     """
     scheduler = AsyncIOScheduler(timezone="UTC")
 
-    # ── Job 1: Nightly task generation ────────────────────────────────
-    # CHANGED: Runs every hour, checks who's at 11pm local time
+    # ── Job 1: Daily task generation ──────────────────────────────────
+    # CHANGED: Runs every hour, checks who's at 12am (midnight) local time
+    # Generates today's task + any missed tasks (max 3 backlog)
     scheduler.add_job(
-        func=run_nightly_task_generation,
+        func=run_daily_task_generation,
         trigger=CronTrigger(hour="*", minute=0),  # Every hour at :00
-        id="nightly_task_generation",
-        name="Generate tomorrow's tasks for users at 11pm local time",
+        id="daily_task_generation",
+        name="Generate daily tasks for users at midnight local time",
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=3600,
     )
 
     # ── Job 2: Score update ───────────────────────────────────────────
-    # CHANGED: Now runs at 2am UTC (after all timezones have passed 11pm)
     scheduler.add_job(
         func=run_score_updates,
         trigger=CronTrigger(hour=2, minute=0),
@@ -46,7 +46,6 @@ async def start_scheduler() -> AsyncIOScheduler:
     )
 
     # ── Job 3: Weekly review (Sunday only) ───────────────────────────
-    # CHANGED: Runs at 2am UTC Monday (after all Sunday 11pms passed)
     scheduler.add_job(
         func=run_weekly_review_generation,
         trigger=CronTrigger(
@@ -73,7 +72,6 @@ async def start_scheduler() -> AsyncIOScheduler:
     )
 
     # ── Job 5: Behavioral snapshot (Sunday) ──────────────────────────
-    # CHANGED: Runs at 2:30am UTC Monday
     scheduler.add_job(
         func=run_behavioral_snapshots,
         trigger=CronTrigger(day_of_week="mon", hour=2, minute=30),
@@ -87,7 +85,7 @@ async def start_scheduler() -> AsyncIOScheduler:
     # ── Job 6: Data purge (daily) ────────────────────────────────────
     scheduler.add_job(
         func=run_data_purge,
-        trigger=CronTrigger(hour=3, minute=0),  # 3am UTC daily
+        trigger=CronTrigger(hour=3, minute=0),
         id="data_purge",
         name="Permanently delete accounts past grace period",
         replace_existing=True,
@@ -98,7 +96,7 @@ async def start_scheduler() -> AsyncIOScheduler:
     # ── Job 7: Verification reminders ────────────────────────────────
     scheduler.add_job(
         func=send_verification_reminders,
-        trigger=CronTrigger(hour="*", minute=30),  # Run every hour at :30
+        trigger=CronTrigger(hour="*", minute=30),
         id="verification_reminders",
         name="Send email verification reminders at 24 hours",
         replace_existing=True,
@@ -127,10 +125,6 @@ async def send_verification_reminders() -> None:
 
     try:
         async with get_db_context() as db:
-            # Find users who:
-            # - Have verification token (not verified)
-            # - Verification sent 24-48 hours ago
-            # - No reminder sent yet
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
             max_time = datetime.now(timezone.utc) - timedelta(hours=48)
             
@@ -170,70 +164,88 @@ async def send_verification_reminders() -> None:
         await release_lock("verification_reminders")
 
 
-async def run_nightly_task_generation() -> None:
+async def run_daily_task_generation() -> None:
     """
-    NEW LOGIC: Runs every hour. Only generates tasks for users
-    where it's currently 11pm in their local timezone.
+    NEW LOGIC: Runs every hour. Generates tasks for users at midnight (12am) their local time.
+    
+    For each user:
+    1. Generate today's task (if not exists)
+    2. Generate missed tasks for past days (up to 3 max backlog)
+    3. If backlog reaches 3, trigger intervention flag
     """
-    from datetime import datetime
+    from datetime import datetime, date, timedelta
     import pytz
     
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
 
-    lock_acquired = await acquire_lock("nightly_task_generation", ttl_seconds=3600)
+    lock_acquired = await acquire_lock("daily_task_generation", ttl_seconds=3600)
     if not lock_acquired:
         logger.warning("task_generation_lock_not_acquired")
         return
 
     try:
-        # Figure out which timezone is currently at 11pm
         current_utc_hour = datetime.now(pytz.UTC).hour
         
         async with get_db_context() as db:
             from sqlalchemy import text
 
-            # Find users where it's 11pm right now
-            # This query checks: user's local hour = 23 (11pm)
+            # Find users where it's currently midnight (12am) in their timezone
+            # OR users who just activated and need immediate task generation
             result = await db.execute(text("""
-                SELECT u.id, u.timezone
+                SELECT DISTINCT u.id, u.timezone
                 FROM users u
                 JOIN goals g ON g.user_id = u.id AND g.status = 'active'
                 WHERE u.is_active = TRUE
                   AND u.onboarding_status = 'active'
-                  AND EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone) = 23
-                  AND NOT EXISTS (
-                    SELECT 1 FROM daily_tasks dt
-                    WHERE dt.user_id = u.id
-                      AND dt.scheduled_date = CURRENT_DATE + 1
-                      AND dt.task_type = 'becoming'
+                  AND (
+                    -- It's midnight in their timezone
+                    EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone) = 0
+                    OR
+                    -- They activated today and don't have a task yet
+                    (
+                        u.onboarding_status = 'active'
+                        AND NOT EXISTS (
+                            SELECT 1 FROM daily_tasks dt
+                            WHERE dt.user_id = u.id
+                            AND dt.scheduled_date = CURRENT_DATE
+                        )
+                    )
                   )
             """))
             user_rows = result.fetchall()
 
         if not user_rows:
-            logger.info("no_users_at_11pm", utc_hour=current_utc_hour)
+            logger.info("no_users_for_task_generation", utc_hour=current_utc_hour)
             return
 
         user_ids = [str(row[0]) for row in user_rows]
-        timezones = [row[1] for row in user_rows]
         
         logger.info(
             "task_generation_started", 
             user_count=len(user_ids),
-            timezones=list(set(timezones))  # Just show unique timezones
         )
 
         from ai.engines.task_generator import TaskGeneratorEngine
-
         engine = TaskGeneratorEngine()
+        
         success_count = 0
         error_count = 0
 
         for user_id in user_ids:
             try:
-                await engine.generate_task_for_user(user_id)
+                # Generate today's task + handle backlog
+                tasks_generated = await engine.generate_daily_tasks_with_backlog(user_id)
                 success_count += 1
+                
+                # Log if backlog was handled
+                if tasks_generated > 1:
+                    logger.info(
+                        "backlog_tasks_generated",
+                        user_id=user_id,
+                        tasks_generated=tasks_generated
+                    )
+                    
             except Exception as e:
                 error_count += 1
                 logger.error(
@@ -249,7 +261,7 @@ async def run_nightly_task_generation() -> None:
         )
 
     finally:
-        await release_lock("nightly_task_generation")
+        await release_lock("daily_task_generation")
 
 
 async def run_score_updates() -> None:
@@ -278,7 +290,6 @@ async def run_score_updates() -> None:
                         text("SELECT update_user_scores(:user_id)"),
                         {"user_id": user_id},
                     )
-                    # Also check if intervention is needed
                     await db.execute(
                         text("SELECT check_momentum_and_queue_intervention(:user_id)"),
                         {"user_id": user_id},
@@ -293,10 +304,7 @@ async def run_score_updates() -> None:
 
 
 async def run_weekly_review_generation() -> None:
-    """
-    Generate weekly evolution letters for all active users.
-    Runs Monday 2am UTC.
-    """
+    """Generate weekly evolution letters for all active users."""
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
 
@@ -310,8 +318,6 @@ async def run_weekly_review_generation() -> None:
             from sqlalchemy import text
             from ai.engines.reflection_analyzer import WeeklyReviewEngine
 
-            # Find users who need a weekly review for the current week
-            # (Monday morning, looking back at previous week)
             result = await db.execute(text("""
                 SELECT u.id 
                 FROM users u
@@ -449,7 +455,6 @@ async def run_data_purge() -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
 
-            # Get users ready for purge
             result = await db.execute(
                 text("""
                     SELECT id, email
@@ -468,7 +473,6 @@ async def run_data_purge() -> None:
             purged_count = 0
             for user_id, email in users_to_purge:
                 try:
-                    # Anonymize all personal data
                     await db.execute(
                         text("""
                             UPDATE users
@@ -487,7 +491,6 @@ async def run_data_purge() -> None:
                         {"user_id": str(user_id)},
                     )
 
-                    # Delete sensitive related data
                     await db.execute(
                         text("""
                             DELETE FROM ai_coach_messages 
@@ -504,7 +507,6 @@ async def run_data_purge() -> None:
                         {"user_id": str(user_id)},
                     )
 
-                    # Note: We keep aggregated metrics but anonymize them
                     await db.execute(
                         text("""
                             UPDATE progress_metrics

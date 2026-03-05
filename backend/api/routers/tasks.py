@@ -3,13 +3,14 @@ api/routers/tasks.py
 
 Daily task endpoints — the core daily loop.
 
-GET  /tasks/today               — get today's task
+GET  /tasks/today               — get today's task (with backlog info)
+GET  /tasks/backlog             — get missed/archived tasks
 GET  /tasks/{date}              — get task for a specific date
-POST /tasks/{id}/start          — mark task as started (enter execution mode)
+POST /tasks/{id}/start          — mark task as started
 POST /tasks/{id}/complete       — mark task as complete
 POST /tasks/{id}/skip           — skip with a reason
 GET  /tasks/history             — task history with completion stats
-POST /tasks/generate            — manually trigger task generation (if none exists today)
+POST /tasks/generate            — manually trigger task generation
 """
 
 from datetime import date, timedelta
@@ -47,7 +48,7 @@ class SkipTaskRequest(BaseModel):
 
 @router.get(
     "/today",
-    summary="Get today's becoming task",
+    summary="Get today's becoming task with backlog info",
 )
 async def get_today_task(
     current_user: User = Depends(get_onboarded_user),
@@ -55,20 +56,18 @@ async def get_today_task(
 ) -> dict:
     """
     Returns today's identity-focused task.
-
-    If no task exists for today (e.g. new user before first generation),
-    generates one on-demand.
-
-    Response includes:
-    - The identity focus (who you are today)
-    - The task title and description
-    - Execution guidance
-    - Current status
-    - Whether a reflection has been submitted
+    
+    Also includes:
+    - backlog_count: number of missed tasks
+    - intervention_message: if backlog >= 3, shows AI intervention
+    - can_generate_manual: whether user can manually generate today's task
+    
+    If no task exists, generates one on-demand.
     """
     uid = str(current_user.id)
     today = date.today()
 
+    # Get today's task
     result = await db.execute(
         text("""
             SELECT
@@ -76,6 +75,7 @@ async def get_today_task(
                 dt.execution_guidance, dt.time_estimate_minutes,
                 dt.difficulty_level, dt.task_type, dt.status,
                 dt.started_at, dt.completed_at, dt.execution_notes,
+                dt.scheduled_date,
                 r.id AS reflection_id,
                 r.submitted_at AS reflected_at
             FROM daily_tasks dt
@@ -102,13 +102,14 @@ async def get_today_task(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Could not generate a task. Please try again.",
             )
-        # Reload from DB after generation
+        # Reload from DB
         result = await db.execute(
             text("""
                 SELECT dt.id, dt.identity_focus, dt.title, dt.description,
                        dt.execution_guidance, dt.time_estimate_minutes,
                        dt.difficulty_level, dt.task_type, dt.status,
                        dt.started_at, dt.completed_at, dt.execution_notes,
+                       dt.scheduled_date,
                        NULL AS reflection_id, NULL AS reflected_at
                 FROM daily_tasks dt
                 WHERE dt.user_id = :user_id
@@ -120,8 +121,161 @@ async def get_today_task(
         )
         task = result.fetchone()
 
-    return _format_task(task, today)
+    # Get backlog info
+    backlog_result = await db.execute(
+        text("""
+            SELECT 
+                COUNT(*) as missed_count,
+                ARRAY_AGG(scheduled_date ORDER BY scheduled_date) as missed_dates
+            FROM daily_tasks
+            WHERE user_id = :user_id
+              AND scheduled_date < :today
+              AND status = 'pending'
+              AND task_type = 'becoming'
+        """),
+        {"user_id": uid, "today": today},
+    )
+    backlog_row = backlog_result.fetchone()
+    backlog_count = backlog_row.missed_count or 0
+    missed_dates = backlog_row.missed_dates or []
 
+    # Get intervention message if applicable
+    intervention_message = None
+    if backlog_count >= 3:
+        intervention_result = await db.execute(
+            text("""
+                SELECT message FROM coach_interventions
+                WHERE user_id = :user_id
+                  AND intervention_type = 'backlog_crisis'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"user_id": uid},
+        )
+        intervention_row = intervention_result.fetchone()
+        if intervention_row:
+            intervention_message = intervention_row.message
+
+    response = _format_task(task, today)
+    response["backlog"] = {
+        "count": backlog_count,
+        "missed_dates": [str(d) for d in missed_dates],
+        "max_allowed": 3,
+        "intervention_message": intervention_message,
+    }
+    
+    return response
+
+
+# ─── Backlog Tasks ────────────────────────────────────────────────────────────
+
+@router.get(
+    "/backlog",
+    summary="Get missed/archived tasks (up to 3)",
+)
+async def get_backlog_tasks(
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Returns missed tasks from the past (max 3).
+    These are tasks that weren't completed or skipped.
+    User can choose to complete them or archive them.
+    """
+    uid = str(current_user.id)
+    today = date.today()
+
+    result = await db.execute(
+        text("""
+            SELECT
+                dt.id, dt.identity_focus, dt.title, dt.description,
+                dt.execution_guidance, dt.time_estimate_minutes,
+                dt.difficulty_level, dt.task_type, dt.status,
+                dt.scheduled_date, dt.created_at,
+                r.id AS reflection_id
+            FROM daily_tasks dt
+            LEFT JOIN reflections r ON r.task_id = dt.id
+            WHERE dt.user_id = :user_id
+              AND dt.scheduled_date < :today
+              AND dt.status = 'pending'
+              AND dt.task_type = 'becoming'
+            ORDER BY dt.scheduled_date DESC
+            LIMIT 3
+        """),
+        {"user_id": uid, "today": today},
+    )
+    tasks = result.fetchall()
+
+    return {
+        "backlog_count": len(tasks),
+        "max_allowed": 3,
+        "tasks": [
+            {
+                "id": str(t.id),
+                "date": str(t.scheduled_date),
+                "identity_focus": t.identity_focus,
+                "title": t.title,
+                "description": t.description,
+                "execution_guidance": t.execution_guidance,
+                "time_estimate_minutes": t.time_estimate_minutes,
+                "difficulty": t.difficulty_level,
+                "days_ago": (today - t.scheduled_date).days,
+                "can_complete": True,
+                "can_archive": True,
+            }
+            for t in tasks
+        ]
+    }
+
+
+# ─── Archive Task ─────────────────────────────────────────────────────────────
+
+@router.post(
+    "/{task_id}/archive",
+    summary="Archive a missed task without completing it",
+)
+async def archive_task(
+    task_id: str,
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Archive a missed task from the past.
+    This marks it as 'missed' rather than completed or skipped.
+    Used for clearing backlog without doing old tasks.
+    """
+    uid = str(current_user.id)
+
+    result = await db.execute(
+        text("""
+            UPDATE daily_tasks
+            SET status = 'missed',
+                updated_at = NOW()
+            WHERE id = :id 
+              AND user_id = :user_id
+              AND scheduled_date < CURRENT_DATE
+              AND status = 'pending'
+            RETURNING id, scheduled_date
+        """),
+        {"id": task_id, "user_id": uid},
+    )
+    row = result.fetchone()
+    
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found or cannot be archived.",
+        )
+
+    logger.info("task_archived", user_id=uid, task_id=task_id, date=str(row.scheduled_date))
+
+    return {
+        "status": "archived",
+        "message": "Task archived. Focus on today's work.",
+    }
+
+
+# ─── Task by Date ─────────────────────────────────────────────────────────────
 
 @router.get(
     "/{task_date}",
@@ -132,7 +286,7 @@ async def get_task_by_date(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Get a task for a specific date. Used for reviewing past days."""
+    """Get a task for a specific date."""
     try:
         parsed_date = date.fromisoformat(task_date)
     except ValueError:
@@ -178,10 +332,7 @@ async def start_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Mark the task as started. This enters 'execution mode'.
-    Records the start time for duration tracking.
-    """
+    """Mark the task as started."""
     result = await db.execute(
         text("""
             UPDATE daily_tasks
@@ -197,7 +348,6 @@ async def start_task(
     if not row:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    # Log engagement event
     await _log_engagement(str(current_user.id), "task_start", db)
 
     return {"status": "started", "started_at": str(row.started_at)}
@@ -213,16 +363,7 @@ async def complete_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Mark the task as complete.
-
-    Optionally include:
-    - execution_notes: thoughts during the task
-    - actual_duration_minutes: how long it actually took
-
-    After completion, the reflection questions are available.
-    The streak and scores update at end of day.
-    """
+    """Mark the task as complete."""
     uid = str(current_user.id)
 
     result = await db.execute(
@@ -251,7 +392,7 @@ async def complete_task(
             detail="Task not found or already completed.",
         )
 
-    # Update today's progress metrics
+    # Update progress metrics
     await db.execute(
         text("""
             INSERT INTO progress_metrics (user_id, metric_date, task_completed)
@@ -262,7 +403,6 @@ async def complete_task(
         {"user_id": uid, "date": row.scheduled_date},
     )
 
-    # Log engagement
     await _log_engagement(uid, "task_complete", db)
     await invalidate_user_context(uid)
 
@@ -285,12 +425,7 @@ async def skip_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Skip a task. The reason is stored and analyzed by the AI
-    to detect resistance patterns.
-
-    Skipping breaks the streak but doesn't end the journey.
-    """
+    """Skip a task."""
     uid = str(current_user.id)
 
     await db.execute(
@@ -305,7 +440,6 @@ async def skip_task(
         {"id": task_id, "user_id": uid, "reason": payload.reason},
     )
 
-    # Log as incomplete in progress metrics
     await db.execute(
         text("""
             INSERT INTO progress_metrics (user_id, metric_date, task_completed)
@@ -334,10 +468,7 @@ async def get_task_history(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Returns task history for the past N days with completion stats.
-    Used for the progress/analytics screens.
-    """
+    """Returns task history for the past N days."""
     uid = str(current_user.id)
     limit_days = min(days, 90)
     since = date.today() - timedelta(days=limit_days)
@@ -360,10 +491,10 @@ async def get_task_history(
     )
     tasks = result.fetchall()
 
-    # Compute stats
     total = len(tasks)
     completed = sum(1 for t in tasks if t.status == "completed")
     skipped = sum(1 for t in tasks if t.status == "skipped")
+    missed = sum(1 for t in tasks if t.status == "missed")
     reflected = sum(1 for t in tasks if t.depth_score is not None)
 
     return {
@@ -371,6 +502,7 @@ async def get_task_history(
             "total": total,
             "completed": completed,
             "skipped": skipped,
+            "missed": missed,
             "reflected": reflected,
             "completion_rate": round(completed / total * 100, 1) if total > 0 else 0,
         },
@@ -400,10 +532,7 @@ async def generate_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Manually trigger task generation for today.
-    Used as a fallback if the nightly scheduler missed this user.
-    """
+    """Manually trigger task generation for today."""
     today = date.today()
     generated = await task_generator.generate_task_for_user(
         user_id=current_user.id,
@@ -442,7 +571,7 @@ def _format_task(task, task_date: date) -> dict:
 
 
 async def _log_engagement(user_id: str, event_type: str, db: AsyncSession) -> None:
-    """Log an engagement event. Silent fail — never breaks main flow."""
+    """Log an engagement event."""
     try:
         await db.execute(
             text("""
