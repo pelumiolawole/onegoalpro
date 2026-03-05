@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
-import './globals.css'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -42,7 +41,7 @@ export const viewport: Viewport = {
   themeColor: '#0A0908',
 }
 
-export default function RootLayout({
+export default function LandingLayout({
   children,
 }: {
   children: React.ReactNode

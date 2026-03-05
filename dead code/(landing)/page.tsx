@@ -18,7 +18,10 @@ export default function LandingPage() {
   
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0A0908' }}>
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'var(--bg-base, #0A0908)' }}
+      >
         <div 
           className="w-32 h-32 rounded-full animate-pulse"
           style={{ 
