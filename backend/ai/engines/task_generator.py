@@ -339,13 +339,16 @@ class TaskGeneratorEngine(BaseAIEngine):
                 avoid_note = f"\n\nAvoid generating tasks similar to these recent ones:\n" + \
                              "\n".join(f"  - {t}" for t in recent_tasks)
 
+            # Build task type description
+            task_type_desc = "a catch-up" if is_backlog else "tomorrow's"
+
             try:
                 response_raw = await self._complete(
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {
                             "role": "user",
-                            "content": f"Generate {'a catch-up' if is_backlog else \"tomorrow's\"} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}{avoid_note}",
+                            "content": f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}{avoid_note}",
                         },
                     ],
                     user_id=uid,
