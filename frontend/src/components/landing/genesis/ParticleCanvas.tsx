@@ -1,25 +1,9 @@
 'use client'
 
-import { useRef, useMemo, type JSX } from 'react'
-import { Canvas, useFrame, useThree, extend, type ThreeElement } from '@react-three/fiber'
+import { useRef, useMemo } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PARTICLES, COLORS, CAMERA } from '@/lib/landing/constants'
-
-// Extend Three.js classes for JSX usage
-extend({
-  Points: THREE.Points,
-  BufferGeometry: THREE.BufferGeometry,
-  ShaderMaterial: THREE.ShaderMaterial,
-})
-
-// Declare JSX types for extended elements
-declare module '@react-three/fiber' {
-  interface ThreeElements {
-    points: ThreeElement<typeof THREE.Points>
-    bufferGeometry: ThreeElement<typeof THREE.BufferGeometry>
-    shaderMaterial: ThreeElement<typeof THREE.ShaderMaterial>
-  }
-}
 
 const vertexShader = `
   uniform float uTime;
