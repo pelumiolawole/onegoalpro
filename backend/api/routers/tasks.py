@@ -16,7 +16,7 @@ POST /tasks/generate            — manually trigger task generation
 from datetime import date, timedelta
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,6 +44,83 @@ class SkipTaskRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
 
 
+# ─── Continuous Guardrail Helper ──────────────────────────────────────────────
+
+async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
+    """
+    CONTINUOUS GUARDRAIL
+    ├── Check if user has a task for today
+    ├── If not, trigger immediate generation (fire-and-forget)
+    └── Log for monitoring
+    """
+    from datetime import date
+    
+    # Check if task exists for today
+    result = await db.execute(
+        text("""
+            SELECT id FROM daily_tasks
+            WHERE user_id = :user_id
+              AND scheduled_date = CURRENT_DATE
+              AND task_type = 'becoming'
+            LIMIT 1
+        """),
+        {"user_id": user_id}
+    )
+    
+    if result.scalar():
+        return  # Task exists, nothing to do
+    
+    # No task found - trigger immediate generation
+    logger.info(
+        "guardrail_triggered_task_generation",
+        user_id=user_id,
+        reason="missing_today_task"
+    )
+    
+    try:
+        engine = TaskGeneratorEngine()
+        
+        # Generate task for today
+        task = await engine.generate_task_for_user(
+            user_id=user_id,
+            target_date=date.today(),
+            is_backlog=False,
+        )
+        
+        if task:
+            # Mark as guardrail-generated
+            await db.execute(
+                text("""
+                    UPDATE daily_tasks
+                    SET generation_context = generation_context || '{"guardrail_generated": true}'::jsonb
+                    WHERE user_id = :user_id
+                      AND scheduled_date = CURRENT_DATE
+                      AND task_type = 'becoming'
+                """),
+                {"user_id": user_id}
+            )
+            await db.commit()
+            
+            logger.info(
+                "guardrail_task_generated_success",
+                user_id=user_id,
+                task_title=task.get("title")
+            )
+        else:
+            logger.warning(
+                "guardrail_task_generation_returned_none",
+                user_id=user_id
+            )
+            
+    except Exception as e:
+        logger.error(
+            "guardrail_task_generation_failed",
+            user_id=user_id,
+            error=str(e)
+        )
+        # Don't raise - this is a background safety net, not a blocking operation
+
+
 # ─── Today's Task ─────────────────────────────────────────────────────────────
 
 @router.get(
@@ -51,21 +128,27 @@ class SkipTaskRequest(BaseModel):
     summary="Get today's becoming task with backlog info",
 )
 async def get_today_task(
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Returns today's identity-focused task.
     
+    CONTINUOUS GUARDRAIL: Runs background check to ensure task exists.
+    If missing, triggers async generation.
+    
     Also includes:
     - backlog_count: number of missed tasks
     - intervention_message: if backlog >= 3, shows AI intervention
     - can_generate_manual: whether user can manually generate today's task
-    
-    If no task exists, generates one on-demand.
     """
     uid = str(current_user.id)
     today = date.today()
+
+    # CONTINUOUS GUARDRAIL: Trigger background check (non-blocking)
+    # This ensures task exists without slowing down the response
+    background_tasks.add_task(ensure_today_task_exists, uid, db)
 
     # Get today's task
     result = await db.execute(
@@ -75,7 +158,7 @@ async def get_today_task(
                 dt.execution_guidance, dt.time_estimate_minutes,
                 dt.difficulty_level, dt.task_type, dt.status,
                 dt.started_at, dt.completed_at, dt.execution_notes,
-                dt.scheduled_date,
+                dt.scheduled_date, dt.generation_context,
                 r.id AS reflection_id,
                 r.submitted_at AS reflected_at
             FROM daily_tasks dt
@@ -89,7 +172,8 @@ async def get_today_task(
     )
     task = result.fetchone()
 
-    # Generate on-demand if no task exists
+    # If no task, try synchronous generation (fallback for immediate need)
+    # This maintains backward compatibility while guardrail runs in background
     if not task:
         logger.info("generating_on_demand_task", user_id=uid)
         generated = await task_generator.generate_task_for_user(
@@ -98,10 +182,21 @@ async def get_today_task(
             db=db,
         )
         if not generated:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Could not generate a task. Please try again.",
-            )
+            # Return empty state - guardrail is running in background
+            # Next refresh will likely have the task
+            return {
+                "has_task": False,
+                "task": None,
+                "message": "Your task is being prepared. Refresh in a moment.",
+                "guardrail_triggered": True,
+                "backlog": {
+                    "count": 0,
+                    "missed_dates": [],
+                    "max_allowed": 3,
+                    "intervention_message": None,
+                }
+            }
+        
         # Reload from DB
         result = await db.execute(
             text("""
@@ -109,7 +204,7 @@ async def get_today_task(
                        dt.execution_guidance, dt.time_estimate_minutes,
                        dt.difficulty_level, dt.task_type, dt.status,
                        dt.started_at, dt.completed_at, dt.execution_notes,
-                       dt.scheduled_date,
+                       dt.scheduled_date, dt.generation_context,
                        NULL AS reflection_id, NULL AS reflected_at
                 FROM daily_tasks dt
                 WHERE dt.user_id = :user_id
@@ -157,12 +252,24 @@ async def get_today_task(
             intervention_message = intervention_row.message
 
     response = _format_task(task, today)
+    response["has_task"] = True
     response["backlog"] = {
         "count": backlog_count,
         "missed_dates": [str(d) for d in missed_dates],
         "max_allowed": 3,
         "intervention_message": intervention_message,
     }
+    
+    # Add task source for monitoring/debugging
+    gen_context = task.generation_context or {}
+    if gen_context.get("sweep_generated"):
+        response["task_source"] = "morning_sweep"
+    elif gen_context.get("guardrail_generated"):
+        response["task_source"] = "guardrail"
+    elif gen_context.get("fallback"):
+        response["task_source"] = "fallback"
+    else:
+        response["task_source"] = "midnight"
     
     return response
 
