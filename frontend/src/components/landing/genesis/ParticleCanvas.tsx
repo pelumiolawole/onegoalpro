@@ -81,8 +81,8 @@ function ParticleScene({ count, scrollProgress, mousePosition }: {
   mousePosition: { x: number; y: number }
 }) {
   const { scene, camera, viewport } = useThree()
-  const pointsRef = useRef<THREE.Points>(null)
-  const materialRef = useRef<THREE.ShaderMaterial>(null)
+  const pointsRef = useRef<THREE.Points | null>(null)
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null)
   const rafRef = useRef<number>(0)
 
   useEffect(() => {
