@@ -84,11 +84,15 @@ interface ParticleSystemProps {
 }
 
 function ParticleSystem({ count, scrollProgress, mousePosition }: ParticleSystemProps) {
-  const meshRef = useRef<THREE.Points>(null)
+  const pointsRef = useRef<THREE.Points>(null)
   const { viewport } = useThree()
   const reducedMotion = useReducedMotion()
 
-  const { offsets, sizes, phases } = useMemo(() => {
+  // Create geometry and material programmatically (no JSX)
+  const { geometry, material } = useMemo(() => {
+    // Create geometry
+    const geo = new THREE.BufferGeometry()
+    
     const offsets = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const phases = new Float32Array(count)
@@ -112,70 +116,52 @@ function ParticleSystem({ count, scrollProgress, mousePosition }: ParticleSystem
       phases[i] = Math.random()
     }
 
-    return { offsets, sizes, phases }
+    geo.setAttribute('offset', new THREE.BufferAttribute(offsets, 3))
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+    geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1))
+
+    // Create material
+    const mat = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(COLORS.gold.primary) },
+        uBreathPhase: { value: 0 },
+        uMouse: { value: new THREE.Vector2(0, 0) },
+        uMouseInfluence: { value: PARTICLES.MOUSE_INFLUENCE },
+        uScrollProgress: { value: 0 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+
+    return { geometry: geo, material: mat }
   }, [count])
 
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uColor: { value: new THREE.Color(COLORS.gold.primary) },
-    uBreathPhase: { value: 0 },
-    uMouse: { value: new THREE.Vector2(0, 0) },
-    uMouseInfluence: { value: PARTICLES.MOUSE_INFLUENCE },
-    uScrollProgress: { value: 0 },
-  }), [])
-
+  // Animation loop
   useFrame((state) => {
-    if (!meshRef.current) return
+    if (!pointsRef.current) return
 
-    const material = meshRef.current.material as THREE.ShaderMaterial
-
+    const mat = pointsRef.current.material as THREE.ShaderMaterial
     const timeScale = reducedMotion ? 0.3 : 1.0
-    material.uniforms.uTime.value = state.clock.elapsedTime * timeScale
 
-    material.uniforms.uScrollProgress.value = scrollProgress
-    material.uniforms.uBreathPhase.value = Math.sin(state.clock.elapsedTime * 0.5) * 0.5 + 0.5
+    mat.uniforms.uTime.value = state.clock.elapsedTime * timeScale
+    mat.uniforms.uScrollProgress.value = scrollProgress
+    mat.uniforms.uBreathPhase.value = Math.sin(state.clock.elapsedTime * 0.5) * 0.5 + 0.5
 
     const targetX = (mousePosition.x / viewport.width) * 2
     const targetY = (mousePosition.y / viewport.height) * 2
-    material.uniforms.uMouse.value.x += (targetX - material.uniforms.uMouse.value.x) * 0.05
-    material.uniforms.uMouse.value.y += (targetY - material.uniforms.uMouse.value.y) * 0.05
+    mat.uniforms.uMouse.value.x += (targetX - mat.uniforms.uMouse.value.x) * 0.05
+    mat.uniforms.uMouse.value.y += (targetY - mat.uniforms.uMouse.value.y) * 0.05
 
-    meshRef.current.rotation.y += 0.001 * timeScale
-    meshRef.current.rotation.x = scrollProgress * 0.3
+    pointsRef.current.rotation.y += 0.001 * timeScale
+    pointsRef.current.rotation.x = scrollProgress * 0.3
   })
 
-  return (
-    <points ref={meshRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-offset"
-          count={offsets.length / 3}
-          array={offsets}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={sizes.length}
-          array={sizes}
-          itemSize={1}
-        />
-        <bufferAttribute
-          attach="attributes-phase"
-          count={phases.length}
-          array={phases}
-          itemSize={1}
-        />
-      </bufferGeometry>
-      <shaderMaterial
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  )
+  // Use primitive to avoid JSX type issues
+  return <primitive object={new THREE.Points(geometry, material)} ref={pointsRef} />
 }
 
 function CameraController({ scrollProgress }: { scrollProgress: number }) {
