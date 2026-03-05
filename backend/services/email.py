@@ -15,7 +15,7 @@ from core.config import settings
 logger = structlog.get_logger()
 
 # Signature image URL for welcome emails
-SIGNATURE_IMAGE_URL = f"{settings.frontend_url}/static/signature.png"
+SIGNATURE_IMAGE_URL = "https://onegoalclaude-production.up.railway.app/static/signature.png"
 
 class EmailService:
     def __init__(self):

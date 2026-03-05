@@ -22,6 +22,7 @@ import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from core.cache import close_redis, get_redis
 from core.config import settings
@@ -106,6 +107,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ── Static Files ──────────────────────────────────────────────────
+    # Serve static files (signature image, etc.)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
     # ── Middleware (order matters — outermost executes first) ─────────
     add_cors_middleware(app)
     app.add_middleware(RequestContextMiddleware)
@@ -168,7 +173,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(settings_router, prefix=API_PREFIX)  # NEW
     app.include_router(billing_router, prefix=API_PREFIX)  # NEW
 
-# ── Health Check ──────────────────────────────────────────────────────────────
+# ─── Health Check ──────────────────────────────────────────────────────────────
 
 def _add_health_routes(app: FastAPI) -> None:
     """Health check endpoints for load balancer and uptime monitoring."""
