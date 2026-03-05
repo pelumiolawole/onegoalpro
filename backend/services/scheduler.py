@@ -34,7 +34,20 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # ── Job 2: Score update ───────────────────────────────────────────
+    # ── Job 2: Morning Sweep (4 AM) ───────────────────────────────────
+    # Catches any users who don't have a task for today
+    # Handles midnight job failures, new signups, edge cases
+    scheduler.add_job(
+        func=run_morning_sweep,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="morning_sweep",
+        name="Morning sweep: Generate tasks for users missing today's task",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
+    # ── Job 3: Score update ───────────────────────────────────────────
     scheduler.add_job(
         func=run_score_updates,
         trigger=CronTrigger(hour=2, minute=0),
@@ -45,7 +58,7 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # ── Job 3: Weekly review (Sunday only) ───────────────────────────
+    # ── Job 4: Weekly review (Sunday only) ───────────────────────────
     scheduler.add_job(
         func=run_weekly_review_generation,
         trigger=CronTrigger(
@@ -60,7 +73,7 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=7200,
     )
 
-    # ── Job 4: Intervention check ─────────────────────────────────────
+    # ── Job 5: Intervention check ─────────────────────────────────────
     scheduler.add_job(
         func=run_intervention_check,
         trigger=CronTrigger(hour=10, minute=0),
@@ -71,7 +84,7 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # ── Job 5: Behavioral snapshot (Sunday) ──────────────────────────
+    # ── Job 6: Behavioral snapshot (Sunday) ──────────────────────────
     scheduler.add_job(
         func=run_behavioral_snapshots,
         trigger=CronTrigger(day_of_week="mon", hour=2, minute=30),
@@ -82,7 +95,7 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # ── Job 6: Data purge (daily) ────────────────────────────────────
+    # ── Job 7: Data purge (daily) ────────────────────────────────────
     scheduler.add_job(
         func=run_data_purge,
         trigger=CronTrigger(hour=3, minute=0),
@@ -93,7 +106,7 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # ── Job 7: Verification reminders ────────────────────────────────
+    # ── Job 8: Verification reminders ────────────────────────────────
     scheduler.add_job(
         func=send_verification_reminders,
         trigger=CronTrigger(hour="*", minute=30),
@@ -262,6 +275,128 @@ async def run_daily_task_generation() -> None:
 
     finally:
         await release_lock("daily_task_generation")
+
+
+async def run_morning_sweep() -> None:
+    """
+    MORNING SWEEP (4:00 AM UTC)
+    
+    Logic:
+    ├── Find all active users WITHOUT a task for today
+    ├── Generate task for today (not tomorrow)
+    └── Mark as "sweep_generated" for tracking
+    
+    This catches:
+    - Midnight job failures
+    - Users who signed up after midnight
+    - Edge cases where task generation was missed
+    """
+    from datetime import datetime, date
+    import pytz
+    
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+
+    lock_acquired = await acquire_lock("morning_sweep", ttl_seconds=3600)
+    if not lock_acquired:
+        logger.warning("morning_sweep_lock_not_acquired")
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            # Find active users who DON'T have a task for today
+            result = await db.execute(text("""
+                SELECT DISTINCT u.id
+                FROM users u
+                JOIN goals g ON g.user_id = u.id AND g.status = 'active'
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM daily_tasks dt
+                      WHERE dt.user_id = u.id
+                        AND dt.scheduled_date = CURRENT_DATE
+                        AND dt.task_type = 'becoming'
+                  )
+            """))
+            user_rows = result.fetchall()
+
+        if not user_rows:
+            logger.info("morning_sweep_no_users_missing_tasks")
+            return
+
+        user_ids = [str(row[0]) for row in user_rows]
+        
+        logger.info(
+            "morning_sweep_started", 
+            user_count=len(user_ids),
+            date=str(date.today()),
+        )
+
+        from ai.engines.task_generator import TaskGeneratorEngine
+        engine = TaskGeneratorEngine()
+        
+        success_count = 0
+        error_count = 0
+        sweep_generated_count = 0
+
+        for user_id in user_ids:
+            try:
+                # Generate task specifically for TODAY (not tomorrow)
+                # This is different from midnight job which generates for "today" 
+                # (which is tomorrow relative to midnight)
+                task = await engine.generate_task_for_user(
+                    user_id=user_id,
+                    target_date=date.today(),
+                    is_backlog=False,  # This is today's task, not a backlog catch-up
+                )
+                
+                if task:
+                    success_count += 1
+                    sweep_generated_count += 1
+                    
+                    # Mark as sweep-generated in generation_context
+                    # The task is already persisted, so we update the context
+                    await db.execute(text("""
+                        UPDATE daily_tasks
+                        SET generation_context = generation_context || '{"sweep_generated": true}'::jsonb
+                        WHERE user_id = :user_id
+                          AND scheduled_date = CURRENT_DATE
+                          AND task_type = 'becoming'
+                    """), {"user_id": user_id})
+                    await db.commit()
+                    
+                    logger.info(
+                        "morning_sweep_task_generated",
+                        user_id=user_id,
+                        task_title=task.get("title"),
+                    )
+                else:
+                    # Task already exists (race condition)
+                    logger.info(
+                        "morning_sweep_task_already_exists",
+                        user_id=user_id,
+                    )
+                    
+            except Exception as e:
+                error_count += 1
+                logger.error(
+                    "morning_sweep_user_failed",
+                    user_id=user_id,
+                    error=str(e),
+                )
+
+        logger.info(
+            "morning_sweep_complete",
+            success=success_count,
+            errors=error_count,
+            sweep_generated=sweep_generated_count,
+            total_checked=len(user_ids),
+        )
+
+    finally:
+        await release_lock("morning_sweep")
 
 
 async def run_score_updates() -> None:
