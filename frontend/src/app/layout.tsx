@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
 import './globals.css'
+import { initPostHog } from "@/lib/posthog";
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -47,6 +48,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  initPostHog();
+  
   return (
     <html
       lang="en"

@@ -220,7 +220,6 @@ class ApiClient {
         body: JSON.stringify({ token, new_password }),
       }, false),
 
-    // NEW: Email verification methods
     verifyEmail: (token: string) =>
       this.request<{ verified: boolean; message: string; redirect_to?: string }>(
         `/auth/verify-email?token=${encodeURIComponent(token)}`,
@@ -353,7 +352,6 @@ class ApiClient {
     createSession: () =>
       this.request<{ session_id: string }>('/coach/sessions', { method: 'POST' }),
 
-    // Streaming — returns a ReadableStream, handled separately
     streamMessage: (sessionId: string, content: string) => {
       const token = this.getToken()
       return fetch(`${BASE_URL}/coach/sessions/${sessionId}/message`, {
@@ -413,14 +411,13 @@ class ApiClient {
         if (!res.ok) throw new Error('Upload failed')
         return res.json() as Promise<{ avatar_url: string }>
       })
-    saveTimezone: async (timezone: string) => {
-      return apiRequest('/api/profile/timezone', {
+    },
+
+    saveTimezone: (timezone: string) =>
+      this.request<{ status: string }>('/profile/timezone', {
         method: 'POST',
         body: JSON.stringify({ timezone }),
-  })
-},
-
-    },
+      }),
 
     generateBio: () =>
       this.request<{ bio: string }>('/profile/bio/generate', { method: 'POST' }),

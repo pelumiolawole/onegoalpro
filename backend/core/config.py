@@ -21,6 +21,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # ─── Monitoring & Analytics ─────────────────────────────────────────
+    sentry_dsn: str = Field(default="", description="Sentry DSN for error tracking")
+    posthog_api_key: str = Field(default="", description="PostHog API key")
+    posthog_host: str = Field(default="https://us.posthog.com", description="PostHog host URL")
+
     # ─── App ────────────────────────────────────────────────────────────
     app_name: str = "One Goal"
     app_version: str = "0.1.0"

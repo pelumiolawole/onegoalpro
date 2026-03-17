@@ -15,6 +15,23 @@ Shutdown sequence:
     2. Close database connection pool
     3. Close Redis connection
 """
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from core.config import settings
+
+# Initialize Sentry before app creation
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+        traces_sample_rate=1.0,  # Adjust: 0.1 for production (10% of requests)
+        profiles_sample_rate=1.0,
+        environment=settings.environment,
+    )
 
 from contextlib import asynccontextmanager
 

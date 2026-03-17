@@ -1,7 +1,9 @@
 {
   "dependencies": {
-    "@gsap/react": "^2.1.2",
-    "gsap": "^3.14.2"
-  },
-  "devDependencies": {}
+      "@sentry/nextjs": "^7.101.1",
+      "@gsap/react": "^2.1.2",
+    "@sentry/browser": "^10.42.0",
+    "gsap": "^3.14.2",
+    "posthog-js": "^1.105.0"
+  }
 }
