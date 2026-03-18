@@ -51,10 +51,6 @@ async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
     CONTINUOUS GUARDRAIL
     Checks if user has any active task for today (any type).
     If not, triggers immediate generation.
-
-    FIX: removed task_type = 'becoming' filter -- a task of ANY type counts.
-    Previously this would re-trigger generation even when an identity_anchor
-    task already existed, causing silent failures or duplicate attempts.
     """
     result = await db.execute(
         text("""
@@ -68,13 +64,9 @@ async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
     )
 
     if result.scalar():
-        return  # Task exists, nothing to do
+        return
 
-    logger.info(
-        "guardrail_triggered_task_generation",
-        user_id=user_id,
-        reason="missing_today_task"
-    )
+    logger.info("guardrail_triggered_task_generation", user_id=user_id, reason="missing_today_task")
 
     try:
         engine = TaskGeneratorEngine()
@@ -96,12 +88,7 @@ async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
                 {"user_id": user_id}
             )
             await db.commit()
-
-            logger.info(
-                "guardrail_task_generated_success",
-                user_id=user_id,
-                task_title=task.get("title")
-            )
+            logger.info("guardrail_task_generated_success", user_id=user_id, task_title=task.get("title"))
         else:
             logger.warning("guardrail_task_generation_returned_none", user_id=user_id)
 
@@ -114,16 +101,6 @@ async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
 async def _update_streak(user_id: str, completed_date: date, db: AsyncSession) -> int:
     """
     Update streak immediately on task completion.
-    Called inside complete_task() so the dashboard shows the right number instantly.
-
-    Logic:
-    - If last_task_date was yesterday, increment current_streak
-    - If last_task_date was today (already counted), no change
-    - If last_task_date was older, reset to 1
-    - Always update longest_streak if current > longest
-    - Always update days_active
-    - Always update last_task_date
-
     Returns the new current_streak value.
     """
     result = await db.execute(
@@ -144,22 +121,17 @@ async def _update_streak(user_id: str, completed_date: date, db: AsyncSession) -
     longest_streak = row.longest_streak or 0
     last_task_date = row.last_task_date
     days_active = row.days_active or 0
-
     yesterday = completed_date - timedelta(days=1)
 
     if last_task_date is None:
-        # First ever completion
         new_streak = 1
         new_days_active = 1
     elif last_task_date == completed_date:
-        # Already counted today -- no change
         return current_streak
     elif last_task_date == yesterday:
-        # Consecutive day -- extend streak
         new_streak = current_streak + 1
         new_days_active = days_active + 1
     else:
-        # Gap in streak -- reset
         new_streak = 1
         new_days_active = days_active + 1
 
@@ -183,40 +155,23 @@ async def _update_streak(user_id: str, completed_date: date, db: AsyncSession) -
         },
     )
 
-    logger.info(
-        "streak_updated",
-        user_id=user_id,
-        new_streak=new_streak,
-        new_longest=new_longest,
-    )
-
+    logger.info("streak_updated", user_id=user_id, new_streak=new_streak, new_longest=new_longest)
     return new_streak
 
 
 # ─── Today's Task ─────────────────────────────────────────────────────────────
 
-@router.get(
-    "/today",
-    summary="Get today's becoming task with backlog info",
-)
+@router.get("/today", summary="Get today's becoming task with backlog info")
 async def get_today_task(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Returns today's identity-focused task.
-
-    CONTINUOUS GUARDRAIL: Runs background check to ensure task exists.
-    If missing, triggers async generation.
-    """
     uid = str(current_user.id)
     today = date.today()
 
-    # Guardrail runs in background -- non-blocking
     background_tasks.add_task(ensure_today_task_exists, uid, db)
 
-    # Get today's task -- any type, not just 'becoming'
     result = await db.execute(
         text("""
             SELECT
@@ -238,7 +193,6 @@ async def get_today_task(
     )
     task = result.fetchone()
 
-    # If no task, try synchronous generation as fallback
     if not task:
         logger.info("generating_on_demand_task", user_id=uid)
         generated = await task_generator.generate_task_for_user(
@@ -252,12 +206,7 @@ async def get_today_task(
                 "task": None,
                 "message": "Your task is being prepared. Refresh in a moment.",
                 "guardrail_triggered": True,
-                "backlog": {
-                    "count": 0,
-                    "missed_dates": [],
-                    "max_allowed": 3,
-                    "intervention_message": None,
-                }
+                "backlog": {"count": 0, "missed_dates": [], "max_allowed": 3, "intervention_message": None},
             }
 
         result = await db.execute(
@@ -278,7 +227,6 @@ async def get_today_task(
         )
         task = result.fetchone()
 
-    # Backlog info
     backlog_result = await db.execute(
         text("""
             SELECT
@@ -335,10 +283,7 @@ async def get_today_task(
 
 # ─── Backlog Tasks ────────────────────────────────────────────────────────────
 
-@router.get(
-    "/backlog",
-    summary="Get missed/archived tasks (up to 3)",
-)
+@router.get("/backlog", summary="Get missed/archived tasks (up to 3)")
 async def get_backlog_tasks(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
@@ -390,10 +335,7 @@ async def get_backlog_tasks(
 
 # ─── Archive Task ─────────────────────────────────────────────────────────────
 
-@router.post(
-    "/{task_id}/archive",
-    summary="Archive a missed task without completing it",
-)
+@router.post("/{task_id}/archive", summary="Archive a missed task without completing it")
 async def archive_task(
     task_id: str,
     current_user: User = Depends(get_onboarded_user),
@@ -404,8 +346,7 @@ async def archive_task(
     result = await db.execute(
         text("""
             UPDATE daily_tasks
-            SET status = 'missed',
-                updated_at = NOW()
+            SET status = 'missed', updated_at = NOW()
             WHERE id = :id
               AND user_id = :user_id
               AND scheduled_date < CURRENT_DATE
@@ -417,25 +358,79 @@ async def archive_task(
     row = result.fetchone()
 
     if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found or cannot be archived.",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found or cannot be archived.")
 
     logger.info("task_archived", user_id=uid, task_id=task_id, date=str(row.scheduled_date))
+    return {"status": "archived", "message": "Task archived. Focus on today's work."}
+
+
+# ─── Task History ─────────────────────────────────────────────────────────────
+
+@router.get("/history", summary="Get task history with completion stats")
+async def get_task_history(
+    days: int = 30,
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    uid = str(current_user.id)
+    limit_days = min(days, 90)
+    since = date.today() - timedelta(days=limit_days)
+
+    # Include ALL past tasks -- pending shown as missed, completed, skipped
+    result = await db.execute(
+        text("""
+            SELECT
+                dt.id, dt.scheduled_date, dt.identity_focus,
+                dt.title, dt.status, dt.difficulty_level,
+                dt.completed_at, dt.skipped_reason,
+                r.depth_score, r.sentiment
+            FROM daily_tasks dt
+            LEFT JOIN reflections r ON r.task_id = dt.id
+            WHERE dt.user_id = :user_id
+              AND dt.scheduled_date >= :since
+              AND dt.scheduled_date < CURRENT_DATE
+            ORDER BY dt.scheduled_date DESC
+        """),
+        {"user_id": uid, "since": since},
+    )
+    tasks = result.fetchall()
+
+    total = len(tasks)
+    completed = sum(1 for t in tasks if t.status == "completed")
+    skipped = sum(1 for t in tasks if t.status == "skipped")
+    missed = sum(1 for t in tasks if t.status in ("pending", "missed"))
+    reflected = sum(1 for t in tasks if t.depth_score is not None)
 
     return {
-        "status": "archived",
-        "message": "Task archived. Focus on today's work.",
+        "stats": {
+            "total": total,
+            "completed": completed,
+            "skipped": skipped,
+            "missed": missed,
+            "reflected": reflected,
+            "completion_rate": round(completed / total * 100, 1) if total > 0 else 0,
+        },
+        "tasks": [
+            {
+                "id": str(t.id),
+                "date": str(t.scheduled_date),
+                "identity_focus": t.identity_focus,
+                "title": t.title,
+                "status": t.status if t.status in ("completed", "skipped") else "missed",
+                "difficulty": t.difficulty_level,
+                "completed_at": str(t.completed_at) if t.completed_at else None,
+                "skip_reason": t.skipped_reason,
+                "reflection_depth": float(t.depth_score) if t.depth_score else None,
+                "reflection_sentiment": t.sentiment,
+            }
+            for t in tasks
+        ],
     }
 
 
 # ─── Task by Date ─────────────────────────────────────────────────────────────
 
-@router.get(
-    "/{task_date}",
-    summary="Get task for a specific date (YYYY-MM-DD)",
-)
+@router.get("/{task_date}", summary="Get task for a specific date (YYYY-MM-DD)")
 async def get_task_by_date(
     task_date: str,
     current_user: User = Depends(get_onboarded_user),
@@ -467,20 +462,14 @@ async def get_task_by_date(
     task = result.fetchone()
 
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No task found for {task_date}.",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No task found for {task_date}.")
 
     return _format_task(task, parsed_date)
 
 
 # ─── Task Actions ─────────────────────────────────────────────────────────────
 
-@router.post(
-    "/{task_id}/start",
-    summary="Enter execution mode -- mark task as started",
-)
+@router.post("/{task_id}/start", summary="Mark task as started")
 async def start_task(
     task_id: str,
     current_user: User = Depends(get_onboarded_user),
@@ -502,27 +491,16 @@ async def start_task(
         raise HTTPException(status_code=404, detail="Task not found.")
 
     await _log_engagement(str(current_user.id), "task_start", db)
-
     return {"status": "started", "started_at": str(row.started_at)}
 
 
-@router.post(
-    "/{task_id}/complete",
-    summary="Complete today's task",
-)
+@router.post("/{task_id}/complete", summary="Complete today's task")
 async def complete_task(
     task_id: str,
     payload: CompleteTaskRequest,
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Mark the task as complete.
-
-    FIX: Now updates streak immediately in identity_profiles on completion.
-    Previously streak was only updated by APScheduler (end-of-day job),
-    meaning the dashboard showed 0 until the scheduler ran.
-    """
     uid = str(current_user.id)
 
     result = await db.execute(
@@ -546,12 +524,8 @@ async def complete_task(
     )
     row = result.fetchone()
     if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found or already completed.",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found or already completed.")
 
-    # Update progress_metrics for this date
     await db.execute(
         text("""
             INSERT INTO progress_metrics (user_id, metric_date, task_completed)
@@ -562,7 +536,6 @@ async def complete_task(
         {"user_id": uid, "date": row.scheduled_date},
     )
 
-    # Update streak immediately -- do not wait for scheduler
     new_streak = await _update_streak(uid, row.scheduled_date, db)
 
     await db.commit()
@@ -579,10 +552,7 @@ async def complete_task(
     }
 
 
-@router.post(
-    "/{task_id}/skip",
-    summary="Skip today's task with a reason",
-)
+@router.post("/{task_id}/skip", summary="Skip today's task with a reason")
 async def skip_task(
     task_id: str,
     payload: SkipTaskRequest,
@@ -615,82 +585,12 @@ async def skip_task(
     await db.commit()
     logger.info("task_skipped", user_id=uid, task_id=task_id, reason=payload.reason)
 
-    return {
-        "status": "skipped",
-        "message": "Noted. Tomorrow is a new opportunity to show up.",
-    }
+    return {"status": "skipped", "message": "Noted. Tomorrow is a new opportunity to show up."}
 
 
-# ─── Task History ─────────────────────────────────────────────────────────────
+# ─── Manual Generation ────────────────────────────────────────────────────────
 
-@router.get(
-    "/history",
-    summary="Get task history with completion stats",
-)
-async def get_task_history(
-    days: int = 30,
-    current_user: User = Depends(get_onboarded_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    uid = str(current_user.id)
-    limit_days = min(days, 90)
-    since = date.today() - timedelta(days=limit_days)
-
-    result = await db.execute(
-        text("""
-            SELECT
-                dt.id, dt.scheduled_date, dt.identity_focus,
-                dt.title, dt.status, dt.difficulty_level,
-                dt.completed_at, dt.skipped_reason,
-                r.depth_score, r.sentiment
-            FROM daily_tasks dt
-            LEFT JOIN reflections r ON r.task_id = dt.id
-            WHERE dt.user_id = :user_id
-              AND dt.scheduled_date >= :since
-              AND dt.status != 'skipped'
-            ORDER BY dt.scheduled_date DESC
-        """),
-        {"user_id": uid, "since": since},
-    )
-    tasks = result.fetchall()
-
-    total = len(tasks)
-    completed = sum(1 for t in tasks if t.status == "completed")
-    skipped = sum(1 for t in tasks if t.status == "skipped")
-    missed = sum(1 for t in tasks if t.status == "missed")
-    reflected = sum(1 for t in tasks if t.depth_score is not None)
-
-    return {
-        "stats": {
-            "total": total,
-            "completed": completed,
-            "skipped": skipped,
-            "missed": missed,
-            "reflected": reflected,
-            "completion_rate": round(completed / total * 100, 1) if total > 0 else 0,
-        },
-        "tasks": [
-            {
-                "id": str(t.id),
-                "date": str(t.scheduled_date),
-                "identity_focus": t.identity_focus,
-                "title": t.title,
-                "status": t.status,
-                "difficulty": t.difficulty_level,
-                "completed_at": str(t.completed_at) if t.completed_at else None,
-                "skip_reason": t.skipped_reason,
-                "reflection_depth": float(t.depth_score) if t.depth_score else None,
-                "reflection_sentiment": t.sentiment,
-            }
-            for t in tasks
-        ],
-    }
-
-
-@router.post(
-    "/generate",
-    summary="Manually generate today's task if none exists",
-)
+@router.post("/generate", summary="Manually generate today's task if none exists")
 async def generate_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
@@ -702,17 +602,13 @@ async def generate_task(
         db=db,
     )
     if not generated:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A task already exists for today.",
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A task already exists for today.")
     return {"status": "generated", "task": generated}
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _format_task(task, task_date: date) -> dict:
-    """Format a task row into the standard API response."""
     return {
         "id": str(task.id),
         "date": str(task_date),
@@ -733,7 +629,6 @@ def _format_task(task, task_date: date) -> dict:
 
 
 async def _log_engagement(user_id: str, event_type: str, db: AsyncSession) -> None:
-    """Log an engagement event."""
     try:
         await db.execute(
             text("""
