@@ -13,11 +13,17 @@ import WeekGrid from '@/components/dashboard/WeekGrid'
 export default function DashboardPage() {
   const { user } = useAuthStore()
   const [reflectionOpen, setReflectionOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data, isLoading, mutate } = useSWR(
     '/progress/dashboard',
     () => api.progress.getDashboard(),
     { refreshInterval: 60_000 }
+  )
+
+  const { data: historyData } = useSWR(
+    historyOpen ? '/tasks/history' : null,
+    () => api.tasks.getHistory(30)
   )
 
   const task   = data?.today_task
@@ -46,7 +52,7 @@ export default function DashboardPage() {
   return (
     <div className="p-6 md:p-8 max-w-3xl mx-auto">
 
-      {/* ── Header ─────────────────────────────────────── */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,7 +62,7 @@ export default function DashboardPage() {
         <h1 className="font-display text-3xl text-[#F5F1ED]">
           {name}
           {scores?.momentum_state === 'rising' && (
-            <span className="ml-2 text-[#4ADE80] text-lg">↑</span>
+            <span className="ml-2 text-[#4ADE80] text-lg">&#8593;</span>
           )}
         </h1>
       </motion.div>
@@ -66,7 +72,7 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-5">
 
-          {/* ── Today's Task ───────────────────────────── */}
+          {/* Today's Task */}
           {task ? (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -84,7 +90,7 @@ export default function DashboardPage() {
             <NoTaskCard />
           )}
 
-          {/* ── Scores + Streak ─────────────────────────── */}
+          {/* Scores + Streak */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,7 +107,7 @@ export default function DashboardPage() {
             <ScoreTile label="Active" value={`${scores?.days_active ?? 0}d`} sub="total days" />
           </motion.div>
 
-          {/* ── Week Activity ──────────────────────────── */}
+          {/* Week Activity */}
           {data?.week_activity && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -116,7 +122,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ── Top Traits ────────────────────────────── */}
+          {/* Top Traits */}
           {data?.top_traits && data.top_traits.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -136,7 +142,7 @@ export default function DashboardPage() {
                         trait.trend === 'growing' ? 'text-[#4ADE80]' :
                         trait.trend === 'declining' ? 'text-[#F87171]' : 'text-[#5C524A]'
                       }`}>
-                        {trait.trend === 'growing' ? '↑' : trait.trend === 'declining' ? '↓' : '—'}
+                        {trait.trend === 'growing' ? '&#8593;' : trait.trend === 'declining' ? '&#8595;' : '&#8212;'}
                         {' '}{trait.progress_pct.toFixed(0)}%
                       </span>
                     </div>
@@ -154,7 +160,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ── Goal Summary ───────────────────────────── */}
+          {/* Goal Summary */}
           {data?.goal && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -184,7 +190,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ── Latest Review Teaser ──────────────────── */}
+          {/* Latest Review Teaser */}
           {data?.latest_review && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -202,6 +208,107 @@ export default function DashboardPage() {
               </p>
             </motion.div>
           )}
+
+          {/* Task History */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-[#141210] border border-white/5 rounded-2xl overflow-hidden"
+          >
+            <button
+              onClick={() => setHistoryOpen(v => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#1E1B18] transition-colors"
+            >
+              <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+                Past tasks
+              </p>
+              <div className={`text-[#5C524A] transition-transform duration-200 ${historyOpen ? 'rotate-180' : ''}`}>
+                <ChevronIcon />
+              </div>
+            </button>
+
+            <AnimatePresence initial={false}>
+              {historyOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="border-t border-white/5">
+                    {!historyData ? (
+                      <div className="px-5 py-6 space-y-3">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="h-12 bg-[#1E1B18] rounded-xl animate-pulse" />
+                        ))}
+                      </div>
+                    ) : historyData.tasks.length === 0 ? (
+                      <p className="px-5 py-6 text-[#3D3630] text-sm">
+                        No past tasks yet. Complete your first task to start building history.
+                      </p>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {/* Stats row */}
+                        <div className="px-5 py-3 flex gap-5">
+                          <span className="text-[#5C524A] text-xs font-mono">
+                            <span className="text-[#4ADE80]">{historyData.stats.completed}</span> completed
+                          </span>
+                          <span className="text-[#5C524A] text-xs font-mono">
+                            <span className="text-[#F87171]">{historyData.stats.missed + historyData.stats.skipped}</span> missed
+                          </span>
+                          <span className="text-[#5C524A] text-xs font-mono">
+                            <span className="text-[#F59E0B]">{historyData.stats.completion_rate}%</span> rate
+                          </span>
+                        </div>
+
+                        {/* Task rows */}
+                        {historyData.tasks.map((t: any) => (
+                          <div
+                            key={t.id}
+                            className="px-5 py-3.5 flex items-start gap-3 hover:bg-[#1E1B18] transition-colors"
+                          >
+                            {/* Status dot */}
+                            <div className="mt-1 shrink-0">
+                              <StatusDot status={t.status} />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm leading-snug ${
+                                t.status === 'completed' ? 'text-[#C4BBB5]' : 'text-[#5C524A]'
+                              }`}>
+                                {t.title}
+                              </p>
+                              {t.identity_focus && (
+                                <p className="text-[#3D3630] text-xs mt-0.5 truncate">
+                                  {t.identity_focus}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Date + reflection */}
+                            <div className="shrink-0 text-right">
+                              <p className="text-[#3D3630] text-xs font-mono">
+                                {formatDate(t.date)}
+                              </p>
+                              {t.reflection_depth != null && (
+                                <p className="text-[#F59E0B] text-[10px] mt-0.5 font-mono">
+                                  reflected
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
         </div>
       )}
 
@@ -221,6 +328,44 @@ export default function DashboardPage() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+function StatusDot({ status }: { status: string }) {
+  if (status === 'completed') {
+    return (
+      <div className="w-5 h-5 rounded-full bg-[#4ADE80]/15 border border-[#4ADE80]/30 flex items-center justify-center">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+    )
+  }
+  if (status === 'skipped') {
+    return (
+      <div className="w-5 h-5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </div>
+    )
+  }
+  // missed / pending
+  return (
+    <div className="w-5 h-5 rounded-full bg-[#F87171]/10 border border-[#F87171]/20 flex items-center justify-center">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="3" strokeLinecap="round">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </div>
+  )
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
 
 function ScoreTile({ label, value, sub, colored }: {
   label: string; value: string; sub?: string; colored?: boolean
@@ -276,4 +421,16 @@ function momentumLabel(state?: string) {
     declining: 'Fading', critical: 'Critical',
   }
   return labels[state || 'holding'] || 'Steady'
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
+
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
