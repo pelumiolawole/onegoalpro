@@ -5,11 +5,11 @@ Daily task endpoints -- the core daily loop.
 
 GET  /tasks/today               -- get today's task (with backlog info)
 GET  /tasks/backlog             -- get missed/archived tasks
+GET  /tasks/history             -- task history with completion stats
 GET  /tasks/{date}              -- get task for a specific date
 POST /tasks/{id}/start          -- mark task as started
 POST /tasks/{id}/complete       -- mark task as complete
 POST /tasks/{id}/skip           -- skip with a reason
-GET  /tasks/history             -- task history with completion stats
 POST /tasks/generate            -- manually trigger task generation
 """
 

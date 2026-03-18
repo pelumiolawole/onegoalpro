@@ -40,7 +40,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user?.onboarding_step])
 
-  // Derive initials and avatar
   const displayName = user?.display_name || user?.email || ''
   const initials = displayName
     .split(' ')
@@ -48,19 +47,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     .slice(0, 2)
     .join('')
     .toUpperCase() || 'U'
-  const avatarUrl = user?.avatar_url || null
+  const avatarUrl = (user as any)?.avatar_url || null
+  const bio = (user as any)?.bio || null
 
   return (
     <div className="min-h-screen bg-[#0A0908] flex">
 
-      {/* ── Sidebar (desktop) ──────────────────────────── */}
+      {/* Sidebar (desktop) */}
       <aside className="hidden md:flex flex-col w-60 border-r border-white/5 p-5 shrink-0">
 
         {/* Logo + avatar row */}
         <div className="flex items-center justify-between mb-10 px-2">
           <OneGoalLogo size={26} textSize="text-lg" />
 
-          {/* Avatar — top right of sidebar, links to settings */}
           {user && (
             <Link
               href="/settings"
@@ -68,11 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               title="Profile & Settings"
             >
               {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                />
+                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-[#F59E0B]/20 flex items-center justify-center">
                   <span className="text-[#F59E0B] text-xs font-medium">{initials}</span>
@@ -103,9 +98,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        {/* Bio strip at bottom of sidebar */}
+        {bio && (
+          <div className="border-t border-white/5 pt-4 px-2">
+            <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+              Becoming
+            </p>
+            <p className="text-[#5C524A] text-xs leading-relaxed italic">
+              {bio}
+            </p>
+          </div>
+        )}
       </aside>
 
-      {/* ── Main ────────────────────────────────────────── */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 overflow-y-auto">
           <motion.div
@@ -119,12 +125,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </motion.div>
         </main>
 
-        {/* ── Mobile bottom nav ───────────────────────── */}
+        {/* Mobile bottom nav */}
         <nav className="md:hidden border-t border-white/5 px-2 py-2 flex justify-around bg-[#0A0908]">
           {NAV.map(item => {
             const active = pathname === item.href
 
-            // Profile nav item on mobile shows avatar
             if (item.href === '/settings') {
               return (
                 <Link
@@ -140,8 +145,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-current/20 flex items-center justify-center">
-                        <span className="text-[9px] font-medium leading-none">{initials[0]}</span>
+                      <div className="w-full h-full flex items-center justify-center bg-[#F59E0B]/10">
+                        <span className="text-[9px] font-medium leading-none text-[#F59E0B]">{initials[0]}</span>
                       </div>
                     )}
                   </div>

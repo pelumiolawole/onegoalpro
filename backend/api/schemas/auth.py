@@ -22,7 +22,6 @@ class SignUpRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        """Basic password strength validation."""
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.isdigit() for c in v):
@@ -46,7 +45,6 @@ class LoginRequest(BaseModel):
 
 
 class OAuthCallbackRequest(BaseModel):
-    """Sent by frontend after Google/Apple OAuth completes in Supabase."""
     supabase_token: str = Field(description="Token from Supabase after OAuth")
     timezone: str = "UTC"
     display_name: str | None = None
@@ -73,20 +71,20 @@ class ChangePasswordRequest(BaseModel):
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):
-    """Returned after successful login, signup, or token refresh."""
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    expires_in: int  # seconds until access token expires
+    expires_in: int
     user: "UserSummary"
 
 
 class UserSummary(BaseModel):
-    """Minimal user info included in token responses."""
+    """Minimal user info included in token responses and auth/me."""
     id: UUID
     email: str
     display_name: str | None
     avatar_url: str | None
+    bio: str | None = None          # who-you're-becoming statement for sidebar
     onboarding_status: str
     onboarding_step: int
     timezone: str
@@ -97,11 +95,9 @@ class UserSummary(BaseModel):
 
 
 class AuthErrorResponse(BaseModel):
-    """Consistent error shape for all auth failures."""
     error: str
     detail: str
     request_id: str | None = None
 
 
-# Update forward reference
 TokenResponse.model_rebuild()

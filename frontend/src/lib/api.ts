@@ -32,6 +32,7 @@ export interface UserSummary {
   email: string
   display_name: string | null
   avatar_url: string | null
+  bio: string | null
   onboarding_status: string
   onboarding_step: number
   timezone: string
