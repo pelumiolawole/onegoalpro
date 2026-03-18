@@ -3,10 +3,11 @@ api/routers/profile.py
 
 Profile management endpoints.
 
-    GET  /profile                  — get full profile (avatar, bio, stats)
-    POST /profile/avatar           — upload profile photo to Supabase Storage
-    POST /profile/bio/generate     — AI generates "who you're becoming" 2-liner
-    POST /profile/share-message    — AI generates personal invite message + ref link
+    GET  /profile                  -- get full profile (avatar, bio, stats)
+    POST /profile/avatar           -- upload profile photo to Supabase Storage
+    POST /profile/timezone         -- save detected timezone from frontend
+    POST /profile/bio/generate     -- AI generates "who you're becoming" 2-liner
+    POST /profile/share-message    -- AI generates personal invite message + ref link
 """
 
 import uuid
@@ -53,7 +54,11 @@ class BioResponse(BaseModel):
 class ShareMessageResponse(BaseModel):
     message: str
     share_url: str
-    full_text: str  # message + url combined, ready to paste
+    full_text: str
+
+
+class TimezoneRequest(BaseModel):
+    timezone: str
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -63,12 +68,11 @@ async def get_profile(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return profile data including avatar, bio, and key stats.
-
-    Auto-generates bio on first visit (if user has none). Subsequent visits
-    return the saved bio instantly — no user action required.
     """
-    # Get days active + streak from identity_profiles, use refined_statement not title
+    Return profile data including avatar, bio, and key stats.
+    Auto-generates bio on first visit if user has none.
+    Subsequent visits return the saved bio instantly.
+    """
     result = await db.execute(
         text("""
             SELECT
@@ -87,7 +91,6 @@ async def get_profile(
     current_streak = row[1] if row else 0
     goal_statement = row[2] if row else None
 
-    # Get saved bio
     bio_result = await db.execute(
         text("SELECT bio FROM users WHERE id = :user_id"),
         {"user_id": str(current_user.id)},
@@ -95,7 +98,7 @@ async def get_profile(
     bio_row = bio_result.fetchone()
     bio = bio_row[0] if bio_row else None
 
-    # Auto-generate bio if user has none yet (saves it so next visit is instant)
+    # Auto-generate bio if user has none yet
     if not bio and goal_statement:
         try:
             bio = await _generate_bio_for_user(current_user.id, db)
@@ -160,10 +163,9 @@ async def upload_avatar(
         logger.error("avatar_upload_failed", error=str(e), user_id=str(current_user.id))
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to upload image. Please try again.",
+            detail="Failed to upload image. Please try again.",
         )
 
-    # Save public URL to user record
     await db.execute(
         text("UPDATE users SET avatar_url = :url WHERE id = :user_id"),
         {"url": public_url, "user_id": str(current_user.id)},
@@ -174,15 +176,33 @@ async def upload_avatar(
     return {"avatar_url": public_url}
 
 
+@router.post("/timezone", response_model=dict)
+async def save_timezone(
+    payload: TimezoneRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Save the user's timezone detected by the browser.
+    Called silently by the frontend on interview page load.
+    """
+    await db.execute(
+        text("UPDATE users SET timezone = :tz WHERE id = :user_id"),
+        {"tz": payload.timezone, "user_id": str(current_user.id)},
+    )
+    await db.commit()
+    return {"status": "ok"}
+
+
 @router.post("/bio/generate", response_model=BioResponse)
 async def generate_bio(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Generates (or regenerates) the who-you're-becoming bio.
+    Regenerates the who-you're-becoming bio.
     Called automatically by GET /profile when bio is null.
-    No user-facing button — runs silently in the background.
+    Can also be triggered after milestone events.
     """
     try:
         bio = await _generate_bio_for_user(current_user.id, db)
@@ -203,7 +223,6 @@ async def generate_share_message(
     AI generates a personal invite message referencing goal area + progress.
     Returns message + referral URL for native share sheet.
     """
-    # Get stats
     result = await db.execute(
         text("""
             SELECT
@@ -224,7 +243,6 @@ async def generate_share_message(
     transformation_score = row[2] if row else 0
     goal_title = row[3] if row else None
 
-    # Infer goal area from title (moderate depth — area, not specifics)
     goal_area = _extract_goal_area(goal_title)
     first_name = (current_user.display_name or "").split()[0] or "Someone"
 
@@ -238,22 +256,21 @@ PERSON:
 - Transformation score: {transformation_score}/100
 
 TASK:
-Write a short, honest invite message they'd send to a friend. It should feel like something a real person would actually send — not a marketing pitch. Reference their goal area and progress naturally. End with something that makes a friend curious enough to click.
+Write a short, honest invite message they'd send to a friend. It should feel like something a real person would actually send -- not a marketing pitch. Reference their goal area and progress naturally. End with something that makes a friend curious enough to click.
 
 RULES:
 - 3-4 sentences max
 - First person (they're sending this, not you writing about them)
-- Reference the goal AREA loosely (e.g. "my career", "my fitness", "my business") — never the exact goal title
-- Mention the streak or days active naturally — make it feel real
+- Reference the goal AREA loosely (e.g. "my career", "my fitness", "my business") -- never the exact goal title
+- Mention the streak or days active naturally -- make it feel real
 - No hashtags, no emojis, no exclamation spam
-- Conversational tone — like a WhatsApp message to a friend
+- Conversational tone -- like a WhatsApp message to a friend
 - End with something human, not "click here" or "sign up now"
 
 OUTPUT: Just the message. Nothing else."""
 
     message = await _call_openai(prompt, max_tokens=180)
 
-    # Build referral URL
     ref_slug = _make_ref_slug(current_user.display_name or current_user.email)
     share_url = f"https://onegoalpro.vercel.app?ref={ref_slug}"
     full_text = f"{message}\n\n{share_url}"
@@ -283,7 +300,7 @@ async def _call_openai(prompt: str, max_tokens: int = 200) -> str:
 
 async def _generate_bio_for_user(user_id, db: AsyncSession) -> str:
     """
-    Shared bio generation logic used by GET /profile (auto) and POST /bio/generate (manual refresh).
+    Shared bio generation logic used by GET /profile (auto) and POST /bio/generate.
     Saves the result to users.bio and returns the bio string.
     """
     context = await context_builder.get_context(user_id, db)
@@ -308,14 +325,14 @@ USER CONTEXT:
 - Transformation progress: {transformation_score}/100
 
 TASK:
-Write exactly 2 lines that capture WHO THIS PERSON IS BECOMING — not what they do, not their job title, not their current state.
+Write exactly 2 lines that capture WHO THIS PERSON IS BECOMING -- not what they do, not their job title, not their current state.
 
 Think of it like a compass statement. It should feel aspirational but grounded. Personal but not overly specific. Like something they'd want to read every day.
 
 RULES:
 - Exactly 2 lines
 - No quotation marks
-- No "I am" or "I will" — use present-tense identity language ("Someone who..." or "A person who..." or similar)
+- No "I am" or "I will" -- use present-tense identity language ("Someone who..." or "A person who..." or similar)
 - No corporate jargon
 - No emojis
 - Make it feel earned, not generic
@@ -335,10 +352,7 @@ OUTPUT: Just the 2 lines. Nothing else."""
 
 
 def _extract_goal_area(goal_title: Optional[str]) -> str:
-    """
-    Map a goal title to a broad area without exposing specifics.
-    Falls back to 'my main goal' if nothing matches.
-    """
+    """Map a goal title to a broad area without exposing specifics."""
     if not goal_title:
         return "my main goal"
 

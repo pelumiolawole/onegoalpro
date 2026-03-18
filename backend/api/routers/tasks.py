@@ -1,16 +1,16 @@
 """
 api/routers/tasks.py
 
-Daily task endpoints — the core daily loop.
+Daily task endpoints -- the core daily loop.
 
-GET  /tasks/today               — get today's task (with backlog info)
-GET  /tasks/backlog             — get missed/archived tasks
-GET  /tasks/{date}              — get task for a specific date
-POST /tasks/{id}/start          — mark task as started
-POST /tasks/{id}/complete       — mark task as complete
-POST /tasks/{id}/skip           — skip with a reason
-GET  /tasks/history             — task history with completion stats
-POST /tasks/generate            — manually trigger task generation
+GET  /tasks/today               -- get today's task (with backlog info)
+GET  /tasks/backlog             -- get missed/archived tasks
+GET  /tasks/{date}              -- get task for a specific date
+POST /tasks/{id}/start          -- mark task as started
+POST /tasks/{id}/complete       -- mark task as complete
+POST /tasks/{id}/skip           -- skip with a reason
+GET  /tasks/history             -- task history with completion stats
+POST /tasks/generate            -- manually trigger task generation
 """
 
 from datetime import date, timedelta
@@ -49,76 +49,148 @@ class SkipTaskRequest(BaseModel):
 async def ensure_today_task_exists(user_id: str, db: AsyncSession) -> None:
     """
     CONTINUOUS GUARDRAIL
-    ├── Check if user has a task for today
-    ├── If not, trigger immediate generation (fire-and-forget)
-    └── Log for monitoring
+    Checks if user has any active task for today (any type).
+    If not, triggers immediate generation.
+
+    FIX: removed task_type = 'becoming' filter -- a task of ANY type counts.
+    Previously this would re-trigger generation even when an identity_anchor
+    task already existed, causing silent failures or duplicate attempts.
     """
-    from datetime import date
-    
-    # Check if task exists for today
     result = await db.execute(
         text("""
             SELECT id FROM daily_tasks
             WHERE user_id = :user_id
               AND scheduled_date = CURRENT_DATE
-              AND task_type = 'becoming'
+              AND status != 'skipped'
             LIMIT 1
         """),
         {"user_id": user_id}
     )
-    
+
     if result.scalar():
         return  # Task exists, nothing to do
-    
-    # No task found - trigger immediate generation
+
     logger.info(
         "guardrail_triggered_task_generation",
         user_id=user_id,
         reason="missing_today_task"
     )
-    
+
     try:
         engine = TaskGeneratorEngine()
-        
-        # Generate task for today
         task = await engine.generate_task_for_user(
             user_id=user_id,
             target_date=date.today(),
             is_backlog=False,
         )
-        
+
         if task:
-            # Mark as guardrail-generated
             await db.execute(
                 text("""
                     UPDATE daily_tasks
                     SET generation_context = generation_context || '{"guardrail_generated": true}'::jsonb
                     WHERE user_id = :user_id
                       AND scheduled_date = CURRENT_DATE
-                      AND task_type = 'becoming'
+                      AND status != 'skipped'
                 """),
                 {"user_id": user_id}
             )
             await db.commit()
-            
+
             logger.info(
                 "guardrail_task_generated_success",
                 user_id=user_id,
                 task_title=task.get("title")
             )
         else:
-            logger.warning(
-                "guardrail_task_generation_returned_none",
-                user_id=user_id
-            )
-            
+            logger.warning("guardrail_task_generation_returned_none", user_id=user_id)
+
     except Exception as e:
-        logger.error(
-            "guardrail_task_generation_failed",
-            user_id=user_id,
-            error=str(e)
-        )
-        # Don't raise - this is a background safety net, not a blocking operation
+        logger.error("guardrail_task_generation_failed", user_id=user_id, error=str(e))
+
+
+# ─── Streak Update Helper ─────────────────────────────────────────────────────
+
+async def _update_streak(user_id: str, completed_date: date, db: AsyncSession) -> int:
+    """
+    Update streak immediately on task completion.
+    Called inside complete_task() so the dashboard shows the right number instantly.
+
+    Logic:
+    - If last_task_date was yesterday, increment current_streak
+    - If last_task_date was today (already counted), no change
+    - If last_task_date was older, reset to 1
+    - Always update longest_streak if current > longest
+    - Always update days_active
+    - Always update last_task_date
+
+    Returns the new current_streak value.
+    """
+    result = await db.execute(
+        text("""
+            SELECT current_streak, longest_streak, last_task_date, days_active
+            FROM identity_profiles
+            WHERE user_id = :user_id
+        """),
+        {"user_id": user_id},
+    )
+    row = result.fetchone()
+
+    if not row:
+        logger.warning("streak_update_no_profile", user_id=user_id)
+        return 0
+
+    current_streak = row.current_streak or 0
+    longest_streak = row.longest_streak or 0
+    last_task_date = row.last_task_date
+    days_active = row.days_active or 0
+
+    yesterday = completed_date - timedelta(days=1)
+
+    if last_task_date is None:
+        # First ever completion
+        new_streak = 1
+        new_days_active = 1
+    elif last_task_date == completed_date:
+        # Already counted today -- no change
+        return current_streak
+    elif last_task_date == yesterday:
+        # Consecutive day -- extend streak
+        new_streak = current_streak + 1
+        new_days_active = days_active + 1
+    else:
+        # Gap in streak -- reset
+        new_streak = 1
+        new_days_active = days_active + 1
+
+    new_longest = max(longest_streak, new_streak)
+
+    await db.execute(
+        text("""
+            UPDATE identity_profiles
+            SET current_streak = :streak,
+                longest_streak = :longest,
+                last_task_date = :last_date,
+                days_active = :days_active
+            WHERE user_id = :user_id
+        """),
+        {
+            "streak": new_streak,
+            "longest": new_longest,
+            "last_date": completed_date,
+            "days_active": new_days_active,
+            "user_id": user_id,
+        },
+    )
+
+    logger.info(
+        "streak_updated",
+        user_id=user_id,
+        new_streak=new_streak,
+        new_longest=new_longest,
+    )
+
+    return new_streak
 
 
 # ─── Today's Task ─────────────────────────────────────────────────────────────
@@ -134,23 +206,17 @@ async def get_today_task(
 ) -> dict:
     """
     Returns today's identity-focused task.
-    
+
     CONTINUOUS GUARDRAIL: Runs background check to ensure task exists.
     If missing, triggers async generation.
-    
-    Also includes:
-    - backlog_count: number of missed tasks
-    - intervention_message: if backlog >= 3, shows AI intervention
-    - can_generate_manual: whether user can manually generate today's task
     """
     uid = str(current_user.id)
     today = date.today()
 
-    # CONTINUOUS GUARDRAIL: Trigger background check (non-blocking)
-    # This ensures task exists without slowing down the response
+    # Guardrail runs in background -- non-blocking
     background_tasks.add_task(ensure_today_task_exists, uid, db)
 
-    # Get today's task
+    # Get today's task -- any type, not just 'becoming'
     result = await db.execute(
         text("""
             SELECT
@@ -172,8 +238,7 @@ async def get_today_task(
     )
     task = result.fetchone()
 
-    # If no task, try synchronous generation (fallback for immediate need)
-    # This maintains backward compatibility while guardrail runs in background
+    # If no task, try synchronous generation as fallback
     if not task:
         logger.info("generating_on_demand_task", user_id=uid)
         generated = await task_generator.generate_task_for_user(
@@ -182,8 +247,6 @@ async def get_today_task(
             db=db,
         )
         if not generated:
-            # Return empty state - guardrail is running in background
-            # Next refresh will likely have the task
             return {
                 "has_task": False,
                 "task": None,
@@ -196,8 +259,7 @@ async def get_today_task(
                     "intervention_message": None,
                 }
             }
-        
-        # Reload from DB
+
         result = await db.execute(
             text("""
                 SELECT dt.id, dt.identity_focus, dt.title, dt.description,
@@ -216,17 +278,16 @@ async def get_today_task(
         )
         task = result.fetchone()
 
-    # Get backlog info
+    # Backlog info
     backlog_result = await db.execute(
         text("""
-            SELECT 
+            SELECT
                 COUNT(*) as missed_count,
                 ARRAY_AGG(scheduled_date ORDER BY scheduled_date) as missed_dates
             FROM daily_tasks
             WHERE user_id = :user_id
               AND scheduled_date < :today
               AND status = 'pending'
-              AND task_type = 'becoming'
         """),
         {"user_id": uid, "today": today},
     )
@@ -234,7 +295,6 @@ async def get_today_task(
     backlog_count = backlog_row.missed_count or 0
     missed_dates = backlog_row.missed_dates or []
 
-    # Get intervention message if applicable
     intervention_message = None
     if backlog_count >= 3:
         intervention_result = await db.execute(
@@ -259,8 +319,7 @@ async def get_today_task(
         "max_allowed": 3,
         "intervention_message": intervention_message,
     }
-    
-    # Add task source for monitoring/debugging
+
     gen_context = task.generation_context or {}
     if gen_context.get("sweep_generated"):
         response["task_source"] = "morning_sweep"
@@ -270,7 +329,7 @@ async def get_today_task(
         response["task_source"] = "fallback"
     else:
         response["task_source"] = "midnight"
-    
+
     return response
 
 
@@ -284,11 +343,6 @@ async def get_backlog_tasks(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Returns missed tasks from the past (max 3).
-    These are tasks that weren't completed or skipped.
-    User can choose to complete them or archive them.
-    """
     uid = str(current_user.id)
     today = date.today()
 
@@ -305,7 +359,6 @@ async def get_backlog_tasks(
             WHERE dt.user_id = :user_id
               AND dt.scheduled_date < :today
               AND dt.status = 'pending'
-              AND dt.task_type = 'becoming'
             ORDER BY dt.scheduled_date DESC
             LIMIT 3
         """),
@@ -346,11 +399,6 @@ async def archive_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Archive a missed task from the past.
-    This marks it as 'missed' rather than completed or skipped.
-    Used for clearing backlog without doing old tasks.
-    """
     uid = str(current_user.id)
 
     result = await db.execute(
@@ -358,7 +406,7 @@ async def archive_task(
             UPDATE daily_tasks
             SET status = 'missed',
                 updated_at = NOW()
-            WHERE id = :id 
+            WHERE id = :id
               AND user_id = :user_id
               AND scheduled_date < CURRENT_DATE
               AND status = 'pending'
@@ -367,7 +415,7 @@ async def archive_task(
         {"id": task_id, "user_id": uid},
     )
     row = result.fetchone()
-    
+
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -393,7 +441,6 @@ async def get_task_by_date(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Get a task for a specific date."""
     try:
         parsed_date = date.fromisoformat(task_date)
     except ValueError:
@@ -432,14 +479,13 @@ async def get_task_by_date(
 
 @router.post(
     "/{task_id}/start",
-    summary="Enter execution mode — mark task as started",
+    summary="Enter execution mode -- mark task as started",
 )
 async def start_task(
     task_id: str,
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Mark the task as started."""
     result = await db.execute(
         text("""
             UPDATE daily_tasks
@@ -470,7 +516,13 @@ async def complete_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Mark the task as complete."""
+    """
+    Mark the task as complete.
+
+    FIX: Now updates streak immediately in identity_profiles on completion.
+    Previously streak was only updated by APScheduler (end-of-day job),
+    meaning the dashboard showed 0 until the scheduler ran.
+    """
     uid = str(current_user.id)
 
     result = await db.execute(
@@ -499,7 +551,7 @@ async def complete_task(
             detail="Task not found or already completed.",
         )
 
-    # Update progress metrics
+    # Update progress_metrics for this date
     await db.execute(
         text("""
             INSERT INTO progress_metrics (user_id, metric_date, task_completed)
@@ -510,15 +562,20 @@ async def complete_task(
         {"user_id": uid, "date": row.scheduled_date},
     )
 
+    # Update streak immediately -- do not wait for scheduler
+    new_streak = await _update_streak(uid, row.scheduled_date, db)
+
+    await db.commit()
     await _log_engagement(uid, "task_complete", db)
     await invalidate_user_context(uid)
 
-    logger.info("task_completed", user_id=uid, task_id=task_id)
+    logger.info("task_completed", user_id=uid, task_id=task_id, new_streak=new_streak)
 
     return {
         "status": "completed",
         "message": "Task complete. Take a moment to reflect.",
         "reflection_available": True,
+        "streak": new_streak,
     }
 
 
@@ -532,7 +589,6 @@ async def skip_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Skip a task."""
     uid = str(current_user.id)
 
     await db.execute(
@@ -556,6 +612,7 @@ async def skip_task(
         {"user_id": uid},
     )
 
+    await db.commit()
     logger.info("task_skipped", user_id=uid, task_id=task_id, reason=payload.reason)
 
     return {
@@ -575,7 +632,6 @@ async def get_task_history(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Returns task history for the past N days."""
     uid = str(current_user.id)
     limit_days = min(days, 90)
     since = date.today() - timedelta(days=limit_days)
@@ -639,7 +695,6 @@ async def generate_task(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Manually trigger task generation for today."""
     today = date.today()
     generated = await task_generator.generate_task_for_user(
         user_id=current_user.id,
