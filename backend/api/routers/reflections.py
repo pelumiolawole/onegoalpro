@@ -57,7 +57,6 @@ async def get_reflection_questions(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    # Verify task belongs to user
     result = await db.execute(
         text("""
             SELECT id, status, scheduled_date
@@ -71,7 +70,6 @@ async def get_reflection_questions(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    # Check if reflection already submitted
     existing = await db.execute(
         text("SELECT id FROM reflections WHERE task_id = :task_id AND user_id = :user_id"),
         {"task_id": task_id, "user_id": str(current_user.id)},
@@ -105,7 +103,6 @@ async def submit_reflection(
 ) -> dict:
     uid = str(current_user.id)
 
-    # Verify task exists and belongs to user
     task_result = await db.execute(
         text("""
             SELECT id, scheduled_date, status
@@ -119,7 +116,6 @@ async def submit_reflection(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found.")
 
-    # Check for duplicate submission
     existing = await db.execute(
         text("SELECT id FROM reflections WHERE task_id = :task_id AND user_id = :user_id"),
         {"task_id": payload.task_id, "user_id": uid},
@@ -130,7 +126,6 @@ async def submit_reflection(
             detail="You've already reflected on this task.",
         )
 
-    # Format Q&A for the analyzer
     qa_list = [
         {
             "question": a.question,
@@ -140,9 +135,6 @@ async def submit_reflection(
         for a in payload.answers
     ]
 
-    # FIX: Use json.dumps() instead of str() + replace hack
-    # str() produces invalid JSON (single quotes, Python booleans etc.)
-    # json.dumps() produces valid JSON always
     reflection_result = await db.execute(
         text("""
             INSERT INTO reflections
@@ -166,7 +158,6 @@ async def submit_reflection(
             detail="Failed to save reflection. Please try again.",
         )
 
-    # Run AI analysis
     analysis = await reflection_analyzer.analyze(
         user_id=current_user.id,
         reflection_id=reflection_id,
@@ -175,16 +166,17 @@ async def submit_reflection(
         db=db,
     )
 
-    # Update progress metrics
+    # FIX: Column is depth_score not avg_depth_score
+    # Also: weekly_avg_depth exists but depth_score is the per-day column
     await db.execute(
         text("""
             INSERT INTO progress_metrics
-                (user_id, metric_date, reflection_submitted, avg_depth_score)
+                (user_id, metric_date, reflection_submitted, depth_score)
             VALUES (:user_id, :date, TRUE, :depth)
             ON CONFLICT (user_id, metric_date)
             DO UPDATE SET
                 reflection_submitted = TRUE,
-                avg_depth_score = EXCLUDED.avg_depth_score
+                depth_score = EXCLUDED.depth_score
         """),
         {
             "user_id": uid,
@@ -212,12 +204,9 @@ async def submit_reflection(
     }
 
 
-# ─── Fixed route order: specific named routes BEFORE /{date} catch-all ───────
+# ─── Named routes BEFORE /{date} catch-all ────────────────────────────────────
 
-@router.get(
-    "/today",
-    summary="Get today's reflection if submitted",
-)
+@router.get("/today", summary="Get today's reflection if submitted")
 async def get_today_reflection(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
@@ -225,10 +214,7 @@ async def get_today_reflection(
     return await _get_reflection_by_date(str(current_user.id), date.today(), db)
 
 
-@router.get(
-    "/history",
-    summary="Get reflection history with trends",
-)
+@router.get("/history", summary="Get reflection history with trends")
 async def get_reflection_history(
     days: int = 30,
     current_user: User = Depends(get_onboarded_user),
@@ -258,16 +244,14 @@ async def get_reflection_history(
     sentiment_counts: dict = {}
     for r in rows:
         sentiment_counts[r.sentiment] = sentiment_counts.get(r.sentiment, 0) + 1
-    breakthroughs = sum(1 for r in rows if r.breakthrough_detected)
-    resistance_days = sum(1 for r in rows if r.resistance_detected)
 
     return {
         "stats": {
             "total_reflections": total,
             "avg_depth_score": round(avg_depth, 1),
             "sentiment_breakdown": sentiment_counts,
-            "breakthrough_days": breakthroughs,
-            "resistance_days": resistance_days,
+            "breakthrough_days": sum(1 for r in rows if r.breakthrough_detected),
+            "resistance_days": sum(1 for r in rows if r.resistance_detected),
         },
         "reflections": [
             {
@@ -286,10 +270,7 @@ async def get_reflection_history(
     }
 
 
-@router.get(
-    "/weekly-review",
-    summary="Get the latest weekly evolution letter",
-)
+@router.get("/weekly-review", summary="Get the latest weekly evolution letter")
 async def get_latest_weekly_review(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
@@ -297,10 +278,7 @@ async def get_latest_weekly_review(
     return await _get_weekly_review(str(current_user.id), None, db)
 
 
-@router.get(
-    "/weekly-review/{week_start}",
-    summary="Get weekly review for a specific week (YYYY-MM-DD of Monday)",
-)
+@router.get("/weekly-review/{week_start}", summary="Get weekly review for a specific week")
 async def get_weekly_review_by_date(
     week_start: str,
     current_user: User = Depends(get_onboarded_user),
@@ -313,10 +291,7 @@ async def get_weekly_review_by_date(
     return await _get_weekly_review(str(current_user.id), parsed, db)
 
 
-@router.get(
-    "/{reflection_date}",
-    summary="Get reflection for a specific date (YYYY-MM-DD)",
-)
+@router.get("/{reflection_date}", summary="Get reflection for a specific date (YYYY-MM-DD)")
 async def get_reflection_by_date(
     reflection_date: str,
     current_user: User = Depends(get_onboarded_user),
