@@ -185,6 +185,13 @@ class ApiClient {
   // ── Auth ────────────────────────────────────────────────────
 
   auth = {
+    
+    oauthCallback: (data: { supabase_token: string; timezone: string; display_name?: string }) =>
+      this.request<TokenResponse>('/auth/oauth/callback', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }, false),
+      
     signup: (data: { email: string; password: string; display_name?: string; timezone?: string }) =>
       this.request<TokenResponse>('/auth/signup', {
         method: 'POST',
