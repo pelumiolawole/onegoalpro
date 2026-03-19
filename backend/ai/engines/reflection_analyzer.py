@@ -212,11 +212,9 @@ Return a JSON array:
 
     async def _save_analysis(self, reflection_id: str, analysis: dict, db: AsyncSession) -> None:
         """
-        Write analysis results back to the reflection record.
-
         FIX: Use CAST(:param AS jsonb) instead of :param::jsonb
         asyncpg cannot parse the ::type cast syntax when mixed with
-        positional $N parameters -- it causes a PostgresSyntaxError.
+        positional $N parameters.
         """
         trait_evidence_json = json.dumps(analysis.get("trait_evidence", []))
 
@@ -415,13 +413,19 @@ class WeeklyReviewEngine(BaseAIEngine):
     async def _gather_week_data(
         self, user_id: str, week_start: date, week_end: date, db: AsyncSession
     ) -> dict:
+        """
+        FIX: progress_metrics has depth_score (per-day), not avg_depth_score.
+        avg_depth_score is only on weekly_reviews.
+        Use AVG(depth_score) from progress_metrics for the week aggregate.
+        Also: transformation_score exists on progress_metrics for score_delta.
+        """
         result = await db.execute(
             text("""
                 SELECT
                     COUNT(*) FILTER (WHERE task_completed) AS completed,
                     COUNT(*) AS total,
                     COUNT(*) FILTER (WHERE reflection_submitted) AS reflections,
-                    AVG(avg_depth_score) AS avg_depth,
+                    AVG(depth_score) AS avg_depth,
                     AVG(CASE WHEN task_completed THEN 100.0 ELSE 0.0 END) AS consistency_pct,
                     MAX(transformation_score) - MIN(transformation_score) AS score_delta
                 FROM progress_metrics
