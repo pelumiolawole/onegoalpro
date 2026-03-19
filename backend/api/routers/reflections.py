@@ -1,17 +1,18 @@
 """
 api/routers/reflections.py
 
-Reflection endpoints — the daily meaning-making loop.
+Reflection endpoints -- the daily meaning-making loop.
 
-GET  /reflections/questions/{task_id}  — get AI-generated reflection questions
-POST /reflections                      — submit reflection answers
-GET  /reflections/today                — get today's reflection
-GET  /reflections/{date}               — get reflection for a specific date
-GET  /reflections/history              — list reflection history
-GET  /reflections/weekly-review        — get latest weekly evolution letter
-GET  /reflections/weekly-review/{date} — get weekly review for a specific week
+GET  /reflections/questions/{task_id}  -- get AI-generated reflection questions
+POST /reflections                      -- submit reflection answers
+GET  /reflections/today                -- get today's reflection
+GET  /reflections/history              -- list reflection history
+GET  /reflections/weekly-review        -- get latest weekly evolution letter
+GET  /reflections/weekly-review/{date} -- get weekly review for a specific week
+GET  /reflections/{date}               -- get reflection for a specific date
 """
 
+import json
 from datetime import date, timedelta
 
 import structlog
@@ -56,14 +57,7 @@ async def get_reflection_questions(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Generate personalized reflection questions for a specific task.
-    Questions are context-aware — based on the task, user's current
-    momentum state, and identity traits being developed.
-
-    Called when the user enters reflection mode after completing a task.
-    """
-    # Verify task belongs to user and is completed
+    # Verify task belongs to user
     result = await db.execute(
         text("""
             SELECT id, status, scheduled_date
@@ -109,18 +103,6 @@ async def submit_reflection(
     current_user: User = Depends(get_onboarded_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """
-    Submit daily reflection answers.
-
-    The AI analyzes your responses and returns:
-    - Personalized feedback (shown immediately)
-    - Depth score (not shown — used internally)
-    - Sentiment classification (used for tomorrow's task)
-    - Identity trait updates (applied to your profile)
-
-    This is one of the most important endpoints in the product.
-    Every reflection directly shapes the AI's understanding of you.
-    """
     uid = str(current_user.id)
 
     # Verify task exists and belongs to user
@@ -158,25 +140,33 @@ async def submit_reflection(
         for a in payload.answers
     ]
 
-    # Create the reflection record first
+    # FIX: Use json.dumps() instead of str() + replace hack
+    # str() produces invalid JSON (single quotes, Python booleans etc.)
+    # json.dumps() produces valid JSON always
     reflection_result = await db.execute(
         text("""
             INSERT INTO reflections
                 (user_id, task_id, reflection_date, questions_answers)
             VALUES
-                (:user_id, :task_id, :date, :qa::jsonb)
+                (:user_id, :task_id, :date, CAST(:qa AS jsonb))
             RETURNING id
         """),
         {
             "user_id": uid,
             "task_id": payload.task_id,
             "date": task.scheduled_date,
-            "qa": str(qa_list).replace("'", '"'),
+            "qa": json.dumps(qa_list),
         },
     )
     reflection_id = reflection_result.scalar()
 
-    # Run AI analysis (updates the reflection record)
+    if not reflection_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save reflection. Please try again.",
+        )
+
+    # Run AI analysis
     analysis = await reflection_analyzer.analyze(
         user_id=current_user.id,
         reflection_id=reflection_id,
@@ -185,7 +175,7 @@ async def submit_reflection(
         db=db,
     )
 
-    # Update progress metrics with reflection submission
+    # Update progress metrics
     await db.execute(
         text("""
             INSERT INTO progress_metrics
@@ -203,6 +193,7 @@ async def submit_reflection(
         },
     )
 
+    await db.commit()
     await invalidate_user_context(uid)
 
     logger.info(
@@ -221,7 +212,7 @@ async def submit_reflection(
     }
 
 
-# ─── Get Reflections ──────────────────────────────────────────────────────────
+# ─── Fixed route order: specific named routes BEFORE /{date} catch-all ───────
 
 @router.get(
     "/today",
@@ -232,6 +223,94 @@ async def get_today_reflection(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     return await _get_reflection_by_date(str(current_user.id), date.today(), db)
+
+
+@router.get(
+    "/history",
+    summary="Get reflection history with trends",
+)
+async def get_reflection_history(
+    days: int = 30,
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    uid = str(current_user.id)
+    since = date.today() - timedelta(days=min(days, 90))
+
+    result = await db.execute(
+        text("""
+            SELECT
+                r.id, r.reflection_date, r.sentiment,
+                r.depth_score, r.emotional_tone, r.key_themes,
+                r.resistance_detected, r.breakthrough_detected,
+                dt.title AS task_title
+            FROM reflections r
+            LEFT JOIN daily_tasks dt ON dt.id = r.task_id
+            WHERE r.user_id = :user_id AND r.reflection_date >= :since
+            ORDER BY r.reflection_date DESC
+        """),
+        {"user_id": uid, "since": since},
+    )
+    rows = result.fetchall()
+
+    total = len(rows)
+    avg_depth = sum(float(r.depth_score or 0) for r in rows) / total if total else 0
+    sentiment_counts: dict = {}
+    for r in rows:
+        sentiment_counts[r.sentiment] = sentiment_counts.get(r.sentiment, 0) + 1
+    breakthroughs = sum(1 for r in rows if r.breakthrough_detected)
+    resistance_days = sum(1 for r in rows if r.resistance_detected)
+
+    return {
+        "stats": {
+            "total_reflections": total,
+            "avg_depth_score": round(avg_depth, 1),
+            "sentiment_breakdown": sentiment_counts,
+            "breakthrough_days": breakthroughs,
+            "resistance_days": resistance_days,
+        },
+        "reflections": [
+            {
+                "id": str(r.id),
+                "date": str(r.reflection_date),
+                "task_title": r.task_title,
+                "sentiment": r.sentiment,
+                "depth_score": float(r.depth_score) if r.depth_score else None,
+                "emotional_tone": r.emotional_tone,
+                "themes": r.key_themes or [],
+                "resistance": r.resistance_detected,
+                "breakthrough": r.breakthrough_detected,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get(
+    "/weekly-review",
+    summary="Get the latest weekly evolution letter",
+)
+async def get_latest_weekly_review(
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    return await _get_weekly_review(str(current_user.id), None, db)
+
+
+@router.get(
+    "/weekly-review/{week_start}",
+    summary="Get weekly review for a specific week (YYYY-MM-DD of Monday)",
+)
+async def get_weekly_review_by_date(
+    week_start: str,
+    current_user: User = Depends(get_onboarded_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    try:
+        parsed = date.fromisoformat(week_start)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date. Use YYYY-MM-DD.")
+    return await _get_weekly_review(str(current_user.id), parsed, db)
 
 
 @router.get(
@@ -249,6 +328,8 @@ async def get_reflection_by_date(
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
     return await _get_reflection_by_date(str(current_user.id), parsed, db)
 
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async def _get_reflection_by_date(user_id: str, target_date: date, db: AsyncSession) -> dict:
     result = await db.execute(
@@ -293,99 +374,6 @@ async def _get_reflection_by_date(user_id: str, target_date: date, db: AsyncSess
     }
 
 
-# ─── Reflection History ───────────────────────────────────────────────────────
-
-@router.get(
-    "/history",
-    summary="Get reflection history with trends",
-)
-async def get_reflection_history(
-    days: int = 30,
-    current_user: User = Depends(get_onboarded_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    uid = str(current_user.id)
-    since = date.today() - timedelta(days=min(days, 90))
-
-    result = await db.execute(
-        text("""
-            SELECT
-                r.id, r.reflection_date, r.sentiment,
-                r.depth_score, r.emotional_tone, r.key_themes,
-                r.resistance_detected, r.breakthrough_detected,
-                dt.title AS task_title
-            FROM reflections r
-            LEFT JOIN daily_tasks dt ON dt.id = r.task_id
-            WHERE r.user_id = :user_id AND r.reflection_date >= :since
-            ORDER BY r.reflection_date DESC
-        """),
-        {"user_id": uid, "since": since},
-    )
-    rows = result.fetchall()
-
-    # Compute trends
-    total = len(rows)
-    avg_depth = sum(float(r.depth_score or 0) for r in rows) / total if total else 0
-    sentiment_counts = {}
-    for r in rows:
-        sentiment_counts[r.sentiment] = sentiment_counts.get(r.sentiment, 0) + 1
-    breakthroughs = sum(1 for r in rows if r.breakthrough_detected)
-    resistance_days = sum(1 for r in rows if r.resistance_detected)
-
-    return {
-        "stats": {
-            "total_reflections": total,
-            "avg_depth_score": round(avg_depth, 1),
-            "sentiment_breakdown": sentiment_counts,
-            "breakthrough_days": breakthroughs,
-            "resistance_days": resistance_days,
-        },
-        "reflections": [
-            {
-                "id": str(r.id),
-                "date": str(r.reflection_date),
-                "task_title": r.task_title,
-                "sentiment": r.sentiment,
-                "depth_score": float(r.depth_score) if r.depth_score else None,
-                "emotional_tone": r.emotional_tone,
-                "themes": r.key_themes or [],
-                "resistance": r.resistance_detected,
-                "breakthrough": r.breakthrough_detected,
-            }
-            for r in rows
-        ],
-    }
-
-
-# ─── Weekly Review ────────────────────────────────────────────────────────────
-
-@router.get(
-    "/weekly-review",
-    summary="Get the latest weekly evolution letter",
-)
-async def get_latest_weekly_review(
-    current_user: User = Depends(get_onboarded_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    return await _get_weekly_review(str(current_user.id), None, db)
-
-
-@router.get(
-    "/weekly-review/{week_start}",
-    summary="Get weekly review for a specific week (YYYY-MM-DD of Monday)",
-)
-async def get_weekly_review_by_date(
-    week_start: str,
-    current_user: User = Depends(get_onboarded_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    try:
-        parsed = date.fromisoformat(week_start)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date. Use YYYY-MM-DD.")
-    return await _get_weekly_review(str(current_user.id), parsed, db)
-
-
 async def _get_weekly_review(user_id: str, week_start: date | None, db: AsyncSession) -> dict:
     if week_start:
         query = text("""
@@ -416,7 +404,7 @@ async def _get_weekly_review(user_id: str, week_start: date | None, db: AsyncSes
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No weekly review found yet. Reviews are generated every Sunday evening.",
+            detail="No weekly review found yet. Reviews are generated every Monday.",
         )
 
     return {
