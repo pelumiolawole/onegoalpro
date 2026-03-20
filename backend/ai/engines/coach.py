@@ -6,11 +6,13 @@ AI Coach Engine
 The persistent, context-aware coach that knows the user deeply.
 
 Features:
-  - Full user context loaded on every message
+  - Full user context loaded on every message (including session memory V2)
   - Semantic memory retrieval (finds relevant past exchanges)
-  - Adaptive coaching mode (guide/support/challenge/celebrate/intervention)
+  - Adaptive coaching mode (guide/support/challenge/celebrate/intervention/crisis)
+  - Session architecture with intentional openings/closings
+  - Pattern recognition and moment tracking
   - Streaming responses for real-time feel
-  - Safety filter on every message
+  - Safety filter with crisis escalation
   - Persistent session management
   - Key topic extraction for profile updates
 
@@ -37,12 +39,13 @@ from core.security import sanitize_input
 
 logger = structlog.get_logger()
 
-CoachingMode = Literal["guide", "support", "challenge", "celebrate", "intervention"]
+# Extended coaching modes for V2 (includes crisis)
+CoachingMode = Literal["guide", "support", "challenge", "celebrate", "intervention", "crisis"]
 
 
 class CoachEngine(BaseAIEngine):
     """
-    Streaming AI coach with full user context and semantic memory.
+    Streaming AI coach with full user context, semantic memory, and session architecture.
     """
 
     engine_name = "coach"
@@ -54,12 +57,14 @@ class CoachEngine(BaseAIEngine):
         session_id: UUID | str,
         user_message: str,
         db: AsyncSession,
+        is_new_session: bool = False,
     ) -> AsyncGenerator[str, None]:
         """
         Stream a coach response to a user message.
 
         Yields text chunks as they arrive from the OpenAI streaming API.
-        After streaming completes, saves the full exchange to the database.
+        After streaming completes, saves the full exchange to the database
+        and updates session memory (moments, patterns).
 
         Usage in SSE endpoint:
             async for chunk in coach.stream_response(...):
@@ -68,7 +73,7 @@ class CoachEngine(BaseAIEngine):
         uid = str(user_id)
         sid = str(session_id)
 
-        # ── Safety check ──────────────────────────────────────────────
+        # ── Safety check (including crisis) ───────────────────────────
         safety_level = safety_filter.classify(user_message)
         if safety_level in (SafetyLevel.CRISIS, SafetyLevel.DISTRESS):
             safe_response = safety_filter.get_safe_response(safety_level)
@@ -81,20 +86,24 @@ class CoachEngine(BaseAIEngine):
                 ai_response=safe_response,
                 db=db,
             )
-            # Yield safe response without calling the AI
+            # Log crisis moment if severe
+            if safety_level == SafetyLevel.CRISIS:
+                await self._log_moment(
+                    uid, sid, "crisis_signal", user_message[:500], 
+                    "Crisis language detected", db
+                )
             yield safe_response
-            # Save the exchange
             await self._save_message(uid, sid, "user", user_message, db)
             await self._save_message(uid, sid, "assistant", safe_response, db)
             return
 
-        # ── Prompt injection check ────────────────────────────────────
+        # ── Prompt injection check ─────────────────────────────────────
         if safety_filter.detect_prompt_injection(user_message):
             response = "I didn't follow that. What's on your mind regarding your goal?"
             yield response
             return
 
-        # ── Out of scope check ─────────────────────────────────────────
+        # ── Out of scope check ───────────────────────────────────────
         if safety_filter.detect_out_of_scope(user_message):
             response = safety_filter.get_out_of_scope_response()
             yield response
@@ -102,17 +111,17 @@ class CoachEngine(BaseAIEngine):
             await self._save_message(uid, sid, "assistant", response, db)
             return
 
-        # ── Clean input ───────────────────────────────────────────────
+        # ── Clean input ──────────────────────────────────────────────
         clean_message = sanitize_input(user_message)
 
-        # ── Load context ──────────────────────────────────────────────
+        # ── Load context (with enhanced V2 memory) ───────────────────
         context = await context_builder.get_context(uid, db)
         context_str = context_builder.format_for_prompt(context)
 
-        # ── Determine coaching mode ───────────────────────────────────
-        coaching_mode = self._determine_coaching_mode(context, user_message)
+        # ── Get coaching mode from context (V2: includes crisis detection) ─
+        coaching_mode = context.get("current_coach_mode", "guide")
 
-        # ── Retrieve semantic memories ────────────────────────────────
+        # ── Retrieve semantic memories ─────────────────────────────────
         relevant_reflections = await memory_retrieval.retrieve_relevant_reflections(
             user_id=uid,
             query=clean_message,
@@ -129,31 +138,58 @@ class CoachEngine(BaseAIEngine):
             relevant_reflections, relevant_exchanges
         )
 
-        # ── Build today's context ─────────────────────────────────────
+        # ── Build today's context ────────────────────────────────────
         daily_context = await self._get_daily_context(uid, db)
 
-        # ── Build system prompt ───────────────────────────────────────
+        # ── Build session-aware context strings (V2) ───────────────────
+        session_continuity = context.get("session_continuity", {})
+        last_session = context.get("last_session", {})
+        active_patterns = context.get("active_patterns", [])
+        recent_moments = context.get("recent_moments", [])
+
+        # Format last session summary for prompt
+        last_session_summary = self._format_last_session_summary(last_session)
+
+        # Format recent behavior pattern
+        recent_behavior_pattern = self._format_behavior_pattern(active_patterns, recent_moments)
+
+        # ── Build system prompt with V2 placeholders ─────────────────
         system_prompt = get_prompt("coach").format(
+            user_name=context.get("display_name", "the user"),
+            goal_statement=context.get("goal", {}).get("statement", "not set"),
+            identity_anchor=context.get("identity", {}).get("life_direction", "not set"),
+            momentum_state=context.get("scores", {}).get("momentum_state", "holding"),
+            last_session_summary=last_session_summary,
+            recent_behavior_pattern=recent_behavior_pattern,
             user_context=context_str,
             memories=memories_str or "No relevant memories retrieved.",
             coaching_mode=coaching_mode,
             daily_context=daily_context,
         )
 
-        # ── Load recent conversation history ──────────────────────────
+        # ── Load recent conversation history ─────────────────────────
         recent_messages = await self._load_recent_messages(sid, db, limit=10)
 
-        # ── Assemble full message list ────────────────────────────────
+        # ── Detect and log significant moments (V2) ──────────────────
+        moment_type = self._detect_moment_type(clean_message, full_response="", context=context)
+        if moment_type:
+            await self._log_moment(uid, sid, moment_type, clean_message, None, db)
+
+        # ── Assemble full message list ──────────────────────────────
         prompt_messages = [
             {"role": "system", "content": system_prompt},
             *recent_messages,
             {"role": "user", "content": clean_message},
         ]
 
-        # ── Save user message first ───────────────────────────────────
+        # ── Save user message first ──────────────────────────────────
         user_msg_id = await self._save_message(uid, sid, "user", clean_message, db)
 
-        # ── Stream AI response ────────────────────────────────────────
+        # ── Update session opening if new session (V2) ───────────────
+        if is_new_session and session_continuity:
+            await self._update_session_opening(uid, sid, session_continuity, db)
+
+        # ── Stream AI response ───────────────────────────────────────
         full_response = ""
         async for chunk in self._stream(
             messages=prompt_messages,
@@ -164,16 +200,24 @@ class CoachEngine(BaseAIEngine):
             full_response += chunk
             yield chunk
 
-        # ── Save AI response ──────────────────────────────────────────
+        # ── Save AI response ─────────────────────────────────────────
         ai_msg_id = await self._save_message(uid, sid, "assistant", full_response, db)
 
-        # ── Store embeddings (async, non-blocking) ────────────────────
+        # ── Detect response moments and update session (V2) ────────────
+        response_moment = self._detect_response_moment(full_response)
+        if response_moment:
+            await self._log_moment(uid, sid, response_moment, full_response[:300], None, db)
+
+        # ── Update session closing insight periodically (V2) ─────────
+        await self._maybe_update_session_closing(uid, sid, full_response, db)
+
+        # ── Store embeddings (async, non-blocking) ───────────────────
         try:
             await memory_retrieval.store_message_embedding(user_msg_id, clean_message, db)
         except Exception as e:
             logger.warning("embedding_storage_failed", error=str(e))
 
-        # ── Extract topics and update session ─────────────────────────
+        # ── Extract topics and update session ────────────────────────
         await self._update_session_after_message(uid, sid, clean_message, db)
 
         logger.info(
@@ -185,33 +229,315 @@ class CoachEngine(BaseAIEngine):
             response_length=len(full_response),
         )
 
-    async def create_session(self, user_id: UUID | str, db: AsyncSession) -> str:
-        """Create a new coach session and return its ID."""
+    # ========================================================================
+    # NEW: Session Architecture Methods (V2)
+    # ========================================================================
+
+    async def start_session(
+        self, user_id: UUID | str, db: AsyncSession, opening_context: str = None
+    ) -> str:
+        """
+        Start a new coach session with intentional opening.
+        Creates session record in coach_sessions table (V2).
+        """
         uid = str(user_id)
         
-        # Create session
+        # Create V2 session record
         result = await db.execute(
             text("""
-                INSERT INTO ai_coach_sessions (user_id, coaching_mode)
-                VALUES (:user_id, 'guide')
+                INSERT INTO coach_sessions (
+                    user_id, session_start, opening_context, coach_mode_used
+                )
+                VALUES (:user_id, NOW(), :opening_context, 'guide')
                 RETURNING id
             """),
-            {"user_id": uid},
+            {"user_id": uid, "opening_context": opening_context or "User initiated session"},
         )
         session_id = str(result.scalar())
         
-        # Seed with welcome message so AI doesn't repeat it
-        welcome_message = "I'm here. What's on your mind regarding your goal?"
-        await self._save_message(uid, session_id, "assistant", welcome_message, db)
+        # Also create legacy session for message continuity
+        await db.execute(
+            text("""
+                INSERT INTO ai_coach_sessions (id, user_id, coaching_mode, started_at)
+                VALUES (:id, :user_id, 'guide', NOW())
+            """),
+            {"id": session_id, "user_id": uid},
+        )
         
-        logger.info("coach_session_created", user_id=uid, session_id=session_id)
+        logger.info("coach_session_started_v2", user_id=uid, session_id=session_id)
         return session_id
+
+    async def end_session(
+        self, user_id: UUID | str, session_id: UUID | str, closing_insight: str = None, 
+        next_hook: str = None, db: AsyncSession = None
+    ) -> None:
+        """
+        End session with intentional closing and insight capture.
+        """
+        uid = str(user_id)
+        sid = str(session_id)
+        
+        await db.execute(
+            text("""
+                UPDATE coach_sessions
+                SET session_end = NOW(),
+                    closing_insight = :closing_insight,
+                    next_session_hook = :next_hook,
+                    message_count = (
+                        SELECT COUNT(*) FROM ai_coach_messages 
+                        WHERE session_id = :session_id
+                    )
+                WHERE id = :session_id AND user_id = :user_id
+            """),
+            {
+                "session_id": sid,
+                "user_id": uid,
+                "closing_insight": closing_insight,
+                "next_hook": next_hook,
+            },
+        )
+        
+        # Update legacy session
+        await db.execute(
+            text("""
+                UPDATE ai_coach_sessions
+                SET is_active = FALSE, ended_at = NOW()
+                WHERE id = :session_id
+            """),
+            {"session_id": sid},
+        )
+        
+        logger.info("coach_session_ended_v2", user_id=uid, session_id=sid)
+
+    async def _update_session_opening(
+        self, user_id: str, session_id: str, session_continuity: dict, db: AsyncSession
+    ) -> None:
+        """Update session with opening context if this is a new session start."""
+        opening = session_continuity.get("opening_hook", "")
+        if opening:
+            await db.execute(
+                text("""
+                    UPDATE coach_sessions
+                    SET opening_context = COALESCE(opening_context, :opening)
+                    WHERE id = :session_id AND user_id = :user_id
+                """),
+                {"session_id": session_id, "user_id": user_id, "opening": opening},
+            )
+
+    async def _maybe_update_session_closing(
+        self, user_id: str, session_id: str, ai_response: str, db: AsyncSession
+    ) -> None:
+        """
+        Periodically update closing insight based on AI response.
+        Captures the final exchange essence for next session continuity.
+        """
+        # Only update every few messages to avoid churn
+        msg_count = await db.execute(
+            text("""
+                SELECT COUNT(*) FROM ai_coach_messages 
+                WHERE session_id = :session_id
+            """),
+            {"session_id": session_id},
+        )
+        count = msg_count.scalar() or 0
+        
+        if count % 5 == 0:  # Every 5 messages
+            # Extract last question or key insight from response
+            closing = self._extract_closing_insight(ai_response)
+            if closing:
+                await db.execute(
+                    text("""
+                        UPDATE coach_sessions
+                        SET closing_insight = :closing,
+                            next_session_hook = :hook
+                        WHERE id = :session_id AND user_id = :user_id
+                    """),
+                    {
+                        "session_id": session_id,
+                        "user_id": user_id,
+                        "closing": closing[:200],
+                        "hook": self._extract_follow_up(ai_response),
+                    },
+                )
+
+    # ========================================================================
+    # NEW: Moment and Pattern Tracking (V2)
+    # ========================================================================
+
+    async def _log_moment(
+        self, user_id: str, session_id: str, moment_type: str, 
+        content: str, coach_observation: str = None, db: AsyncSession = None
+    ) -> None:
+        """
+        Log a significant moment (breakthrough, resistance, commitment, etc.)
+        to coach_moments table for pattern recognition.
+        """
+        try:
+            # Extract user language (key phrase)
+            user_language = content[:150] if len(content) > 50 else content
+            
+            await db.execute(
+                text("""
+                    INSERT INTO coach_moments (
+                        user_id, session_id, moment_type, moment_content,
+                        coach_observation, user_language, emotional_tone
+                    )
+                    VALUES (
+                        :user_id, :session_id, :moment_type, :content,
+                        :observation, :user_language, 
+                        (SELECT sentiment FROM reflections 
+                         WHERE user_id = :user_id 
+                         ORDER BY created_at DESC LIMIT 1)
+                    )
+                """),
+                {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "moment_type": moment_type,
+                    "content": content[:500],
+                    "observation": coach_observation,
+                    "user_language": user_language,
+                },
+            )
+            logger.debug("moment_logged", user_id=user_id, type=moment_type)
+        except Exception as e:
+            logger.warning("moment_log_failed", error=str(e))
+
+    def _detect_moment_type(self, message: str, full_response: str, context: dict) -> str | None:
+        """
+        Detect if user message represents a significant moment.
+        Returns moment_type or None.
+        """
+        msg_lower = message.lower()
+        
+        # Breakthrough indicators
+        breakthrough_words = ["realized", "finally", "click", "shift", "different", "see it now"]
+        if any(w in msg_lower for w in breakthrough_words):
+            return "breakthrough"
+        
+        # Resistance indicators
+        resistance_words = ["can't", "impossible", "never", "always fail", "not for me"]
+        if any(w in msg_lower for w in resistance_words):
+            return "resistance"
+        
+        # Commitment indicators
+        commit_words = ["will do", "commit", "promise", "starting tomorrow", "from now on"]
+        if any(w in msg_lower for w in commit_words):
+            return "commitment"
+        
+        # Vulnerability indicators
+        vuln_words = ["scared", "ashamed", "embarrassed", "never told", "secret"]
+        if any(w in msg_lower for w in vuln_words):
+            return "vulnerability"
+        
+        return None
+
+    def _detect_response_moment(self, response: str) -> str | None:
+        """Detect if coach response contains a significant moment."""
+        if "resistance" in response.lower() or "avoiding" in response.lower():
+            return "resistance_named"
+        if "breakthrough" in response.lower() or "shift" in response.lower():
+            return "breakthrough_affirmed"
+        return None
+
+    # ========================================================================
+    # Formatting Helpers for V2 Prompt
+    # ========================================================================
+
+    def _format_last_session_summary(self, last_session: dict | None) -> str:
+        """Format last session data for COACH_SYSTEM_V2 {last_session_summary} placeholder."""
+        if not last_session:
+            return "First session with this user."
+        
+        days_since = last_session.get("days_since", 0)
+        closing = last_session.get("closing_insight", "")
+        hook = last_session.get("next_session_hook", "")
+        
+        parts = []
+        if days_since < 1:
+            parts.append("Earlier today")
+        elif days_since < 2:
+            parts.append("Yesterday")
+        else:
+            parts.append(f"{int(days_since)} days ago")
+        
+        if closing:
+            parts.append(f"we left with: {closing[:100]}")
+        if hook:
+            parts.append(f"Follow-up pending: {hook[:100]}")
+        
+        return " | ".join(parts) if parts else "Recent session, details not recorded."
+
+    def _format_behavior_pattern(self, active_patterns: list, recent_moments: list) -> str:
+        """Format patterns for COACH_SYSTEM_V2 {recent_behavior_pattern} placeholder."""
+        if not active_patterns and not recent_moments:
+            return "Still learning this person's patterns."
+        
+        parts = []
+        
+        # Top active pattern
+        if active_patterns:
+            top = active_patterns[0]
+            parts.append(f"Pattern: {top['name']} ({top['type']}) - {top['description'][:80]}")
+        
+        # Recent significant moment
+        significant = [m for m in recent_moments if m.get("type") in ["breakthrough", "commitment"]]
+        if significant:
+            m = significant[0]
+            parts.append(f"Recent {m['type']}: {m.get('user_language', '')[:60]}...")
+        
+        return " | ".join(parts) if parts else "Patterns emerging."
+
+    def _extract_closing_insight(self, response: str) -> str:
+        """Extract key insight or question from coach response for session closing."""
+        # Look for last question or key statement
+        sentences = response.split(". ")
+        # Get last 1-2 sentences that aren't just sign-offs
+        candidates = [s for s in sentences[-2:] if "?" in s or len(s) > 20]
+        return candidates[-1] if candidates else response[-150:]
+
+    def _extract_follow_up(self, response: str) -> str:
+        """Extract follow-up item from coach response."""
+        # Look for commitments, next steps, or questions
+        if "next time" in response.lower():
+            idx = response.lower().find("next time")
+            return response[idx:idx+100]
+        if "check" in response.lower() and "?" in response:
+            # Find question about checking in
+            for sent in response.split(". "):
+                if "check" in sent.lower() and "?" in sent:
+                    return sent
+        return ""
+
+    # ========================================================================
+    # Legacy Methods (Updated for V2 Compatibility)
+    # ========================================================================
+
+    async def create_session(self, user_id: UUID | str, db: AsyncSession) -> str:
+        """Legacy method - delegates to V2 start_session."""
+        return await self.start_session(user_id, db)
 
     async def get_or_create_active_session(
         self, user_id: UUID | str, db: AsyncSession
     ) -> str:
         """Get the most recent active session or create a new one."""
         uid = str(user_id)
+        
+        # Check V2 sessions first
+        result = await db.execute(
+            text("""
+                SELECT id FROM coach_sessions
+                WHERE user_id = :user_id AND session_end IS NULL
+                ORDER BY session_start DESC
+                LIMIT 1
+            """),
+            {"user_id": uid},
+        )
+        row = result.fetchone()
+        if row:
+            return str(row[0])
+        
+        # Check legacy sessions
         result = await db.execute(
             text("""
                 SELECT id FROM ai_coach_sessions
@@ -224,40 +550,35 @@ class CoachEngine(BaseAIEngine):
         row = result.fetchone()
         if row:
             return str(row[0])
-        return await self.create_session(uid, db)
+        
+        # Create new
+        return await self.start_session(uid, db)
 
     def _determine_coaching_mode(self, context: dict, message: str) -> CoachingMode:
         """
-        Determine the appropriate coaching mode from context and message.
-        The mode shapes the coach's tone and approach.
+        Legacy mode detection - now primarily uses context from ContextBuilder.
+        Kept for fallback and message-specific signals.
         """
-        scores = context.get("scores", {})
-        retention = context.get("retention", {})
+        # Use context's determined mode if available
+        ctx_mode = context.get("current_coach_mode")
+        if ctx_mode:
+            return ctx_mode
+        
+        # Fallback to message analysis
         message_lower = message.lower()
-
-        # Intervention: user has been absent
-        if (retention or {}).get("needs_intervention"):
-            return "intervention"
-
-        # Celebrate: explicit wins or breakthroughs
-        win_words = ["did it", "completed", "achieved", "finished", "proud", "nailed", "success"]
+        scores = context.get("scores", {})
+        
+        win_words = ["did it", "completed", "achieved", "finished", "proud", "nailed"]
         if any(w in message_lower for w in win_words):
             return "celebrate"
-
-        # Support: struggling signals
-        struggle_words = ["stuck", "struggling", "can't", "failed", "hard", "difficult", "help"]
+        
+        struggle_words = ["stuck", "struggling", "can't", "failed", "hard", "help"]
         if any(w in message_lower for w in struggle_words):
             return "support"
-
-        # Support: low/critical momentum
-        if scores.get("momentum_state") in ("declining", "critical"):
-            return "support"
-
-        # Challenge: rising momentum and they seem ready
-        challenge_words = ["push", "more", "harder", "next level", "challenge", "ready"]
-        if scores.get("momentum_state") == "rising" and any(w in message_lower for w in challenge_words):
+        
+        if scores.get("momentum_state") == "rising":
             return "challenge"
-
+        
         return "guide"
 
     async def _get_daily_context(self, user_id: str, db: AsyncSession) -> str:
@@ -298,7 +619,6 @@ class CoachEngine(BaseAIEngine):
         self, session_id: str, db: AsyncSession, limit: int = 10
     ) -> list[dict]:
         """Load recent messages in a session for conversation context."""
-        # Get total count first
         count_result = await db.execute(
             text("""
                 SELECT COUNT(*) FROM ai_coach_messages
@@ -308,7 +628,6 @@ class CoachEngine(BaseAIEngine):
         )
         total_count = count_result.scalar() or 0
         
-        # Calculate offset to get the most recent 'limit' messages
         offset = max(0, total_count - limit)
         
         result = await db.execute(
@@ -348,7 +667,6 @@ class CoachEngine(BaseAIEngine):
         )
         msg_id = result.scalar()
 
-        # Update session message count and last_message_at
         await db.execute(
             text("""
                 UPDATE ai_coach_sessions
@@ -363,16 +681,13 @@ class CoachEngine(BaseAIEngine):
     async def _update_session_after_message(
         self, user_id: str, session_id: str, user_message: str, db: AsyncSession
     ) -> None:
-        """
-        Extract key topics from the message and update session.
-        Async background task — failures are silent.
-        """
+        """Extract key topics from the message and update session."""
         try:
-            # Simple keyword extraction (avoid another AI call for cost)
             topic_keywords = [
                 "goal", "motivation", "habit", "fear", "failure", "success",
                 "discipline", "focus", "energy", "stress", "confidence",
                 "morning", "evening", "work", "family", "health", "money",
+                "forge", "field", "harbor", "war room",  # PMOS domains
             ]
             found_topics = [kw for kw in topic_keywords if kw in user_message.lower()]
 
@@ -391,4 +706,4 @@ class CoachEngine(BaseAIEngine):
                     {"session_id": session_id, "topics": found_topics},
                 )
         except Exception:
-            pass  # Topic extraction is best-effort
+            pass

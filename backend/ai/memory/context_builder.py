@@ -23,6 +23,13 @@ Context structure:
         patterns: [{ type, name, confidence }],
         retention: { streak, days_since_last_task, needs_intervention },
         recent_coach_themes: [str],
+        
+        # NEW: Enhanced Coach Memory (V2)
+        last_session: { summary, closing_insight, days_since },
+        active_patterns: [{ name, type, description, first_seen }],
+        recent_moments: [{ type, content, when, trait_referenced }],
+        current_coach_mode: str,  # guide|support|challenge|celebrate|intervention|crisis
+        session_continuity: { opening_hook, pending_follow_up, last_commitment },
     }
 """
 
@@ -73,6 +80,12 @@ class ContextBuilder:
 
         # Enrich with recent coach themes (not in the SQL function)
         context = await self._enrich_with_coach_themes(context, uid, db)
+        
+        # NEW: Enrich with enhanced coach memory (V2)
+        context = await self._enrich_with_session_memory(context, uid, db)
+        context = await self._enrich_with_active_patterns(context, uid, db)
+        context = await self._enrich_with_recent_moments(context, uid, db)
+        context = await self._determine_coach_mode(context, uid, db)
 
         # Cache for 5 minutes
         await cache_user_context(uid, context)
@@ -109,6 +122,254 @@ class ContextBuilder:
         context["recent_coach_themes"] = themes
         return context
 
+    # =========================================================================
+    # NEW: Enhanced Coach Memory Methods (V2)
+    # =========================================================================
+
+    async def _enrich_with_session_memory(
+        self, context: dict, user_id: str, db: AsyncSession
+    ) -> dict:
+        """
+        Pull last session summary, closing insights, and continuity hooks.
+        Enables the coach to open with "Last time we talked about..."
+        """
+        result = await db.execute(
+            text("""
+                SELECT 
+                    id,
+                    session_start,
+                    session_end,
+                    opening_context,
+                    closing_insight,
+                    session_goal,
+                    emotional_arc,
+                    coach_mode_used,
+                    next_session_hook,
+                    EXTRACT(EPOCH FROM (NOW() - session_end))/86400 as days_since
+                FROM coach_sessions
+                WHERE user_id = :user_id
+                  AND session_end IS NOT NULL
+                ORDER BY session_end DESC
+                LIMIT 1
+            """),
+            {"user_id": user_id},
+        )
+        row = result.fetchone()
+        
+        if row:
+            context["last_session"] = {
+                "session_id": str(row[0]),
+                "session_start": str(row[1]) if row[1] else None,
+                "session_end": str(row[2]) if row[2] else None,
+                "opening_context": row[3],  # What was top of mind when they arrived
+                "closing_insight": row[4],  # Key takeaway when they left
+                "session_goal": row[5],     # What they wanted to work on
+                "emotional_arc": row[6],    # How their state shifted
+                "coach_mode_used": row[7],  # Which mode dominated
+                "next_session_hook": row[8], # What to follow up on
+                "days_since": round(row[9], 1) if row[9] else None,
+            }
+            
+            # Build session continuity object for easy prompt insertion
+            context["session_continuity"] = {
+                "opening_hook": row[3] or row[8],  # Use opening context or pending hook
+                "pending_follow_up": row[8],
+                "last_commitment": None,  # Will be populated from moments
+                "time_away": self._format_time_away(row[9]),
+            }
+        else:
+            context["last_session"] = None
+            context["session_continuity"] = None
+            
+        return context
+
+    async def _enrich_with_active_patterns(
+        self, context: dict, user_id: str, db: AsyncSession
+    ) -> dict:
+        """
+        Pull recognized behavioral patterns for this user.
+        Enables the coach to say "You tend to..." or "This is your pattern..."
+        """
+        result = await db.execute(
+            text("""
+                SELECT 
+                    pattern_name,
+                    pattern_type,
+                    description,
+                    confidence_score,
+                    first_observed,
+                    last_observed,
+                    evidence_count
+                FROM coach_patterns
+                WHERE user_id = :user_id
+                  AND is_active = TRUE
+                  AND confidence_score >= 0.6
+                ORDER BY confidence_score DESC, last_observed DESC
+                LIMIT 5
+            """),
+            {"user_id": user_id},
+        )
+        
+        patterns = []
+        for row in result.fetchall():
+            patterns.append({
+                "name": row[0],
+                "type": row[1],
+                "description": row[2],
+                "confidence": float(row[3]),
+                "first_seen": str(row[4]) if row[4] else None,
+                "last_seen": str(row[5]) if row[5] else None,
+                "evidence_count": row[6],
+            })
+        
+        context["active_patterns"] = patterns
+        
+        # Also update the legacy patterns field for backward compatibility
+        context["patterns"] = [
+            {"name": p["name"], "confidence": p["confidence"], "type": p["type"]}
+            for p in patterns
+        ]
+        
+        return context
+
+    async def _enrich_with_recent_moments(
+        self, context: dict, user_id: str, db: AsyncSession
+    ) -> dict:
+        """
+        Pull recent breakthroughs, resistance moments, commitments, vulnerabilities.
+        Enables the coach to reference specific moments: "Remember when you said..."
+        """
+        result = await db.execute(
+            text("""
+                SELECT 
+                    moment_type,
+                    moment_content,
+                    coach_observation,
+                    user_language,
+                    emotional_tone,
+                    trait_referenced,
+                    created_at,
+                    EXTRACT(EPOCH FROM (NOW() - created_at))/86400 as days_ago
+                FROM coach_moments
+                WHERE user_id = :user_id
+                ORDER BY created_at DESC
+                LIMIT 10
+            """),
+            {"user_id": user_id},
+        )
+        
+        moments = []
+        recent_commitments = []
+        
+        for row in result.fetchall():
+            moment = {
+                "type": row[0],
+                "content": row[1],
+                "coach_observation": row[2],
+                "user_language": row[3],
+                "emotional_tone": row[4],
+                "trait_referenced": row[5],
+                "when": str(row[6]) if row[6] else None,
+                "days_ago": round(row[7], 1) if row[7] else None,
+            }
+            moments.append(moment)
+            
+            # Track commitments separately for follow-up
+            if row[0] == "commitment" and row[7] and row[7] < 7:  # Within last 7 days
+                recent_commitments.append({
+                    "commitment": row[1],
+                    "days_ago": round(row[7], 1),
+                })
+        
+        context["recent_moments"] = moments
+        
+        # Update session continuity with last commitment if available
+        if context.get("session_continuity") and recent_commitments:
+            context["session_continuity"]["last_commitment"] = recent_commitments[0]
+            
+        return context
+
+    async def _determine_coach_mode(
+        self, context: dict, user_id: str, db: AsyncSession
+    ) -> dict:
+        """
+        Determine which coaching mode to use based on user state.
+        Modes: guide|support|challenge|celebrate|intervention|crisis
+        """
+        scores = context.get("scores", {})
+        retention = context.get("retention", {})
+        last_session = context.get("last_session", {})
+        
+        # Check for crisis first (safety flags)
+        crisis_result = await db.execute(
+            text("""
+                SELECT 1 FROM coach_safety_flags
+                WHERE user_id = :user_id
+                  AND severity IN ('high', 'immediate')
+                  AND admin_resolved = FALSE
+                LIMIT 1
+            """),
+            {"user_id": user_id},
+        )
+        if crisis_result.fetchone():
+            context["current_coach_mode"] = "crisis"
+            return context
+        
+        # Check for intervention (absence/decline)
+        days_since = last_session.get("days_since", 0) if last_session else 0
+        needs_intervention = retention.get("needs_intervention", False)
+        momentum_state = scores.get("momentum_state", "holding")
+        
+        if needs_intervention or days_since > 3 or momentum_state == "critical":
+            context["current_coach_mode"] = "intervention"
+            return context
+        
+        # Check for celebration (recent win)
+        recent_breakthrough = any(
+            m.get("type") == "breakthrough" and m.get("days_ago", 999) < 2
+            for m in context.get("recent_moments", [])
+        )
+        if recent_breakthrough:
+            context["current_coach_mode"] = "celebrate"
+            return context
+        
+        # Check for support (struggling)
+        if momentum_state == "declining" or any(
+            m.get("type") == "resistance" and m.get("days_ago", 999) < 1
+            for m in context.get("recent_moments", [])
+        ):
+            context["current_coach_mode"] = "support"
+            return context
+        
+        # Check for challenge (ready to grow)
+        if momentum_state == "rising" and scores.get("consistency", 0) > 70:
+            context["current_coach_mode"] = "challenge"
+            return context
+        
+        # Default: guide
+        context["current_coach_mode"] = "guide"
+        return context
+
+    def _format_time_away(self, days: float | None) -> str:
+        """Format days since last session for natural language."""
+        if days is None:
+            return "a while"
+        if days < 1:
+            return "earlier today"
+        if days < 2:
+            return "yesterday"
+        if days < 7:
+            return f"{int(days)} days ago"
+        if days < 14:
+            return "last week"
+        if days < 30:
+            return "a few weeks ago"
+        return "a while ago"
+
+    # =========================================================================
+    # Formatting for Prompts
+    # =========================================================================
+
     def format_for_prompt(self, context: dict) -> str:
         """
         Format the context object as a clean string for inclusion in AI prompts.
@@ -121,6 +382,13 @@ class ContextBuilder:
         reflections = context.get("recent_reflections") or []
         patterns = context.get("patterns") or []
         retention = context.get("retention", {})
+        
+        # NEW: Get enhanced coach memory
+        last_session = context.get("last_session")
+        active_patterns = context.get("active_patterns", [])
+        recent_moments = context.get("recent_moments", [])
+        session_continuity = context.get("session_continuity")
+        current_mode = context.get("current_coach_mode", "guide")
 
         # Format traits — only show top 3 with lowest progress
         trait_lines = []
@@ -141,7 +409,7 @@ class ContextBuilder:
                 f"  - {r['date']}: {sentiment} | themes: {themes or 'none noted'}"
             )
 
-        # Format behavioral patterns
+        # Format behavioral patterns (legacy)
         pattern_lines = []
         for p in (patterns or [])[:3]:
             pattern_lines.append(f"  - {p.get('name', '')} (confidence: {p.get('confidence', 0):.0%})")
@@ -182,6 +450,55 @@ class ContextBuilder:
             f"Transformation: {scores.get('transformation', 0):.1f}/100",
             f"Consistency: {scores.get('consistency', 0):.1f} | Depth: {scores.get('depth', 0):.1f} | Alignment: {scores.get('alignment', 0):.1f}",
         ]
+
+        # NEW: Add enhanced coach memory section
+        if last_session or active_patterns or recent_moments:
+            lines += [
+                f"",
+                f"COACHING CONTEXT (Session Memory)",
+            ]
+            
+            # Last session info
+            if last_session:
+                lines += [
+                    f"Last session: {self._format_time_away(last_session.get('days_since'))}",
+                    f"Closing insight: {last_session.get('closing_insight', 'Not recorded')}",
+                ]
+                if last_session.get('next_session_hook'):
+                    lines += [f"Follow-up: {last_session['next_session_hook']}"]
+            
+            # Session continuity
+            if session_continuity and session_continuity.get('opening_hook'):
+                lines += [
+                    f"Opening context: {session_continuity['opening_hook']}",
+                ]
+            
+            # Active patterns
+            if active_patterns:
+                lines += [f"", f"Recognized Patterns:"]
+                for p in active_patterns[:3]:
+                    lines += [
+                        f"  - {p['name']} ({p['type']}): {p['description'][:80]}..."
+                    ]
+            
+            # Recent significant moments
+            significant_moments = [
+                m for m in recent_moments 
+                if m.get('type') in ['breakthrough', 'commitment', 'vulnerability']
+                and m.get('days_ago', 999) < 7
+            ][:2]
+            if significant_moments:
+                lines += [f"", f"Recent Significant Moments:"]
+                for m in significant_moments:
+                    lines += [
+                        f"  - {m['type'].upper()} ({int(m.get('days_ago', 0))} days ago): {m.get('user_language', m.get('content', ''))[:60]}..."
+                    ]
+            
+            # Current mode
+            lines += [
+                f"",
+                f"Current Coaching Mode: {current_mode.upper()}",
+            ]
 
         if context.get("recent_coach_themes"):
             lines += [
