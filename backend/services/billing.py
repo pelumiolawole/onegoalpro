@@ -149,6 +149,7 @@ class BillingService:
                 text("""
                     UPDATE users 
                     SET subscription_status = 'canceling',
+                        cancel_at_period_end = true,
                         subscription_updated_at = NOW()
                     WHERE stripe_subscription_id = :subscription_id
                 """),
@@ -180,6 +181,7 @@ class BillingService:
                 text("""
                     UPDATE users 
                     SET subscription_status = 'active',
+                        cancel_at_period_end = false,
                         subscription_updated_at = NOW()
                     WHERE stripe_subscription_id = :subscription_id
                 """),
@@ -307,6 +309,7 @@ class BillingService:
                     stripe_subscription_id = :subscription_id,
                     current_period_start = :period_start,
                     current_period_end = :period_end,
+                    cancel_at_period_end = false,
                     subscription_updated_at = NOW()
                 WHERE id = :user_id
             """),
@@ -340,6 +343,7 @@ class BillingService:
                     current_period_start = :period_start,
                     current_period_end = :period_end,
                     subscription_status = 'active',
+                    cancel_at_period_end = false,
                     subscription_updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
@@ -389,6 +393,7 @@ class BillingService:
                 SET 
                     subscription_status = 'cancelled',
                     subscription_plan = 'spark',
+                    cancel_at_period_end = false,
                     subscription_updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
@@ -403,30 +408,47 @@ class BillingService:
         subscription: dict,
         db: AsyncSession,
     ) -> None:
-        """Handle subscription changes (plan changes, etc.)."""
+        """Handle subscription changes (plan changes, cancel_at_period_end, etc.)."""
         
         subscription_id = subscription.get("id")
-        status = subscription.get("status")
+        stripe_status = subscription.get("status")
+        cancel_at_period_end = subscription.get("cancel_at_period_end", False)
         
         if not subscription_id:
             return
+        
+        # Determine internal status based on both Stripe status AND cancel_at_period_end
+        # If cancel_at_period_end is True and Stripe status is still "active",
+        # we should show "canceling" to the user
+        if cancel_at_period_end and stripe_status == "active":
+            internal_status = "canceling"
+        else:
+            internal_status = stripe_status
         
         await db.execute(
             text("""
                 UPDATE users
                 SET 
                     subscription_status = :status,
+                    cancel_at_period_end = :cancel_at_period_end,
                     subscription_updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
             {
                 "subscription_id": subscription_id,
-                "status": status,
+                "status": internal_status,
+                "cancel_at_period_end": cancel_at_period_end,
             },
         )
         await db.commit()
         
-        logger.info("subscription_updated", subscription_id=subscription_id, status=status)
+        logger.info(
+            "subscription_updated", 
+            subscription_id=subscription_id, 
+            stripe_status=stripe_status,
+            internal_status=internal_status,
+            cancel_at_period_end=cancel_at_period_end
+        )
 
     def check_quota(
         self,
