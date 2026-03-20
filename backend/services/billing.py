@@ -27,6 +27,14 @@ PRICE_IDS = {
     "identity_annual": os.getenv("STRIPE_PRICE_IDENTITY_ANNUAL", ""),
 }
 
+# Reverse mapping: price ID -> plan name
+PRICE_TO_PLAN = {
+    PRICE_IDS["forge_monthly"]: "Forge",
+    PRICE_IDS["forge_annual"]: "Forge",
+    PRICE_IDS["identity_monthly"]: "Identity",
+    PRICE_IDS["identity_annual"]: "Identity",
+}
+
 PLAN_LIMITS = {
     "spark": {
         "coach_messages_per_day": 5,
@@ -197,29 +205,67 @@ class BillingService:
             return False
 
     async def get_invoices(self, stripe_customer_id: str) -> list:
-        """Get list of invoices for a customer."""
+        """Get list of invoices for a customer with readable plan names."""
         try:
             invoices = self.stripe.Invoice.list(
                 customer=stripe_customer_id,
                 limit=24,  # Last 24 invoices
-                status='paid'
+                status='paid',
+                expand=['data.subscription']
             )
             
-            return [
-                {
+            result = []
+            for inv in invoices.data:
+                plan_name = self._get_plan_name_from_invoice(inv)
+                
+                result.append({
                     "id": inv.id,
                     "amount_due": inv.amount_due,
                     "amount_paid": inv.amount_paid,
                     "status": inv.status,
                     "created": inv.created,
                     "invoice_pdf": inv.invoice_pdf,
-                    "description": inv.description or f"Subscription - {inv.billing_reason}",
-                }
-                for inv in invoices.data
-            ]
+                    "description": f"Subscription - {plan_name}",
+                })
+            
+            return result
+            
         except self.stripe.error.StripeError as e:
             logger.error("Failed to fetch invoices", error=str(e))
             return []
+
+    def _get_plan_name_from_invoice(self, inv) -> str:
+        """Extract plan name from invoice data."""
+        # Try 1: Get from subscription metadata (most reliable)
+        if hasattr(inv, 'subscription') and inv.subscription:
+            if isinstance(inv.subscription, stripe.Subscription):
+                plan = inv.subscription.metadata.get('plan', '')
+                if plan:
+                    return plan.title()
+        
+        # Try 2: Get from line items price ID
+        try:
+            if inv.lines and inv.lines.data:
+                line = inv.lines.data[0]
+                price_id = None
+                
+                if hasattr(line, 'price') and line.price:
+                    price_id = line.price.id
+                elif hasattr(line, 'plan') and line.plan:
+                    price_id = line.plan.id
+                
+                if price_id and price_id in PRICE_TO_PLAN:
+                    return PRICE_TO_PLAN[price_id]
+        except Exception:
+            pass
+        
+        # Try 3: Format billing reason nicely
+        if inv.billing_reason:
+            reason = inv.billing_reason.replace('subscription_', '').replace('_', ' ')
+            return reason.title()
+        
+        # Fallback
+        return "Plan"
 
     async def handle_webhook(
         self,
