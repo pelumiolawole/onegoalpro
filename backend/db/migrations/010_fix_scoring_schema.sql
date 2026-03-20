@@ -1,31 +1,49 @@
--- Migration 009: Fix Scoring Schema - Emergency Repair
--- Fixes missing columns and tables causing score calculation failures
+-- Migration 010: Comprehensive Scoring System Fix
+-- Date: 2026-03-20
+-- Fixes ALL discovered issues in update_user_scores function
+-- - momentum_state enum cast error
+-- - quality_score column reference (changed to depth_score)
+-- - progress_metrics missing columns
+-- - task completion source (daily_tasks, not progress_metrics)
 
--- 1. Add missing columns to progress_metrics
+-- 1. Ensure momentum_state enum exists
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'momentum_state') THEN
+        CREATE TYPE momentum_state AS ENUM ('rising', 'holding', 'declining', 'critical');
+    END IF;
+END $$;
+
+-- 2. Ensure all progress_metrics columns exist
 ALTER TABLE progress_metrics 
+ADD COLUMN IF NOT EXISTS task_id UUID REFERENCES daily_tasks(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 ADD COLUMN IF NOT EXISTS avg_depth_score INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS transformation_score INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS momentum_score INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS alignment_score INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS consistency_score INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ADD COLUMN IF NOT EXISTS consistency_score INTEGER DEFAULT 0;
 
--- 2. Create missing coach_interventions table
-CREATE TABLE IF NOT EXISTS coach_interventions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    intervention_type VARCHAR(50) NOT NULL,
-    reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    resolved_at TIMESTAMP WITH TIME ZONE,
-    metadata JSONB DEFAULT '{}'
-);
+CREATE INDEX IF NOT EXISTS idx_progress_metrics_task_id ON progress_metrics(task_id);
 
-CREATE INDEX IF NOT EXISTS idx_coach_interventions_user_id ON coach_interventions(user_id);
-CREATE INDEX IF NOT EXISTS idx_coach_interventions_type ON coach_interventions(intervention_type);
-CREATE INDEX IF NOT EXISTS idx_coach_interventions_created ON coach_interventions(created_at);
+-- 3. Add depth_score to reflections if quality_score doesn't exist
+DO $$
+DECLARE
+    v_has_depth_score BOOLEAN;
+    v_has_quality_score BOOLEAN;
+BEGIN
+    SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'reflections' AND column_name = 'depth_score') INTO v_has_depth_score;
+    SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'reflections' AND column_name = 'quality_score') INTO v_has_quality_score;
+    
+    IF NOT v_has_depth_score AND NOT v_has_quality_score THEN
+        ALTER TABLE reflections ADD COLUMN depth_score INTEGER;
+    END IF;
+END $$;
 
--- 3. Fix the update_user_scores function to handle NULLs gracefully
+-- 4. DROP and recreate the function with ALL fixes
+DROP FUNCTION IF EXISTS update_user_scores(UUID);
+
 CREATE OR REPLACE FUNCTION update_user_scores(p_user_id UUID)
 RETURNS VOID AS $$
 DECLARE
@@ -34,44 +52,46 @@ DECLARE
     v_momentum INTEGER;
     v_alignment INTEGER;
     v_transformation INTEGER;
+    v_state momentum_state;  -- Use the enum type directly
 BEGIN
-    -- Calculate consistency (last 14 days)
+    -- Calculate consistency from daily_tasks (NOT progress_metrics)
     SELECT COALESCE(
         ROUND(
-            (COUNT(*) FILTER (WHERE task_completed)::NUMERIC / 
+            (COUNT(*) FILTER (WHERE completed_at IS NOT NULL))::NUMERIC / 
             NULLIF(COUNT(*), 0) * 100
         ), 0)::INTEGER
     INTO v_consistency
-    FROM progress_metrics
+    FROM daily_tasks
     WHERE user_id = p_user_id
-    AND metric_date >= CURRENT_DATE - INTERVAL '14 days';
+    AND created_at >= CURRENT_DATE - INTERVAL '14 days';
 
-    -- Calculate depth (average reflection depth)
-    SELECT COALESCE(ROUND(AVG(avg_depth_score)), 0)::INTEGER
+    -- Calculate depth from reflections (use depth_score, not quality_score)
+    SELECT COALESCE(ROUND(AVG(depth_score)), 0)::INTEGER
     INTO v_depth
-    FROM progress_metrics
+    FROM reflections
     WHERE user_id = p_user_id
-    AND metric_date >= CURRENT_DATE - INTERVAL '14 days'
-    AND avg_depth_score IS NOT NULL;
+    AND created_at >= CURRENT_DATE - INTERVAL '14 days'
+    AND depth_score IS NOT NULL;
 
     -- Calculate momentum (last 7 vs prior 7 days)
     WITH recent AS (
-        SELECT COUNT(*) FILTER (WHERE task_completed) as completed
-        FROM progress_metrics
+        SELECT COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed
+        FROM daily_tasks
         WHERE user_id = p_user_id
-        AND metric_date >= CURRENT_DATE - INTERVAL '7 days'
+        AND created_at >= CURRENT_DATE - INTERVAL '7 days'
     ),
     prior AS (
-        SELECT COUNT(*) FILTER (WHERE task_completed) as completed
-        FROM progress_metrics
+        SELECT COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed
+        FROM daily_tasks
         WHERE user_id = p_user_id
-        AND metric_date >= CURRENT_DATE - INTERVAL '14 days'
-        AND metric_date < CURRENT_DATE - INTERVAL '7 days'
+        AND created_at >= CURRENT_DATE - INTERVAL '14 days'
+        AND created_at < CURRENT_DATE - INTERVAL '7 days'
     )
     SELECT COALESCE(
-        ROUND(
-            (r.completed::NUMERIC / NULLIF(p.completed, 0) * 50) + 50
-        ), 50)::INTEGER
+        CASE 
+            WHEN p.completed = 0 THEN 50
+            ELSE ROUND((r.completed::NUMERIC / p.completed * 50) + 50)
+        END, 50)::INTEGER
     INTO v_momentum
     FROM recent r, prior p;
 
@@ -89,7 +109,15 @@ BEGIN
         v_alignment * 0.15
     )::INTEGER;
 
-    -- Update today's progress_metrics
+    -- Determine momentum state using ENUM type (not text!)
+    v_state := CASE
+        WHEN v_momentum >= 65 THEN 'rising'::momentum_state
+        WHEN v_momentum >= 40 THEN 'holding'::momentum_state
+        WHEN v_momentum >= 20 THEN 'declining'::momentum_state
+        ELSE 'critical'::momentum_state
+    END;
+
+    -- Update progress_metrics for today
     INSERT INTO progress_metrics (
         user_id, metric_date, task_completed, reflection_submitted,
         avg_depth_score, transformation_score, momentum_score, 
@@ -117,12 +145,7 @@ BEGIN
         momentum_score = v_momentum,
         alignment_score = v_alignment,
         transformation_score = v_transformation,
-        momentum_state = CASE
-            WHEN v_transformation >= 65 THEN 'rising'
-            WHEN v_transformation >= 40 THEN 'holding'
-            WHEN v_transformation >= 20 THEN 'declining'
-            ELSE 'critical'
-        END,
+        momentum_state = v_state,  -- Now properly typed as enum
         updated_at = NOW()
     WHERE user_id = p_user_id;
     
