@@ -25,7 +25,7 @@ import {
 
 interface Subscription {
   plan: 'spark' | 'forge' | 'identity' | null
-  status: 'active' | 'canceling' | 'past_due' | 'unpaid' | 'canceled' | null
+  status: 'active' | 'ended' | null
   billing_cycle: 'monthly' | 'annual' | null
   current_period_end: string | null
   cancel_at_period_end: boolean
@@ -138,7 +138,7 @@ export default function SettingsPage() {
       setShareUrl(data.share_url)
     } catch {
       setShareMessage("I'm using OneGoal Pro to commit to one goal — no excuses. Join me.")
-      setShareUrl('https://onegoalpro.vercel.app')
+      setShareUrl('https://onegoalpro.vercel.app ')
     } finally {
       setShareLoading(false)
     }
@@ -215,6 +215,18 @@ export default function SettingsPage() {
       case 'forge': return { name: 'The Forge', color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10', icon: Sparkles }
       case 'identity': return { name: 'The Identity', color: 'text-[#d0ff59]', bg: 'bg-[#d0ff59]/10', icon: Shield }
       default: return { name: 'The Spark', color: 'text-[#A09690]', bg: 'bg-[#A09690]/10', icon: CheckCircle2 }
+    }
+  }
+
+  // Get status badge styles - only 'active' or 'ended'
+  const getStatusBadge = (status: string | null, cancelAtPeriodEnd: boolean) => {
+    const isActive = status === 'active' && !cancelAtPeriodEnd
+    
+    return {
+      className: isActive
+        ? 'bg-green-950/30 text-green-400 border-green-900/30'
+        : 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      label: isActive ? 'Active' : 'Ended'
     }
   }
 
@@ -322,7 +334,7 @@ export default function SettingsPage() {
               <h2 className="text-lg font-medium text-[#F5F1ED]">Subscription</h2>
             </div>
 
-            {subscription?.plan ? (
+            {subscription?.plan && subscription.plan !== 'spark' ? (
               <div className="space-y-6">
                 {/* Current Plan Badge */}
                 <div className="flex items-center justify-between p-4 bg-[#0A0908] rounded-xl border border-white/5">
@@ -335,32 +347,29 @@ export default function SettingsPage() {
                         {planInfo.name}
                       </h3>
                       <p className="text-sm text-[#5C524A] capitalize">
-                        {subscription.billing_cycle || 'Free'} plan
+                        {subscription.billing_cycle || 'Monthly'} plan
                       </p>
                     </div>
                   </div>
                   
-                  {/* Status Badge */}
-                  <div className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
-                    subscription.status === 'active' && !subscription.cancel_at_period_end
-                      ? 'bg-green-950/30 text-green-400 border-green-900/30'
-                      : subscription.cancel_at_period_end
-                      ? 'bg-amber-950/30 text-amber-400 border-amber-900/30'
-                      : 'bg-red-950/30 text-red-400 border-red-900/30'
-                  }`}>
-                    {subscription.cancel_at_period_end ? 'Canceling' : subscription.status}
-                  </div>
+                  {/* Status Badge - Only Active or Ended */}
+                  {(() => {
+                    const badge = getStatusBadge(subscription.status, subscription.cancel_at_period_end)
+                    return (
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-medium border ${badge.className}`}>
+                        {badge.label}
+                      </span>
+                    )
+                  })()}
                 </div>
 
                 {/* Renewal Info */}
                 <div className="flex items-center gap-3 text-sm text-[#7A6E65]">
                   <Calendar className="w-4 h-4" />
-                  {subscription.cancel_at_period_end ? (
-                    <span>Access until {formatDate(subscription.current_period_end)}</span>
-                  ) : subscription.status === 'active' ? (
+                  {subscription.status === 'active' && !subscription.cancel_at_period_end ? (
                     <span>Renews on {formatDate(subscription.current_period_end)}</span>
                   ) : (
-                    <span>Ended on {formatDate(subscription.current_period_end)}</span>
+                    <span>Access until {formatDate(subscription.current_period_end)}</span>
                   )}
                 </div>
 
@@ -388,7 +397,7 @@ export default function SettingsPage() {
                     </>
                   )}
 
-                  {subscription.cancel_at_period_end && (
+                  {(subscription.status === 'ended' || subscription.cancel_at_period_end) && (
                     <button
                       onClick={handleResume}
                       disabled={actionLoading}
@@ -396,16 +405,6 @@ export default function SettingsPage() {
                     >
                       {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                       Resume Subscription
-                    </button>
-                  )}
-
-                  {subscription.status === 'canceled' && (
-                    <button
-                      onClick={() => handleUpgrade(subscription.plan === 'identity' ? 'identity' : 'forge')}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-black font-medium rounded-lg hover:bg-[#F59E0B]/90 transition-colors text-sm"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Reactivate
                     </button>
                   )}
                 </div>

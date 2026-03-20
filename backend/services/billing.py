@@ -62,6 +62,19 @@ class BillingService:
     def __init__(self):
         self.stripe = stripe
 
+    def _normalize_subscription_status(self, stripe_status: str, cancel_at_period_end: bool) -> str:
+        """Normalize subscription status to 'active' or 'ended'."""
+        # If cancel_at_period_end is True, subscription is ending/ended
+        if cancel_at_period_end:
+            return "ended"
+        
+        # Map Stripe statuses to our simplified states
+        if stripe_status in ["active", "trialing"]:
+            return "active"
+        else:
+            # cancelled, unpaid, paused, incomplete_expired, etc.
+            return "ended"
+
     async def create_checkout_session(
         self,
         user_id: str,
@@ -156,7 +169,7 @@ class BillingService:
             await db.execute(
                 text("""
                     UPDATE users 
-                    SET subscription_status = 'canceling',
+                    SET subscription_status = 'ended',
                         cancel_at_period_end = true,
                         subscription_updated_at = NOW()
                     WHERE stripe_subscription_id = :subscription_id
@@ -350,7 +363,7 @@ class BillingService:
                 UPDATE users
                 SET 
                     subscription_plan = :plan,
-                    subscription_status = :status,
+                    subscription_status = 'active',
                     stripe_customer_id = :customer_id,
                     stripe_subscription_id = :subscription_id,
                     current_period_start = :period_start,
@@ -362,7 +375,6 @@ class BillingService:
             {
                 "user_id": user_id,
                 "plan": plan,
-                "status": subscription.status,
                 "customer_id": session.get("customer"),
                 "subscription_id": subscription_id,
                 "period_start": datetime.fromtimestamp(subscription.current_period_start),
@@ -404,7 +416,7 @@ class BillingService:
         logger.info("subscription_renewed", subscription_id=subscription_id)
 
     async def _handle_payment_failed(self, invoice: dict, db: AsyncSession) -> None:
-        """Handle failed payment — mark for retry."""
+        """Handle failed payment — mark as ended."""
         
         subscription_id = invoice.get("subscription")
         if not subscription_id:
@@ -413,7 +425,7 @@ class BillingService:
         await db.execute(
             text("""
                 UPDATE users
-                SET subscription_status = 'past_due'
+                SET subscription_status = 'ended'
                 WHERE stripe_subscription_id = :subscription_id
             """),
             {"subscription_id": subscription_id},
@@ -437,7 +449,7 @@ class BillingService:
             text("""
                 UPDATE users
                 SET 
-                    subscription_status = 'cancelled',
+                    subscription_status = 'ended',
                     subscription_plan = 'spark',
                     cancel_at_period_end = false,
                     subscription_updated_at = NOW()
@@ -463,13 +475,8 @@ class BillingService:
         if not subscription_id:
             return
         
-        # Determine internal status based on both Stripe status AND cancel_at_period_end
-        # If cancel_at_period_end is True and Stripe status is still "active",
-        # we should show "canceling" to the user
-        if cancel_at_period_end and stripe_status == "active":
-            internal_status = "canceling"
-        else:
-            internal_status = stripe_status
+        # Normalize to 'active' or 'ended'
+        internal_status = self._normalize_subscription_status(stripe_status, cancel_at_period_end)
         
         await db.execute(
             text("""
