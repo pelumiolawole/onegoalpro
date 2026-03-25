@@ -645,7 +645,7 @@ export default function LandingPage() {
                     <p className="text-[#5C524A] text-sm mb-4">{plan.tagline}</p>
 
                     <div className="flex items-baseline gap-1">
-                      <span className="font-display text-4xl text-[#F5F1ED]">{plan.price}</span>
+                      <span className="font-mono text-4xl font-bold text-[#F5F1ED] tracking-tight">{plan.price}</span>
                       <span className="text-[#5C524A] text-sm">{plan.period}</span>
                     </div>
 
