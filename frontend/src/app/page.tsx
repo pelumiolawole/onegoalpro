@@ -174,7 +174,7 @@ export default function LandingPage() {
         features: [
           'AI Discovery Interview',
           'One Goal definition',
-          '3 daily AI tasks',
+          '1 daily identity task',
           'Basic progress tracking',
           '7-day streak tracking',
           'Coach (5 messages/day)',
@@ -224,7 +224,7 @@ export default function LandingPage() {
         features: [
           'AI Discovery Interview',
           'One Goal definition',
-          '3 daily AI tasks',
+          '1 daily identity task',
           'Basic progress tracking',
           '7-day streak tracking',
           'Coach (5 messages/day)',
