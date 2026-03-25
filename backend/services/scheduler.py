@@ -101,6 +101,17 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
+    # NEW: Re-engagement check — runs daily at 9am UTC
+    scheduler.add_job(
+        func=run_reengagement_emails,
+        trigger=CronTrigger(hour=9, minute=0),
+        id="reengagement_emails",
+        name="Send re-engagement emails to inactive users",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
     return scheduler
@@ -108,58 +119,10 @@ async def start_scheduler() -> AsyncIOScheduler:
 
 # ─── Job Implementations ──────────────────────────────────────────────────────
 
-async def send_verification_reminders() -> None:
-    """Send reminder emails 24 hours after initial verification email"""
-    from datetime import datetime, timedelta, timezone
-    from sqlalchemy import select
-    from core.cache import acquire_lock, release_lock
-    from core.database import get_db_context
-    from services.email import email_service
-
-    lock_acquired = await acquire_lock("verification_reminders", ttl_seconds=3600)
-    if not lock_acquired:
-        return
-
-    try:
-        async with get_db_context() as db:
-            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
-            max_time = datetime.now(timezone.utc) - timedelta(hours=48)
-
-            from db.models.user import User
-
-            result = await db.execute(
-                select(User).where(
-                    User.email_verification_token.is_not(None),
-                    User.email_verified_at.is_(None),
-                    User.email_verification_sent_at <= cutoff_time,
-                    User.email_verification_sent_at > max_time,
-                    User.email_reminder_sent_at.is_(None)
-                )
-            )
-            users = result.scalars().all()
-
-            for user in users:
-                try:
-                    verification_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
-                    await email_service.send_verification_reminder(
-                        to_email=user.email,
-                        first_name=user.display_name,
-                        verification_url=verification_url
-                    )
-                    user.email_reminder_sent_at = datetime.now(timezone.utc)
-                    await db.commit()
-                    logger.info("verification_reminder_sent", user_id=str(user.id))
-                except Exception as e:
-                    logger.error("verification_reminder_failed", user_id=str(user.id), error=str(e))
-                    await db.rollback()
-    finally:
-        await release_lock("verification_reminders")
-
-
 async def run_daily_task_generation() -> None:
     """
     Runs every hour. Generates tasks for users at midnight their local time.
-    Also catches users who just activated and have no task yet.
+    After generating tasks, sends daily task email to each user.
     """
     from datetime import datetime, date, timedelta
     import pytz
@@ -215,6 +178,10 @@ async def run_daily_task_generation() -> None:
                 success_count += 1
                 if tasks_generated > 1:
                     logger.info("backlog_tasks_generated", user_id=user_id, tasks_generated=tasks_generated)
+
+                # Send daily task email after successful generation
+                await _send_daily_task_email_for_user(user_id)
+
             except Exception as e:
                 error_count += 1
                 logger.error("task_generation_user_failed", user_id=user_id, error=str(e))
@@ -225,14 +192,188 @@ async def run_daily_task_generation() -> None:
         await release_lock("daily_task_generation")
 
 
+async def _send_daily_task_email_for_user(user_id: str) -> None:
+    """
+    Fetch the user's today task and identity anchor, then send the daily task email.
+    Called after successful task generation.
+    """
+    from core.database import get_db_context
+    from services.email import email_service
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            # Get user details, today's task, and identity anchor in one query
+            result = await db.execute(text("""
+                SELECT
+                    u.email,
+                    u.display_name,
+                    dt.title AS task_title,
+                    dt.description AS task_description,
+                    g.identity_anchor
+                FROM users u
+                JOIN goals g ON g.user_id = u.id AND g.status = 'active'
+                JOIN daily_tasks dt ON dt.user_id = u.id
+                    AND dt.scheduled_date = CURRENT_DATE
+                    AND dt.status = 'pending'
+                WHERE u.id = CAST(:user_id AS uuid)
+                ORDER BY dt.created_at DESC
+                LIMIT 1
+            """), {"user_id": user_id})
+
+            row = result.fetchone()
+            if not row:
+                logger.warning("daily_task_email_no_task_found", user_id=user_id)
+                return
+
+            email, display_name, task_title, task_description, identity_anchor = row
+
+        await email_service.send_daily_task_email(
+            to_email=email,
+            display_name=display_name,
+            task_title=task_title,
+            task_description=task_description or "",
+            identity_anchor=identity_anchor or "the best version of yourself",
+            app_url=settings.frontend_url,
+        )
+
+    except Exception as e:
+        logger.error("daily_task_email_send_failed", user_id=user_id, error=str(e))
+
+
+async def run_reengagement_emails() -> None:
+    """
+    Runs daily at 9am UTC.
+    Sends re-engagement emails to users who haven't logged in for 3+ days
+    and have missed tasks. Caps at one re-engagement email per user per 3 days.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("reengagement_emails", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            result = await db.execute(text("""
+                SELECT
+                    u.id,
+                    u.email,
+                    u.display_name,
+                    EXTRACT(DAY FROM NOW() - u.last_active_at)::int AS days_inactive,
+                    COUNT(dt.id) AS missed_tasks
+                FROM users u
+                JOIN goals g ON g.user_id = u.id AND g.status = 'active'
+                JOIN daily_tasks dt ON dt.user_id = u.id
+                    AND dt.status = 'pending'
+                    AND dt.scheduled_date < CURRENT_DATE
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND u.last_active_at < NOW() - INTERVAL '3 days'
+                  AND (
+                    u.last_reengagement_email_sent_at IS NULL
+                    OR u.last_reengagement_email_sent_at < NOW() - INTERVAL '3 days'
+                  )
+                GROUP BY u.id, u.email, u.display_name, u.last_active_at
+                HAVING COUNT(dt.id) > 0
+            """))
+            users = result.fetchall()
+
+        if not users:
+            logger.info("reengagement_no_users_to_contact")
+            return
+
+        logger.info("reengagement_started", user_count=len(users))
+        sent_count = 0
+
+        for user_id, email, display_name, days_inactive, missed_tasks in users:
+            try:
+                sent = await email_service.send_reengagement_email(
+                    to_email=email,
+                    display_name=display_name,
+                    days_inactive=int(days_inactive or 3),
+                    missed_tasks=int(missed_tasks),
+                    app_url=settings.frontend_url,
+                )
+
+                if sent:
+                    # Record that we sent a re-engagement email
+                    async with get_db_context() as db2:
+                        from sqlalchemy import text as t
+                        await db2.execute(t("""
+                            UPDATE users
+                            SET last_reengagement_email_sent_at = NOW()
+                            WHERE id = CAST(:user_id AS uuid)
+                        """), {"user_id": str(user_id)})
+                        await db2.commit()
+                    sent_count += 1
+
+            except Exception as e:
+                logger.error("reengagement_email_failed", user_id=str(user_id), error=str(e))
+
+        logger.info("reengagement_complete", sent=sent_count, total=len(users))
+
+    finally:
+        await release_lock("reengagement_emails")
+
+
+async def send_verification_reminders() -> None:
+    """Send reminder emails 24 hours after initial verification email"""
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import select
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("verification_reminders", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+            max_time = datetime.now(timezone.utc) - timedelta(hours=48)
+
+            from db.models.user import User
+
+            result = await db.execute(
+                select(User).where(
+                    User.email_verification_token.is_not(None),
+                    User.email_verified_at.is_(None),
+                    User.email_verification_sent_at <= cutoff_time,
+                    User.email_verification_sent_at > max_time,
+                    User.email_reminder_sent_at.is_(None)
+                )
+            )
+            users = result.scalars().all()
+
+            for user in users:
+                try:
+                    verification_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
+                    await email_service.send_verification_reminder(
+                        to_email=user.email,
+                        first_name=user.display_name,
+                        verification_url=verification_url
+                    )
+                    user.email_reminder_sent_at = datetime.now(timezone.utc)
+                    await db.commit()
+                    logger.info("verification_reminder_sent", user_id=str(user.id))
+                except Exception as e:
+                    logger.error("verification_reminder_failed", user_id=str(user.id), error=str(e))
+                    await db.rollback()
+    finally:
+        await release_lock("verification_reminders")
+
+
 async def run_morning_sweep() -> None:
     """
     MORNING SWEEP (4:00 AM UTC)
     Catches any active users who don't have a task for today.
-
-    FIX: Removed task_type = 'becoming' filter. Any task type counts --
-    previously this caused the sweep to skip users who had identity_anchor
-    or micro_action tasks, leaving them with no task showing on dashboard.
     """
     from datetime import datetime, date
     import pytz
@@ -249,7 +390,6 @@ async def run_morning_sweep() -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
 
-            # FIX: No task_type filter -- any task for today counts
             result = await db.execute(text("""
                 SELECT DISTINCT u.id
                 FROM users u
@@ -296,6 +436,9 @@ async def run_morning_sweep() -> None:
                               AND scheduled_date = CURRENT_DATE
                         """), {"user_id": user_id})
                         await db2.commit()
+
+                    # Send daily task email for sweep-generated tasks too
+                    await _send_daily_task_email_for_user(user_id)
                     logger.info("morning_sweep_task_generated", user_id=user_id, task_title=task.get("title"))
                 else:
                     logger.info("morning_sweep_task_already_exists", user_id=user_id)
@@ -411,8 +554,6 @@ async def run_intervention_check() -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
 
-            # FIXED: Removed pm.updated_at reference which doesn't exist in progress_metrics
-            # Using metric_date instead to check for recent declining momentum
             result = await db.execute(text("""
                 SELECT u.id
                 FROM users u
