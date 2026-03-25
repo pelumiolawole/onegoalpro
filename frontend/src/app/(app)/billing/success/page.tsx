@@ -3,24 +3,28 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 
-// Loading fallback component
 function SuccessLoading() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
       <div className="text-center">
-        <Loader2 className="w-8 h-8 text-[#d0ff59] animate-spin mx-auto mb-4" />
-        <p className="text-white/60">Verifying your subscription...</p>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full mx-auto mb-4"
+        />
+        <p className="text-[#5C524A] text-sm">Confirming your subscription...</p>
       </div>
     </div>
   )
 }
 
-// Main content component that uses useSearchParams
 function SuccessContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const sessionId = searchParams.get('session_id')
   const [subscription, setSubscription] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -35,11 +39,10 @@ function SuccessContent() {
 
     const verifySession = async () => {
       try {
-        // Use api.billing.verifySession if available, otherwise use fetch
         const response = await api.billing.verifySession({ session_id: sessionId })
         setSubscription(response)
       } catch (err) {
-        setError('Failed to verify subscription')
+        setError('Could not verify subscription')
       } finally {
         setLoading(false)
       }
@@ -50,10 +53,14 @@ function SuccessContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-[#d0ff59] animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Verifying your subscription...</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-[#5C524A] text-sm">Confirming your subscription...</p>
         </div>
       </div>
     )
@@ -61,101 +68,109 @@ function SuccessContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-400 text-2xl">✕</span>
+      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-full border border-red-500/30 bg-red-500/10 flex items-center justify-center mx-auto mb-6">
+            <span className="text-red-400 text-xl">✕</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Something went wrong</h1>
-          <p className="text-white/60 mb-6">{error}</p>
+          <h1 className="text-xl font-semibold text-[#F5F1ED] mb-3">Something went wrong</h1>
+          <p className="text-[#5C524A] text-sm mb-8">{error}</p>
           <Link
             href="/settings"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#d0ff59] text-black font-medium rounded-xl hover:bg-[#d0ff59]/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#F59E0B] text-[#0A0908] font-semibold text-sm hover:bg-[#D97706] transition-all"
           >
-            Go to Settings
-            <ArrowRight className="w-4 h-4" />
+            Go to settings →
           </Link>
         </div>
       </div>
     )
   }
 
-  const currentPlan = subscription?.plan === 'forge' 
-    ? { name: 'The Forge', description: 'You now have unlimited access to the AI Coach and advanced features.' }
-    : { name: 'The Identity', description: 'You now have full access including priority support and re-interview capability.' }
+  const isForge = subscription?.plan === 'forge'
+  const planName = isForge ? 'The Forge' : 'The Identity'
+  const planDesc = isForge
+    ? 'Unlimited AI coaching. Full transformation scores. Weekly reviews.'
+    : 'Everything in The Forge plus re-interview anytime and priority support.'
+
+  const features = isForge
+    ? ['Unlimited AI coach messages', 'Full transformation scores', 'Weekly evolution reviews', 'Reflection insights', 'Goal history and archive']
+    : ['Everything in The Forge', 'Re-interview anytime', 'Behavioral fingerprinting', 'Priority task generation', 'Priority support']
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
-        {/* Success Icon */}
-        <div className="w-16 h-16 bg-[#d0ff59]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-8 h-8 text-[#d0ff59]" />
+    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-md w-full"
+      >
+        {/* Success indicator */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="w-16 h-16 rounded-full border border-[#F59E0B]/30 bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-6"
+          >
+            <span className="text-[#F59E0B] text-2xl">✓</span>
+          </motion.div>
+
+          <h1 className="text-2xl font-semibold text-[#F5F1ED] mb-2">
+            Welcome to {planName}
+          </h1>
+          <p className="text-[#5C524A] text-sm leading-relaxed">{planDesc}</p>
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-2">
-          Welcome to {currentPlan.name}!
-        </h1>
-        <p className="text-white/60 mb-6">{currentPlan.description}</p>
+        {/* Plan card */}
+        <div className="border border-[#F59E0B]/20 bg-[#141210] rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-[#5C524A] uppercase tracking-widest">Your plan</p>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[#F59E0B] font-medium">
+              Active
+            </span>
+          </div>
 
-        <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">
-          <h3 className="text-sm font-medium text-white/80 mb-2">What's included:</h3>
-          <ul className="space-y-2 text-sm text-white/60">
-            {subscription?.plan === 'forge' && (
-              <>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Unlimited AI coach messages
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Weekly progress reviews
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Advanced analytics
-                </li>
-              </>
-            )}
-            {subscription?.plan === 'identity' && (
-              <>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Everything in Forge
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Priority support
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-[#d0ff59]">✓</span> Re-interview capability
-                </li>
-              </>
-            )}
+          <ul className="space-y-3">
+            {features.map((f) => (
+              <li key={f} className="flex items-start gap-2.5 text-sm">
+                <span className="text-[#F59E0B] mt-0.5 shrink-0">✓</span>
+                <span className="text-[#7A6E65]">{f}</span>
+              </li>
+            ))}
           </ul>
+
+          {subscription?.current_period_end && (
+            <p className="mt-5 pt-4 border-t border-white/5 text-xs text-[#3D3630]">
+              Renews {new Date(subscription.current_period_end * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </div>
 
-        {subscription?.current_period_end && (
-          <p className="text-sm text-white/40 mb-6">
-            Your subscription renews on {new Date(subscription.current_period_end).toLocaleDateString()}
-          </p>
-        )}
+        {/* Identity framing */}
+        <p className="text-center text-[#3D3630] text-xs italic mb-6">
+          The version of you that finishes this just made a decision.
+        </p>
 
+        {/* CTAs */}
         <div className="flex flex-col gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#d0ff59] text-black font-medium rounded-xl hover:bg-[#d0ff59]/90 transition-colors"
+            className="w-full py-3.5 rounded-xl bg-[#F59E0B] text-[#0A0908] font-semibold text-sm text-center hover:bg-[#D97706] transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
-            Go to Dashboard
-            <ArrowRight className="w-4 h-4" />
+            Go to dashboard →
           </Link>
           <Link
-            href="/settings"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 text-white font-medium rounded-xl hover:bg-white/20 transition-colors"
+            href="/settings/subscription"
+            className="w-full py-3.5 rounded-xl border border-white/8 text-[#7A6E65] text-sm text-center hover:border-white/20 hover:text-[#A09690] transition-all"
           >
-            Manage Subscription
+            Manage subscription
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
 
-// Main page component with Suspense boundary
 export default function SuccessPage() {
   return (
     <Suspense fallback={<SuccessLoading />}>

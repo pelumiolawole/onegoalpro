@@ -36,6 +36,11 @@ logger = structlog.get_logger()
 # Bearer token extractor — reads Authorization: Bearer <token> header
 bearer_scheme = HTTPBearer(auto_error=True)
 
+# ─── Tier limits ──────────────────────────────────────────────────────────────
+# Free (Spark): 5 coach messages/day
+# Paid (Forge, Identity): unlimited
+FREE_DAILY_COACH_LIMIT = 5
+
 
 # ─── Core Auth Dependency ─────────────────────────────────────────────────────
 
@@ -52,7 +57,6 @@ async def get_current_user(
         - Token is expired
         - User no longer exists
     """
-    # Decode and validate the JWT
     payload = decode_token(credentials.credentials, expected_type="access")
     user_id_str = payload.get("sub")
 
@@ -70,7 +74,6 @@ async def get_current_user(
             detail="Invalid user identifier in token",
         )
 
-    # Fetch user from database
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
@@ -131,7 +134,6 @@ async def get_optional_user(
     """
     Auth dependency that doesn't require authentication.
     Returns the user if token is valid, None if no token provided.
-    Used for endpoints that behave differently for authenticated users.
     """
     if credentials is None:
         return None
@@ -147,77 +149,72 @@ def require_ai_quota(engine: str):
     """
     Factory function that returns a dependency checking AI usage quota
     based on subscription tier.
-    
-    Free/Spark tier: 10 coach messages/day
-    Forge/Identity tier: Unlimited
-    
+
+    Free (Spark): 5 coach messages/day
+    Forge / Identity: Unlimited
+
     Returns soft warning when approaching limit.
     """
     async def _check_quota(
         current_user: User = Depends(get_current_active_user),
     ) -> dict:
         from core.cache import check_and_increment_ai_rate, get_redis
-        
-        # Determine limit based on subscription tier
+
         plan = (current_user.subscription_plan or "spark").lower()
         sub_status = (current_user.subscription_status or "inactive").lower()
-        
-        # Check if user has active paid subscription
+
         is_paid_active = (
-            plan in ["forge", "identity"] and 
+            plan in ["forge", "identity"] and
             sub_status == "active"
         )
-        
+
         if is_paid_active:
-            # Paid users: unlimited, just track usage for analytics
+            # Paid users: unlimited — just track for analytics
             redis = await get_redis()
             count_key = f"ai_usage:{engine}:{current_user.id}:{datetime.now().strftime('%Y-%m-%d')}"
             count = await redis.incr(count_key)
             if count == 1:
-                await redis.expire(count_key, 86400)  # 24 hours
-            
+                await redis.expire(count_key, 86400)
+
             return {
                 "quota_status": "unlimited",
                 "count": count,
                 "limit": float('inf'),
                 "warning": False,
             }
-        
-        # Free/Spark tier: enforce 10 message limit
-        FREE_DAILY_LIMIT = 10
-        
+
+        # Free (Spark) tier: 5 messages/day
         allowed, count = await check_and_increment_ai_rate(
             user_id=str(current_user.id),
             engine=engine,
-            limit=FREE_DAILY_LIMIT,
+            limit=FREE_DAILY_COACH_LIMIT,
         )
-        
-        # Calculate warning threshold (80% used)
-        warning_threshold = int(FREE_DAILY_LIMIT * 0.8)
-        show_warning = count >= warning_threshold and count < FREE_DAILY_LIMIT
-        
+
+        warning_threshold = int(FREE_DAILY_COACH_LIMIT * 0.8)  # warn at 4/5
+        show_warning = count >= warning_threshold and count < FREE_DAILY_COACH_LIMIT
+
         if not allowed:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail={
                     "code": "quota_exceeded",
-                    "message": "You've reached your daily limit of 10 coach messages.",
+                    "message": f"You've reached your daily limit of {FREE_DAILY_COACH_LIMIT} coach messages.",
                     "count": count,
-                    "limit": FREE_DAILY_LIMIT,
+                    "limit": FREE_DAILY_COACH_LIMIT,
                     "upgrade_prompt": True,
-                    "upgrade_message": "Upgrade to Forge for unlimited AI coaching and deeper identity transformation.",
-                    "upgrade_url": "/settings/subscription",
+                    "upgrade_message": "Upgrade to The Forge for unlimited AI coaching.",
+                    "upgrade_url": "/settings/upgrade",
                 },
             )
-        
+
         return {
             "quota_status": "active",
             "count": count,
-            "limit": FREE_DAILY_LIMIT,
+            "limit": FREE_DAILY_COACH_LIMIT,
             "warning": show_warning,
-            "remaining": FREE_DAILY_LIMIT - count,
+            "remaining": FREE_DAILY_COACH_LIMIT - count,
         }
-    
+
     return _check_quota
 
 
@@ -230,19 +227,15 @@ async def get_user_ai_context(
     """
     Returns the assembled AI context for the current user.
     Checks Redis cache first (5 min TTL) before hitting the database.
-
-    Used by AI engine dependencies to get full user context.
     """
     from sqlalchemy import text
 
     user_id = str(current_user.id)
 
-    # Try cache first
     cached = await get_cached_user_context(user_id)
     if cached:
         return cached
 
-    # Build from database using the SQL function defined in migrations
     result = await db.execute(
         text("SELECT get_user_ai_context(:user_id)"),
         {"user_id": user_id},
@@ -255,7 +248,6 @@ async def get_user_ai_context(
             detail="User context not found",
         )
 
-    # Cache for 5 minutes
     from core.cache import cache_user_context
     await cache_user_context(user_id, context)
 
@@ -269,15 +261,11 @@ async def require_admin(
 ) -> User:
     """
     Dependency to require admin access.
-    For now, checks if user email is in admin list.
-    Later: add is_admin boolean to user model.
     """
-    # List of admin emails - move to env var or database later
     ADMIN_EMAILS = [
         "coach@pelumiolawole.com",
-        # Add other admin emails here
     ]
-    
+
     if current_user.email not in ADMIN_EMAILS:
         logger.warning(
             "admin_access_denied",
@@ -288,5 +276,5 @@ async def require_admin(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
-    
+
     return current_user
