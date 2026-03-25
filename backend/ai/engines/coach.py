@@ -89,7 +89,7 @@ class CoachEngine(BaseAIEngine):
             # Log crisis moment if severe
             if safety_level == SafetyLevel.CRISIS:
                 await self._log_moment(
-                    uid, sid, "crisis_signal", user_message[:500], 
+                    uid, sid, "crisis_signal", user_message[:500],
                     "Crisis language detected", db
                 )
             yield safe_response
@@ -241,7 +241,7 @@ class CoachEngine(BaseAIEngine):
         Creates session record in coach_sessions table (V2).
         """
         uid = str(user_id)
-        
+
         # Create V2 session record
         result = await db.execute(
             text("""
@@ -254,7 +254,7 @@ class CoachEngine(BaseAIEngine):
             {"user_id": uid, "opening_context": opening_context or "User initiated session"},
         )
         session_id = str(result.scalar())
-        
+
         # Also create legacy session for message continuity
         await db.execute(
             text("""
@@ -263,12 +263,12 @@ class CoachEngine(BaseAIEngine):
             """),
             {"id": session_id, "user_id": uid},
         )
-        
+
         logger.info("coach_session_started_v2", user_id=uid, session_id=session_id)
         return session_id
 
     async def end_session(
-        self, user_id: UUID | str, session_id: UUID | str, closing_insight: str = None, 
+        self, user_id: UUID | str, session_id: UUID | str, closing_insight: str = None,
         next_hook: str = None, db: AsyncSession = None
     ) -> None:
         """
@@ -276,7 +276,7 @@ class CoachEngine(BaseAIEngine):
         """
         uid = str(user_id)
         sid = str(session_id)
-        
+
         await db.execute(
             text("""
                 UPDATE coach_sessions
@@ -284,7 +284,7 @@ class CoachEngine(BaseAIEngine):
                     closing_insight = :closing_insight,
                     next_session_hook = :next_hook,
                     message_count = (
-                        SELECT COUNT(*) FROM ai_coach_messages 
+                        SELECT COUNT(*) FROM ai_coach_messages
                         WHERE session_id = :session_id
                     )
                 WHERE id = :session_id AND user_id = :user_id
@@ -296,7 +296,7 @@ class CoachEngine(BaseAIEngine):
                 "next_hook": next_hook,
             },
         )
-        
+
         # Update legacy session
         await db.execute(
             text("""
@@ -306,7 +306,7 @@ class CoachEngine(BaseAIEngine):
             """),
             {"session_id": sid},
         )
-        
+
         logger.info("coach_session_ended_v2", user_id=uid, session_id=sid)
 
     async def _update_session_opening(
@@ -331,18 +331,16 @@ class CoachEngine(BaseAIEngine):
         Periodically update closing insight based on AI response.
         Captures the final exchange essence for next session continuity.
         """
-        # Only update every few messages to avoid churn
         msg_count = await db.execute(
             text("""
-                SELECT COUNT(*) FROM ai_coach_messages 
+                SELECT COUNT(*) FROM ai_coach_messages
                 WHERE session_id = :session_id
             """),
             {"session_id": session_id},
         )
         count = msg_count.scalar() or 0
-        
+
         if count % 5 == 0:  # Every 5 messages
-            # Extract last question or key insight from response
             closing = self._extract_closing_insight(ai_response)
             if closing:
                 await db.execute(
@@ -365,7 +363,7 @@ class CoachEngine(BaseAIEngine):
     # ========================================================================
 
     async def _log_moment(
-        self, user_id: str, session_id: str, moment_type: str, 
+        self, user_id: str, session_id: str, moment_type: str,
         content: str, coach_observation: str = None, db: AsyncSession = None
     ) -> None:
         """
@@ -373,9 +371,8 @@ class CoachEngine(BaseAIEngine):
         to coach_moments table for pattern recognition.
         """
         try:
-            # Extract user language (key phrase)
             user_language = content[:150] if len(content) > 50 else content
-            
+
             await db.execute(
                 text("""
                     INSERT INTO coach_moments (
@@ -384,9 +381,9 @@ class CoachEngine(BaseAIEngine):
                     )
                     VALUES (
                         :user_id, :session_id, :moment_type, :content,
-                        :observation, :user_language, 
-                        (SELECT sentiment FROM reflections 
-                         WHERE user_id = :user_id 
+                        :observation, :user_language,
+                        (SELECT sentiment FROM reflections
+                         WHERE user_id = :user_id
                          ORDER BY created_at DESC LIMIT 1)
                     )
                 """),
@@ -409,27 +406,23 @@ class CoachEngine(BaseAIEngine):
         Returns moment_type or None.
         """
         msg_lower = message.lower()
-        
-        # Breakthrough indicators
+
         breakthrough_words = ["realized", "finally", "click", "shift", "different", "see it now"]
         if any(w in msg_lower for w in breakthrough_words):
             return "breakthrough"
-        
-        # Resistance indicators
+
         resistance_words = ["can't", "impossible", "never", "always fail", "not for me"]
         if any(w in msg_lower for w in resistance_words):
             return "resistance"
-        
-        # Commitment indicators
+
         commit_words = ["will do", "commit", "promise", "starting tomorrow", "from now on"]
         if any(w in msg_lower for w in commit_words):
             return "commitment"
-        
-        # Vulnerability indicators
+
         vuln_words = ["scared", "ashamed", "embarrassed", "never told", "secret"]
         if any(w in msg_lower for w in vuln_words):
             return "vulnerability"
-        
+
         return None
 
     def _detect_response_moment(self, response: str) -> str | None:
@@ -448,11 +441,11 @@ class CoachEngine(BaseAIEngine):
         """Format last session data for COACH_SYSTEM_V2 {last_session_summary} placeholder."""
         if not last_session:
             return "First session with this user."
-        
+
         days_since = last_session.get("days_since", 0)
         closing = last_session.get("closing_insight", "")
         hook = last_session.get("next_session_hook", "")
-        
+
         parts = []
         if days_since < 1:
             parts.append("Earlier today")
@@ -460,50 +453,44 @@ class CoachEngine(BaseAIEngine):
             parts.append("Yesterday")
         else:
             parts.append(f"{int(days_since)} days ago")
-        
+
         if closing:
             parts.append(f"we left with: {closing[:100]}")
         if hook:
             parts.append(f"Follow-up pending: {hook[:100]}")
-        
+
         return " | ".join(parts) if parts else "Recent session, details not recorded."
 
     def _format_behavior_pattern(self, active_patterns: list, recent_moments: list) -> str:
         """Format patterns for COACH_SYSTEM_V2 {recent_behavior_pattern} placeholder."""
         if not active_patterns and not recent_moments:
             return "Still learning this person's patterns."
-        
+
         parts = []
-        
-        # Top active pattern
+
         if active_patterns:
             top = active_patterns[0]
             parts.append(f"Pattern: {top['name']} ({top['type']}) - {top['description'][:80]}")
-        
-        # Recent significant moment
+
         significant = [m for m in recent_moments if m.get("type") in ["breakthrough", "commitment"]]
         if significant:
             m = significant[0]
             parts.append(f"Recent {m['type']}: {m.get('user_language', '')[:60]}...")
-        
+
         return " | ".join(parts) if parts else "Patterns emerging."
 
     def _extract_closing_insight(self, response: str) -> str:
         """Extract key insight or question from coach response for session closing."""
-        # Look for last question or key statement
         sentences = response.split(". ")
-        # Get last 1-2 sentences that aren't just sign-offs
         candidates = [s for s in sentences[-2:] if "?" in s or len(s) > 20]
         return candidates[-1] if candidates else response[-150:]
 
     def _extract_follow_up(self, response: str) -> str:
         """Extract follow-up item from coach response."""
-        # Look for commitments, next steps, or questions
         if "next time" in response.lower():
             idx = response.lower().find("next time")
             return response[idx:idx+100]
         if "check" in response.lower() and "?" in response:
-            # Find question about checking in
             for sent in response.split(". "):
                 if "check" in sent.lower() and "?" in sent:
                     return sent
@@ -522,7 +509,7 @@ class CoachEngine(BaseAIEngine):
     ) -> str:
         """Get the most recent active session or create a new one."""
         uid = str(user_id)
-        
+
         # Check V2 sessions first
         result = await db.execute(
             text("""
@@ -536,7 +523,7 @@ class CoachEngine(BaseAIEngine):
         row = result.fetchone()
         if row:
             return str(row[0])
-        
+
         # Check legacy sessions
         result = await db.execute(
             text("""
@@ -550,7 +537,7 @@ class CoachEngine(BaseAIEngine):
         row = result.fetchone()
         if row:
             return str(row[0])
-        
+
         # Create new
         return await self.start_session(uid, db)
 
@@ -559,26 +546,24 @@ class CoachEngine(BaseAIEngine):
         Legacy mode detection - now primarily uses context from ContextBuilder.
         Kept for fallback and message-specific signals.
         """
-        # Use context's determined mode if available
         ctx_mode = context.get("current_coach_mode")
         if ctx_mode:
             return ctx_mode
-        
-        # Fallback to message analysis
+
         message_lower = message.lower()
         scores = context.get("scores", {})
-        
+
         win_words = ["did it", "completed", "achieved", "finished", "proud", "nailed"]
         if any(w in message_lower for w in win_words):
             return "celebrate"
-        
+
         struggle_words = ["stuck", "struggling", "can't", "failed", "hard", "help"]
         if any(w in message_lower for w in struggle_words):
             return "support"
-        
+
         if scores.get("momentum_state") == "rising":
             return "challenge"
-        
+
         return "guide"
 
     async def _get_daily_context(self, user_id: str, db: AsyncSession) -> str:
@@ -586,7 +571,6 @@ class CoachEngine(BaseAIEngine):
         result = await db.execute(
             text("""
                 SELECT
-                    dt.identity_focus,
                     dt.title,
                     dt.status AS task_status,
                     r.sentiment AS reflection_sentiment,
@@ -595,7 +579,6 @@ class CoachEngine(BaseAIEngine):
                 LEFT JOIN reflections r ON r.task_id = dt.id
                 WHERE dt.user_id = :user_id
                   AND dt.scheduled_date = CURRENT_DATE
-                  AND dt.task_type = 'becoming'
                 LIMIT 1
             """),
             {"user_id": user_id},
@@ -606,8 +589,6 @@ class CoachEngine(BaseAIEngine):
             return "No task scheduled for today yet."
 
         lines = [f"Today's task: {row.title} ({row.task_status})"]
-        if row.identity_focus:
-            lines.append(f"Today's identity focus: {row.identity_focus}")
         if row.reflected_at:
             lines.append(f"Reflected at: {row.reflected_at} | Sentiment: {row.reflection_sentiment}")
         else:
@@ -627,9 +608,9 @@ class CoachEngine(BaseAIEngine):
             {"session_id": session_id},
         )
         total_count = count_result.scalar() or 0
-        
+
         offset = max(0, total_count - limit)
-        
+
         result = await db.execute(
             text("""
                 SELECT role, content
@@ -667,14 +648,19 @@ class CoachEngine(BaseAIEngine):
         )
         msg_id = result.scalar()
 
-        await db.execute(
-            text("""
-                UPDATE ai_coach_sessions
-                SET message_count = message_count + 1, last_message_at = NOW()
-                WHERE id = :session_id
-            """),
-            {"session_id": session_id},
-        )
+        # FIX: Wrap counter update in try/except — this is analytics-only.
+        # A Supabase statement timeout here must never surface as a user-facing error.
+        try:
+            await db.execute(
+                text("""
+                    UPDATE ai_coach_sessions
+                    SET message_count = message_count + 1, last_message_at = NOW()
+                    WHERE id = :session_id
+                """),
+                {"session_id": session_id},
+            )
+        except Exception as e:
+            logger.warning("session_counter_update_failed", session_id=session_id, error=str(e))
 
         return msg_id
 
