@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const [reflectionOpen, setReflectionOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [expandedTask, setExpandedTask] = useState<string | null>(null)
 
   const { data, isLoading, mutate } = useSWR(
     '/progress/dashboard',
@@ -47,6 +48,10 @@ export default function DashboardPage() {
   function handleReflectionDone() {
     setReflectionOpen(false)
     mutate()
+  }
+
+  function toggleTask(id: string) {
+    setExpandedTask(prev => prev === id ? null : id)
   }
 
   return (
@@ -106,7 +111,6 @@ export default function DashboardPage() {
               value={scores?.transformation ?? 0}
               primary
             />
-            {/* Use font-mono for numeric tiles to prevent 0 rendering as O */}
             <ScoreTile label="Streak" value={scores?.streak ?? 0} unit="d" sub="current" />
             <ScoreTile label="Momentum" value={momentumLabel(scores?.momentum_state)} sub={scores?.momentum_state} colored />
             <ScoreTile label="Active" value={scores?.days_active ?? 0} unit="d" sub="total days" />
@@ -214,7 +218,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Past Tasks */}
+          {/* Past Tasks — expandable diary */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -268,37 +272,132 @@ export default function DashboardPage() {
                           </span>
                         </div>
 
-                        {/* Task rows */}
+                        {/* Task rows — expandable */}
                         {historyData.tasks.map((t: any) => (
-                          <div
-                            key={t.id}
-                            className="px-5 py-3.5 flex items-start gap-3 hover:bg-[#1E1B18] transition-colors"
-                          >
-                            <div className="mt-0.5 shrink-0">
-                              <StatusDot status={t.status} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm leading-snug ${
-                                t.status === 'completed' ? 'text-[#C4BBB5]' : 'text-[#5C524A]'
-                              }`}>
-                                {t.title}
-                              </p>
-                              {t.identity_focus && (
-                                <p className="text-[#3D3630] text-xs mt-0.5 truncate">
-                                  {t.identity_focus}
+                          <div key={t.id}>
+                            {/* Summary row — always visible */}
+                            <button
+                              onClick={() => toggleTask(t.id)}
+                              className="w-full px-5 py-3.5 flex items-start gap-3 hover:bg-[#1E1B18] transition-colors text-left"
+                            >
+                              <div className="mt-0.5 shrink-0">
+                                <StatusDot status={t.status} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm leading-snug ${
+                                  t.status === 'completed' ? 'text-[#C4BBB5]' : 'text-[#5C524A]'
+                                }`}>
+                                  {t.title}
                                 </p>
-                              )}
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-[#3D3630] text-xs font-mono">
-                                {formatDate(t.date)}
-                              </p>
-                              {t.reflection_depth != null && (
-                                <p className="text-[#F59E0B] text-[10px] mt-0.5 font-mono">
-                                  reflected
+                                {t.identity_focus && (
+                                  <p className="text-[#3D3630] text-xs mt-0.5 truncate">
+                                    {t.identity_focus}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                                <p className="text-[#3D3630] text-xs font-mono">
+                                  {formatDate(t.date)}
                                 </p>
+                                {t.reflection_qa?.length > 0 && (
+                                  <p className="text-[#F59E0B] text-[10px] font-mono">reflected</p>
+                                )}
+                              </div>
+                              {/* Expand indicator */}
+                              <div className={`text-[#3D3630] shrink-0 mt-0.5 transition-transform duration-200 ${expandedTask === t.id ? 'rotate-180' : ''}`}>
+                                <ChevronIcon />
+                              </div>
+                            </button>
+
+                            {/* Expanded detail */}
+                            <AnimatePresence initial={false}>
+                              {expandedTask === t.id && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="px-5 pb-5 pt-1 bg-[#0F0D0B] border-t border-white/5 space-y-4">
+
+                                    {/* Task description */}
+                                    {t.description && (
+                                      <div>
+                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                          Task
+                                        </p>
+                                        <p className="text-[#7A6E65] text-sm leading-relaxed">
+                                          {t.description}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Identity anchor */}
+                                    {t.identity_focus && (
+                                      <div>
+                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                          Identity
+                                        </p>
+                                        <p className="text-[#F59E0B]/70 text-sm italic">
+                                          {t.identity_focus}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Reflection Q&A */}
+                                    {t.reflection_qa?.length > 0 ? (
+                                      <div>
+                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-3">
+                                          Reflection
+                                        </p>
+                                        <div className="space-y-3">
+                                          {t.reflection_qa.map((qa: any, i: number) => (
+                                            <div key={i}>
+                                              <p className="text-[#5C524A] text-xs mb-1 leading-relaxed">
+                                                {qa.question}
+                                              </p>
+                                              <p className="text-[#C4BBB5] text-sm leading-relaxed pl-3 border-l border-[#F59E0B]/20">
+                                                {qa.answer}
+                                              </p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                          Reflection
+                                        </p>
+                                        <p className="text-[#3D3630] text-sm italic">
+                                          No reflection recorded.
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* AI insight */}
+                                    {t.reflection_insight && (
+                                      <div className="bg-[#F59E0B]/5 border border-[#F59E0B]/10 rounded-xl p-3">
+                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                          Coach insight
+                                        </p>
+                                        <p className="text-[#A09690] text-sm leading-relaxed italic">
+                                          {t.reflection_insight}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Sentiment badge */}
+                                    {t.reflection_sentiment && (
+                                      <div className="flex items-center gap-2">
+                                        <SentimentBadge sentiment={t.reflection_sentiment} />
+                                      </div>
+                                    )}
+
+                                  </div>
+                                </motion.div>
                               )}
-                            </div>
+                            </AnimatePresence>
                           </div>
                         ))}
                       </div>
@@ -328,6 +427,22 @@ export default function DashboardPage() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+function SentimentBadge({ sentiment }: { sentiment: string }) {
+  const config: Record<string, { label: string; color: string }> = {
+    positive:  { label: 'Positive',  color: 'text-[#4ADE80] bg-[#4ADE80]/10 border-[#4ADE80]/20' },
+    neutral:   { label: 'Neutral',   color: 'text-[#94A3B8] bg-[#94A3B8]/10 border-[#94A3B8]/20' },
+    negative:  { label: 'Negative',  color: 'text-[#F87171] bg-[#F87171]/10 border-[#F87171]/20' },
+    mixed:     { label: 'Mixed',     color: 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20' },
+    resistant: { label: 'Resistant', color: 'text-[#F87171] bg-[#F87171]/10 border-[#F87171]/20' },
+  }
+  const c = config[sentiment] || config.neutral
+  return (
+    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${c.color}`}>
+      {c.label}
+    </span>
+  )
+}
 
 function TrendArrowSmall({ trend }: { trend: string }) {
   if (trend === 'growing') return (

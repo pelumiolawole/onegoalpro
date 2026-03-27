@@ -382,9 +382,10 @@ async def get_task_history(
         text("""
             SELECT
                 dt.id, dt.scheduled_date, dt.identity_focus,
-                dt.title, dt.status, dt.difficulty_level,
+                dt.title, dt.description, dt.status, dt.difficulty_level,
                 dt.completed_at, dt.skipped_reason,
-                r.depth_score, r.sentiment
+                r.depth_score, r.sentiment,
+                r.questions_answers, r.ai_insight
             FROM daily_tasks dt
             LEFT JOIN reflections r ON r.task_id = dt.id
             WHERE dt.user_id = :user_id
@@ -423,6 +424,9 @@ async def get_task_history(
                 "skip_reason": t.skipped_reason,
                 "reflection_depth": float(t.depth_score) if t.depth_score else None,
                 "reflection_sentiment": t.sentiment,
+                "description": t.description,
+                "reflection_qa": t.questions_answers or [],
+                "reflection_insight": t.ai_insight,
             }
             for t in tasks
         ],
