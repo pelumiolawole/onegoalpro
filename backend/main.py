@@ -175,7 +175,8 @@ def _register_routers(app: FastAPI) -> None:
     from api.routers.admin import router as admin_router  # NEW
     from api.routers.settings import router as settings_router  # NEW
     from api.routers.billing import router as billing_router # NEW
-    
+    from api.routers.push import router as push_router
+
     API_PREFIX = "/api"
 
     app.include_router(auth_router,        prefix=API_PREFIX)
@@ -189,6 +190,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(admin_router,       prefix=API_PREFIX)  # NEW
     app.include_router(settings_router, prefix=API_PREFIX)  # NEW
     app.include_router(billing_router, prefix=API_PREFIX)  # NEW
+    app.include_router(push_router)  # prefix="/api/push" is set on the router itself
 
 # ─── Health Check ──────────────────────────────────────────────────────────────
 

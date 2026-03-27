@@ -40,6 +40,52 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user?.onboarding_step])
 
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    async function setupPush() {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js')
+
+        if (Notification.permission === 'denied') return
+
+        if (Notification.permission !== 'granted') {
+          const permission = await Notification.requestPermission()
+          if (permission !== 'granted') return
+        }
+
+        const existing = await registration.pushManager.getSubscription()
+        if (existing) return
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        })
+
+        const sub = subscription.toJSON()
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/push/subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          },
+          body: JSON.stringify({
+            endpoint: sub.endpoint,
+            p256dh: sub.keys?.p256dh,
+            auth: sub.keys?.auth,
+            user_agent: navigator.userAgent,
+          }),
+        })
+      } catch (e) {
+        console.warn('Push setup failed:', e)
+      }
+    }
+
+    setupPush()
+  }, [user?.id])
+
   const displayName = user?.display_name || user?.email || ''
   const initials = displayName
     .split(' ')

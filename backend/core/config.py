@@ -144,6 +144,11 @@ class Settings(BaseSettings):
     # Password reset settings
     password_reset_token_expire_hours: int = 24
 
+    # ─── Web Push (VAPID) ───────────────────────────────────────────────
+    vapid_public_key: str = Field(default="", description="VAPID public key for web push")
+    vapid_private_key: str = Field(default="", description="VAPID private key for web push")
+    vapid_email: str = Field(default="mailto:hello@onegoalpro.app", description="VAPID contact email")
+
     # ─── Stripe ─────────────────────────────────────────────────────────
     stripe_webhook_secret: str = Field(
         default="",

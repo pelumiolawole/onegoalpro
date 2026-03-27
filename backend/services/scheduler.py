@@ -112,6 +112,16 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
+    scheduler.add_job(
+        func=run_daily_push_notifications,
+        trigger=CronTrigger(hour=8, minute=0),
+        id="daily_push_notifications",
+        name="Send daily push notifications",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
     return scheduler
@@ -675,3 +685,89 @@ async def run_data_purge() -> None:
 
     finally:
         await release_lock("data_purge")
+
+
+async def run_daily_push_notifications() -> None:
+    """
+    Runs daily at 8am UTC.
+    Sends web push notifications to users with a pending task today.
+    Deletes stale subscriptions that return HTTP 410.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.push import send_push_notification, PUSH_EXPIRED
+
+    lock_acquired = await acquire_lock("daily_push_notifications", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+
+            result = await db.execute(text("""
+                SELECT
+                    ps.user_id,
+                    ps.endpoint,
+                    ps.p256dh,
+                    ps.auth,
+                    dt.title AS task_title
+                FROM push_subscriptions ps
+                JOIN daily_tasks dt ON dt.user_id = ps.user_id
+                    AND dt.scheduled_date = CURRENT_DATE
+                    AND dt.status = 'pending'
+                JOIN users u ON u.id = ps.user_id
+                WHERE u.is_active = TRUE
+            """))
+            rows = result.fetchall()
+
+        if not rows:
+            logger.info("push_notifications_no_targets")
+            return
+
+        logger.info("push_notifications_started", user_count=len(rows))
+        sent_count = 0
+        failed_count = 0
+        expired_ids = []
+
+        for user_id, endpoint, p256dh, auth, task_title in rows:
+            result = send_push_notification(
+                endpoint=endpoint,
+                p256dh=p256dh,
+                auth=auth,
+                title="Your identity task is ready",
+                body=task_title or "Your daily task is waiting for you.",
+                url="/dashboard",
+            )
+
+            if result is True:
+                sent_count += 1
+                logger.info("push_sent", user_id=str(user_id))
+            elif result == PUSH_EXPIRED:
+                expired_ids.append(str(user_id))
+            else:
+                failed_count += 1
+                logger.warning("push_failed", user_id=str(user_id))
+
+        # Delete expired subscriptions
+        if expired_ids:
+            async with get_db_context() as db2:
+                from sqlalchemy import text as t
+                for uid in expired_ids:
+                    await db2.execute(
+                        t("DELETE FROM push_subscriptions WHERE user_id = CAST(:uid AS uuid)"),
+                        {"uid": uid},
+                    )
+                await db2.commit()
+            logger.info("push_subscriptions_expired_removed", count=len(expired_ids))
+
+        logger.info(
+            "push_notifications_complete",
+            sent=sent_count,
+            failed=failed_count,
+            expired=len(expired_ids),
+            total=len(rows),
+        )
+
+    finally:
+        await release_lock("daily_push_notifications")
