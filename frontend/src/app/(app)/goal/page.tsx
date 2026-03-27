@@ -12,7 +12,7 @@ export default function GoalPage() {
   const { goal, objectives, identity_traits, scores } = data || {}
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-5">
+    <div className="p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto space-y-5">
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }}

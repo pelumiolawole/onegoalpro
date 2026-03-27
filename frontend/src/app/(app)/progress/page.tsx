@@ -20,7 +20,7 @@ export default function ProgressPage() {
   const hasStreakData    = streak && Object.keys(streak.calendar || {}).length > 0
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto space-y-6">
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }}
