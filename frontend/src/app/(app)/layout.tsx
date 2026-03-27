@@ -51,10 +51,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const bio = (user as any)?.bio || null
 
   return (
-    <div className="min-h-screen bg-[#0A0908] flex">
+    <div className="h-screen bg-[#0A0908] flex overflow-hidden">
 
       {/* Sidebar (desktop) — sticky to viewport height */}
-      <aside className="hidden md:flex flex-col w-60 border-r border-white/5 p-5 shrink-0 sticky top-0 h-screen">
+      <aside className="hidden md:flex flex-col w-60 border-r border-white/5 p-5 shrink-0">
 
         {/* Logo + avatar row */}
         <div className="flex items-center justify-between mb-10 px-2">
@@ -112,7 +112,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main — mobile needs padding at bottom so content clears the fixed nav */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
           <motion.div
             key={pathname}
