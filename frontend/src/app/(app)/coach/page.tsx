@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
@@ -12,6 +12,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   streaming?: boolean
+  created_at?: string
 }
 
 interface QuotaWarning {
@@ -68,6 +69,29 @@ const quotaConfig = {
   },
 }
 
+function formatDateLabel(dateStr: string): string {
+  const date = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) return 'Today'
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function DateSeparator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-4">
+      <div className="flex-1 h-px bg-white/5" />
+      <span className="text-[10px] uppercase tracking-widest text-[#3D3630] font-medium px-2">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-white/5" />
+    </div>
+  )
+}
+
 export default function CoachPage() {
   const { user } = useAuthStore()
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -89,6 +113,7 @@ export default function CoachPage() {
           id: String(msgId.current++),
           role: m.role,
           content: m.content,
+          created_at: m.created_at,
         })))
       })
       .catch(() => {})
@@ -107,11 +132,11 @@ export default function CoachPage() {
 
     // Add user message
     const userId = String(msgId.current++)
-    setMessages(prev => [...prev, { id: userId, role: 'user', content: text }])
+    setMessages(prev => [...prev, { id: userId, role: 'user', content: text, created_at: new Date().toISOString() }])
 
     // Add empty assistant message for streaming
     const aiId = String(msgId.current++)
-    setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '', streaming: true }])
+    setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '', streaming: true, created_at: new Date().toISOString() }])
 
     try {
       const res = await api.coach.streamMessage(sessionId, text)
@@ -212,7 +237,7 @@ export default function CoachPage() {
   const showWarning = quotaWarning && !dismissedWarnings.has(quotaWarning.message)
 
   return (
-    <div className="flex flex-col h-screen max-h-screen pb-16 md:pb-0">
+    <div className="flex flex-col h-screen max-h-screen">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 shrink-0">
@@ -337,9 +362,18 @@ export default function CoachPage() {
         </AnimatePresence>
 
         <AnimatePresence initial={false}>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
+          {messages.map((msg, index) => {
+            const prevMsg = messages[index - 1]
+            const msgDate = msg.created_at ? new Date(msg.created_at).toDateString() : null
+            const prevDate = prevMsg?.created_at ? new Date(prevMsg.created_at).toDateString() : null
+            const showDateSeparator = msgDate && msgDate !== prevDate
+
+            return (
+              <React.Fragment key={msg.id}>
+                {showDateSeparator && (
+                  <DateSeparator label={formatDateLabel(msg.created_at!)} />
+                )}
+                <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -367,7 +401,9 @@ export default function CoachPage() {
                 )}
               </div>
             </motion.div>
-          ))}
+              </React.Fragment>
+            )
+          })}
         </AnimatePresence>
 
         <div ref={bottomRef} />
@@ -384,7 +420,7 @@ export default function CoachPage() {
             minRows={1}
             maxRows={6}
             disabled={streaming || !sessionId}
-            className="flex-1 bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-sm leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
+            className="flex-1 bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-base leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
           />
           <button
             onClick={sendMessage}
