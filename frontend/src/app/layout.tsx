@@ -25,17 +25,28 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: 'One Goal. One Identity. | OneGoal Pro',
-  description: 'Most apps track what you do. OneGoal works on who you are. It starts with a real interview, builds a goal around your actual life, and gives you one task every day that moves you toward the person you\'re trying to become.',
+  description: "You don't have a focus problem. You have an identity problem. OneGoal Pro finds your one goal, then coaches you toward the person who achieves it.",
   keywords: ['goal setting', 'personal development', 'AI coaching', 'habit building', 'identity-based goals'],
   openGraph: {
-    title: 'One Goal. One Identity.',
-    description: 'Stop managing tasks. Start becoming.',
+    title: 'One Goal. One Identity. | OneGoal Pro',
+    description: 'One goal. Full commitment. No excuses.',
+    url: 'https://onegoalpro.app',
+    siteName: 'OneGoal Pro',
+    images: [
+      {
+        url: 'https://onegoalpro.app/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'OneGoal Pro',
+      }
+    ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'One Goal. One Identity.',
-    description: 'Stop managing tasks. Start becoming.',
+    title: 'One Goal. One Identity. | OneGoal Pro',
+    description: 'One goal. Full commitment. No excuses.',
+    images: ['https://onegoalpro.app/og-image.png'],
   },
 }
 
