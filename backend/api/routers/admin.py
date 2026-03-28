@@ -248,7 +248,7 @@ async def test_nudge_email(
     email: str,
     first_name: str,
     attempt: int = 1,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
     """Temporary test endpoint. Remove after confirming nudge emails work."""
     from services.email import send_interview_nudge_email
