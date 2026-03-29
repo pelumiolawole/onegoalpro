@@ -81,6 +81,11 @@ export default function InterviewPage() {
         setTimeout(() => router.push('/goal-setup'), 1200)
       }
     } catch (err: any) {
+      if (err?.status === 400) {
+        await refreshUser()
+        router.push('/dashboard')
+        return
+      }
       const isTimeout = err?.name === 'AbortError'
       setMessages([...newMessages, {
         role: 'assistant',
