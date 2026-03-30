@@ -9,6 +9,7 @@ import ReflectionModal from '@/components/reflection/ReflectionModal'
 import TaskCard from '@/components/task/TaskCard'
 import ScoreRing from '@/components/dashboard/ScoreRing'
 import WeekGrid from '@/components/dashboard/WeekGrid'
+import InstallBanner from '@/components/InstallBanner'
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -56,6 +57,8 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto">
+
+      <InstallBanner />
 
       {/* Header */}
       <motion.div
