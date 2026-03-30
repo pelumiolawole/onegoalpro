@@ -57,8 +57,6 @@ export default function DashboardPage() {
   return (
     <div className="p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto">
 
-      <InstallBanner />
-
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
