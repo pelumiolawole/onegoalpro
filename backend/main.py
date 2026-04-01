@@ -38,7 +38,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.cache import close_redis, get_redis
@@ -172,9 +172,9 @@ def _register_routers(app: FastAPI) -> None:
     from api.routers.coach import router as coach_router
     from api.routers.progress import router as progress_router
     from api.routers.profile import router as profile_router
-    from api.routers.admin import router as admin_router  # NEW
-    from api.routers.settings import router as settings_router  # NEW
-    from api.routers.billing import router as billing_router # NEW
+    from api.routers.admin import router as admin_router
+    from api.routers.settings import router as settings_router
+    from api.routers.billing import router as billing_router
     from api.routers.push import router as push_router
 
     API_PREFIX = "/api"
@@ -187,15 +187,16 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(coach_router,       prefix=API_PREFIX)
     app.include_router(progress_router,    prefix=API_PREFIX)
     app.include_router(profile_router,     prefix=API_PREFIX)
-    app.include_router(admin_router,       prefix=API_PREFIX)  # NEW
-    app.include_router(settings_router, prefix=API_PREFIX)  # NEW
-    app.include_router(billing_router, prefix=API_PREFIX)  # NEW
+    app.include_router(admin_router,       prefix=API_PREFIX)
+    app.include_router(settings_router,    prefix=API_PREFIX)
+    app.include_router(billing_router,     prefix=API_PREFIX)
     app.include_router(push_router)  # prefix="/api/push" is set on the router itself
 
-# ─── Health Check ──────────────────────────────────────────────────────────────
+
+# ─── Health + System Routes ───────────────────────────────────────────────────
 
 def _add_health_routes(app: FastAPI) -> None:
-    """Health check endpoints for load balancer and uptime monitoring."""
+    """Health check endpoints and system routes."""
 
     @app.get("/health", tags=["System"], include_in_schema=False)
     async def health_check() -> dict:
@@ -232,6 +233,17 @@ def _add_health_routes(app: FastAPI) -> None:
         return JSONResponse(
             status_code=200 if all_healthy else 503,
             content={"status": "ready" if all_healthy else "not_ready", "checks": checks},
+        )
+
+    # FIX: Serve robots.txt on the backend API subdomain.
+    # Crawlers that discover api.onegoalpro.app (via DNS or link crawling) request
+    # /robots.txt as standard practice. Without this route they get 404s every few
+    # hours. We disallow all bots from the entire API — it should not be indexed.
+    @app.get("/robots.txt", include_in_schema=False)
+    async def robots_txt() -> PlainTextResponse:
+        return PlainTextResponse(
+            "User-agent: *\nDisallow: /\n",
+            media_type="text/plain",
         )
 
 

@@ -15,6 +15,21 @@ from core.config import settings
 logger = structlog.get_logger()
 
 
+# ─── Nudge wrappers ───────────────────────────────────────────────────────────
+# APScheduler with AsyncIOScheduler supports async job functions directly.
+# These thin wrappers let us pass a named async function with a fixed argument
+# instead of a lambda that would return a dropped coroutine.
+
+async def _nudge_24h() -> None:
+    await run_interview_nudge(hours_since_signup=24)
+
+
+async def _nudge_72h() -> None:
+    await run_interview_nudge(hours_since_signup=72)
+
+
+# ─── Scheduler startup ────────────────────────────────────────────────────────
+
 async def start_scheduler() -> AsyncIOScheduler:
     """
     Initialize and start the APScheduler.
@@ -102,7 +117,6 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
-    # NEW: Re-engagement check — runs daily at 9am UTC
     scheduler.add_job(
         func=run_reengagement_emails,
         trigger=CronTrigger(hour=9, minute=0),
@@ -123,25 +137,30 @@ async def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=3600,
     )
 
+    # FIX: Use named async wrapper functions instead of lambdas.
+    # Previously: lambda: run_interview_nudge(...) — this creates a coroutine
+    # and discards it. APScheduler ran the lambda successfully but the actual
+    # nudge function never executed. Now we pass async functions directly so
+    # AsyncIOScheduler can properly await them.
     scheduler.add_job(
-        func=lambda: run_interview_nudge(hours_since_signup=24),
+        func=_nudge_24h,
         trigger=CronTrigger(hour="*", minute=0),
         id="interview_nudge_24h",
         name="Interview nudge - 24h",
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=3600,
-)
+    )
 
     scheduler.add_job(
-        func=lambda: run_interview_nudge(hours_since_signup=72),
+        func=_nudge_72h,
         trigger=CronTrigger(hour="*", minute=0),
         id="interview_nudge_72h",
         name="Interview nudge - 72h",
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=3600,
-)
+    )
 
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
@@ -210,7 +229,6 @@ async def run_daily_task_generation() -> None:
                 if tasks_generated > 1:
                     logger.info("backlog_tasks_generated", user_id=user_id, tasks_generated=tasks_generated)
 
-                # Send daily task email after successful generation
                 await _send_daily_task_email_for_user(user_id)
 
             except Exception as e:
@@ -235,7 +253,6 @@ async def _send_daily_task_email_for_user(user_id: str) -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
 
-            # Get user details, today's task, and identity anchor in one query
             result = await db.execute(text("""
                 SELECT
                     u.email,
@@ -276,8 +293,9 @@ async def _send_daily_task_email_for_user(user_id: str) -> None:
 async def run_reengagement_emails() -> None:
     """
     Runs daily at 9am UTC.
-    Sends re-engagement emails to users who haven't logged in for 3+ days
-    and have missed tasks. Caps at one re-engagement email per user per 3 days.
+    Sends re-engagement emails to users who have missed tasks and show no
+    recent task completions (proxy for inactivity — no last_active_at column).
+    Uses notification_queue to prevent re-sending within 3 days.
     """
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
@@ -291,12 +309,15 @@ async def run_reengagement_emails() -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
 
+            # FIX: Removed u.last_active_at and u.last_reengagement_email_sent_at —
+            # neither column exists in the users table. Inactivity is now detected by
+            # the absence of any completed task in the last 3 days. Re-send throttling
+            # uses notification_queue (channel='email') which already exists in the schema.
             result = await db.execute(text("""
                 SELECT
                     u.id,
                     u.email,
                     u.display_name,
-                    EXTRACT(DAY FROM NOW() - u.last_active_at)::int AS days_inactive,
                     COUNT(dt.id) AS missed_tasks
                 FROM users u
                 JOIN goals g ON g.user_id = u.id AND g.status = 'active'
@@ -305,12 +326,19 @@ async def run_reengagement_emails() -> None:
                     AND dt.scheduled_date < CURRENT_DATE
                 WHERE u.is_active = TRUE
                   AND u.onboarding_status = 'active'
-                  AND u.last_active_at < NOW() - INTERVAL '3 days'
-                  AND (
-                    u.last_reengagement_email_sent_at IS NULL
-                    OR u.last_reengagement_email_sent_at < NOW() - INTERVAL '3 days'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM daily_tasks completed
+                    WHERE completed.user_id = u.id
+                      AND completed.status = 'completed'
+                      AND completed.updated_at >= NOW() - INTERVAL '3 days'
                   )
-                GROUP BY u.id, u.email, u.display_name, u.last_active_at
+                  AND NOT EXISTS (
+                    SELECT 1 FROM notification_queue nq
+                    WHERE nq.user_id = u.id
+                      AND nq.channel = 'email'
+                      AND nq.sent_at >= NOW() - INTERVAL '3 days'
+                  )
+                GROUP BY u.id, u.email, u.display_name
                 HAVING COUNT(dt.id) > 0
             """))
             users = result.fetchall()
@@ -322,24 +350,25 @@ async def run_reengagement_emails() -> None:
         logger.info("reengagement_started", user_count=len(users))
         sent_count = 0
 
-        for user_id, email, display_name, days_inactive, missed_tasks in users:
+        for row in users:
+            user_id, email, display_name, missed_tasks = row
             try:
                 sent = await email_service.send_reengagement_email(
                     to_email=email,
                     display_name=display_name,
-                    days_inactive=int(days_inactive or 3),
+                    days_inactive=3,
                     missed_tasks=int(missed_tasks),
                     app_url=settings.frontend_url,
                 )
 
                 if sent:
-                    # Record that we sent a re-engagement email
                     async with get_db_context() as db2:
                         from sqlalchemy import text as t
                         await db2.execute(t("""
-                            UPDATE users
-                            SET last_reengagement_email_sent_at = NOW()
-                            WHERE id = CAST(:user_id AS uuid)
+                            INSERT INTO notification_queue
+                                (user_id, channel, sent_at)
+                            VALUES
+                                (CAST(:user_id AS uuid), 'email', NOW())
                         """), {"user_id": str(user_id)})
                         await db2.commit()
                     sent_count += 1
@@ -468,7 +497,6 @@ async def run_morning_sweep() -> None:
                         """), {"user_id": user_id})
                         await db2.commit()
 
-                    # Send daily task email for sweep-generated tasks too
                     await _send_daily_task_email_for_user(user_id)
                     logger.info("morning_sweep_task_generated", user_id=user_id, task_title=task.get("title"))
                 else:
@@ -770,7 +798,6 @@ async def run_daily_push_notifications() -> None:
                 failed_count += 1
                 logger.warning("push_failed", user_id=str(user_id))
 
-        # Delete expired subscriptions
         if expired_ids:
             async with get_db_context() as db2:
                 from sqlalchemy import text as t
@@ -840,7 +867,6 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
     for user in users:
         first_name = (user.display_name or user.email).split()[0].capitalize()
 
-        # Email
         try:
             await send_interview_nudge_email(
                 to_email=user.email,
@@ -851,11 +877,10 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
         except Exception as e:
             logger.warning("interview_nudge_email_failed", user_id=str(user.id), error=str(e))
 
-        # Push (only if subscription exists)
         if user.endpoint and user.p256dh and user.auth:
             if attempt == 1:
                 title = "Your interview is waiting"
-                body = "You signed up but didn't finish. 10–15 min. One goal on the other side."
+                body = "You signed up but didn't finish. 10-15 min. One goal on the other side."
             else:
                 title = "Still here when you're ready."
                 body = "The question isn't what you want. It's who you need to become."
