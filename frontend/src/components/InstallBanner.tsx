@@ -124,7 +124,7 @@ export default function InstallBanner() {
     const p = detectPlatform()
     setPlatform(p)
     setActiveTab(p === 'ios' ? 'ios' : 'android')
-    setPushGranted(Notification.permission === 'granted')
+    setPushGranted(typeof Notification !== 'undefined' && Notification.permission === 'granted')
 
     // Small delay so dashboard loads first
     const t = setTimeout(() => setVisible(true), 1500)
