@@ -195,6 +195,11 @@ class CoachEngine(BaseAIEngine):
 
         # ── Save AI response ─────────────────────────────────────────
         ai_msg_id = await self._save_message(uid, sid, "assistant", full_response, db)
+        try:
+            await db.commit()
+        except Exception as e:
+            logger.warning("post_response_commit_failed", error=str(e))
+            await _safe_rollback(db)
 
         # ── Detect response moments and update session (V2) ────────────
         response_moment = self._detect_response_moment(full_response)
@@ -205,14 +210,16 @@ class CoachEngine(BaseAIEngine):
         await self._maybe_update_session_closing(uid, sid, full_response, db)
 
         # ── Store embeddings (async, non-blocking) ───────────────────
+        embedding_ok = True
         try:
             await memory_retrieval.store_message_embedding(user_msg_id, clean_message, db)
         except Exception as e:
             logger.warning("embedding_storage_failed", error=str(e))
             await _safe_rollback(db)
+            embedding_ok = False
 
-        # ── Extract topics and update session ────────────────────────
-        await self._update_session_after_message(uid, sid, clean_message, db)
+        if embedding_ok:
+            await self._update_session_after_message(uid, sid, clean_message, db)
 
         logger.info(
             "coach_message_processed",
