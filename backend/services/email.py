@@ -623,7 +623,7 @@ async def send_interview_nudge_email(
           <p>That's the whole thing.</p>
 
           <p style="margin: 32px 0;">
-            <a href="https://onegoalpro.app/onboarding/interview"
+            <a href="https://onegoalpro.app/interview"
                style="background: #F59E0B; color: #0A0908; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-family: sans-serif; font-weight: 600; font-size: 15px;">
               Start your interview →
             </a>
@@ -656,7 +656,7 @@ async def send_interview_nudge_email(
           <p>10 to 15 minutes. One conversation. One goal on the other side.</p>
 
           <p style="margin: 32px 0;">
-            <a href="https://onegoalpro.app/onboarding/interview"
+            <a href="https://onegoalpro.app/interview"
                style="background: #F59E0B; color: #0A0908; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-family: sans-serif; font-weight: 600; font-size: 15px;">
               Start your interview →
             </a>

@@ -894,9 +894,8 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
                     auth=user.auth,
                     title=title,
                     body=body,
-                    url="/onboarding/interview",
+                    url="/interview",
                 )
                 logger.info("interview_nudge_push_sent", user_id=str(user.id), attempt=attempt)
             except Exception as e:
                 logger.warning("interview_nudge_push_failed", user_id=str(user.id), error=str(e))
-                
