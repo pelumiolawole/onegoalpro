@@ -511,7 +511,7 @@ async def run_morning_sweep() -> None:
         logger.info(
             "morning_sweep_complete",
             success=success_count,
-            errors=error_count,
+        errors=error_count,
             total_checked=len(user_ids),
         )
 
@@ -899,3 +899,4 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
                 logger.info("interview_nudge_push_sent", user_id=str(user.id), attempt=attempt)
             except Exception as e:
                 logger.warning("interview_nudge_push_failed", user_id=str(user.id), error=str(e))
+                

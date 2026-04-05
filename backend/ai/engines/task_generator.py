@@ -511,3 +511,4 @@ class TaskGeneratorEngine(BaseAIEngine):
         )
         row = result.fetchone()
         return row[0] if row else None
+        
