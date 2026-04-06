@@ -174,13 +174,14 @@ async def get_invoices(
     return {"invoices": invoices}
 
 
-@router.get("/verify-session")
+@router.post("/verify-session")
 async def verify_session(
-    session_id: str,
+    payload: dict,
     current_user: User = Depends(get_current_user),
 ):
     """Verify a completed Stripe checkout session."""
 
+    session_id = payload.get("session_id")
     if not session_id:
         raise HTTPException(status_code=400, detail="Missing session_id")
 
