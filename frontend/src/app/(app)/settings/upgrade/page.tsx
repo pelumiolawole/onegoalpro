@@ -18,21 +18,42 @@ function UpgradeContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // CHANGED: Corrected prices and features to match actual tier framework.
+  // Previous version had wrong prices ($9/$29) and wrong feature lists.
+  // Forge: $4.99/mo ($47.88/yr). Identity: $10.99/mo ($107.88/yr).
+  // Features rewritten to outcome language matching the new tier framework.
   const plans = {
     forge: {
       name: 'The Forge',
-      price: { monthly: 9, annual: 90 },
-      features: ['Unlimited AI coaching', 'Daily task generation', 'Progress tracking', 'Priority support'],
+      price: { monthly: 4.99, annual: 47.88 },
+      annualNote: 'Billed as $47.88/year',
+      tagline: 'For people who are serious.',
+      features: [
+        'Coach PO with full memory — unlimited',
+        'Weekly review every Monday',
+        'Full transformation score breakdown',
+        'Reflection insights',
+        'Goal history and archive',
+      ],
       color: 'text-[#F59E0B]',
       bg: 'bg-[#F59E0B]/10',
       icon: Sparkles
     },
     identity: {
       name: 'The Identity',
-      price: { monthly: 29, annual: 290 },
-      features: ['Everything in Forge', 'Weekly 1-on-1 coaching', 'Custom goal frameworks', 'Identity transformation', 'Direct coach access'],
-      color: 'text-[#d0ff59]',
-      bg: 'bg-[#d0ff59]/10',
+      price: { monthly: 10.99, annual: 107.88 },
+      annualNote: 'Billed as $107.88/year',
+      tagline: 'For people committed to becoming.',
+      features: [
+        'Everything in The Forge',
+        'Re-interview when your goal evolves',
+        'Behavioural pattern summary',
+        'Priority task generation',
+        'Early feature access',
+        'Priority support',
+      ],
+      color: 'text-[#F59E0B]',
+      bg: 'bg-[#F59E0B]/10',
       icon: Shield
     }
   }
@@ -83,7 +104,7 @@ function UpgradeContent() {
             Upgrade to {selectedPlan.name}
           </h1>
           <p className="text-[#7A6E65] mb-8">
-            Choose your billing cycle
+            {selectedPlan.tagline}
           </p>
 
           {error && (
@@ -92,13 +113,13 @@ function UpgradeContent() {
             </div>
           )}
 
-          <div className="space-y-4 mb-8">
+          <div className="space-y-3 mb-8">
             {selectedPlan.features.map((feature, i) => (
               <div key={i} className="flex items-center gap-3 text-[#C4BBB5]">
-                <div className="w-5 h-5 rounded-full bg-green-950/30 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-green-950/30 flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3 text-green-400" />
                 </div>
-                {feature}
+                <span className="text-sm">{feature}</span>
               </div>
             ))}
           </div>
@@ -107,7 +128,7 @@ function UpgradeContent() {
             <button
               onClick={() => handleCheckout('monthly')}
               disabled={loading}
-              className="p-6 bg-[#0A0908] border border-white/10 rounded-xl hover:border-[#F59E0B]/50 transition-all text-left"
+              className="p-6 bg-[#0A0908] border border-white/10 rounded-xl hover:border-[#F59E0B]/50 transition-all text-left disabled:opacity-50"
             >
               <p className="text-[#5C524A] text-sm mb-1">Monthly</p>
               <p className="text-2xl font-display text-[#F5F1ED]">${selectedPlan.price.monthly}</p>
@@ -117,14 +138,15 @@ function UpgradeContent() {
             <button
               onClick={() => handleCheckout('annual')}
               disabled={loading}
-              className="p-6 bg-[#0A0908] border border-[#F59E0B]/30 rounded-xl hover:border-[#F59E0B] transition-all text-left relative overflow-hidden"
+              className="p-6 bg-[#0A0908] border border-[#F59E0B]/30 rounded-xl hover:border-[#F59E0B] transition-all text-left relative overflow-hidden disabled:opacity-50"
             >
+              {/* CHANGED: Save % calculated correctly from actual prices */}
               <div className="absolute top-2 right-2 px-2 py-0.5 bg-[#F59E0B]/20 text-[#F59E0B] text-xs rounded-full">
-                Save 17%
+                {plan === 'identity' ? 'Save 18%' : 'Save 20%'}
               </div>
               <p className="text-[#5C524A] text-sm mb-1">Annual</p>
               <p className="text-2xl font-display text-[#F5F1ED]">${selectedPlan.price.annual}</p>
-              <p className="text-[#3D3630] text-xs mt-1">per year</p>
+              <p className="text-[#3D3630] text-xs mt-1">{selectedPlan.annualNote}</p>
             </button>
           </div>
 
@@ -134,6 +156,10 @@ function UpgradeContent() {
               <span className="text-sm">Redirecting to checkout...</span>
             </div>
           )}
+
+          <p className="text-center text-[#3D3630] text-xs mt-6">
+            14-day money-back guarantee. No questions asked.
+          </p>
         </motion.div>
       </div>
     </div>

@@ -168,7 +168,7 @@ export default function LandingPage() {
     monthly: [
       {
         name: 'The Spark',
-        tagline: 'Start here. Get focused.',
+        tagline: 'Start here. Prove it works.',
         price: '$0',
         period: 'forever',
         features: [
@@ -177,48 +177,48 @@ export default function LandingPage() {
           '1 daily identity task',
           'Basic progress tracking',
           '7-day streak tracking',
-          'Coach (5 messages/day)',
+          'Coach PO — 5 messages/day',
         ],
         cta: 'Start Free',
         highlight: false,
       },
       {
         name: 'The Forge',
-        tagline: 'For people who want results.',
+        tagline: 'For people who are serious.',
         price: '$4.99',
         period: '/month',
         features: [
           'Everything in The Spark',
-          'Unlimited AI Coach',
-          'Full transformation scores',
-          'Weekly reviews',
+          'Coach PO with full memory — unlimited',
+          'Weekly review every Monday',
+          'Full transformation score breakdown',
           'Reflection insights',
-          'Goal history & archive',
+          'Goal history and archive',
         ],
-        cta: 'Get started',
+        cta: 'Go deeper',
         highlight: true,
       },
       {
         name: 'The Identity',
-        tagline: 'Maximum discipline. No excuses.',
+        tagline: 'For people committed to becoming.',
         price: '$10.99',
         period: '/month',
         features: [
           'Everything in The Forge',
-          'Re-interview anytime',
-          'Behavioral fingerprinting',
+          'Re-interview when your goal evolves',
+          'Behavioural pattern summary',
           'Priority task generation',
           'Early feature access',
           'Priority support',
         ],
-        cta: 'Go All In',
+        cta: 'Commit fully',
         highlight: false,
       },
     ],
     annual: [
       {
         name: 'The Spark',
-        tagline: 'Start here. Get focused.',
+        tagline: 'Start here. Prove it works.',
         price: '$0',
         period: 'forever',
         features: [
@@ -227,45 +227,45 @@ export default function LandingPage() {
           '1 daily identity task',
           'Basic progress tracking',
           '7-day streak tracking',
-          'Coach (5 messages/day)',
+          'Coach PO — 5 messages/day',
         ],
         cta: 'Start Free',
         highlight: false,
       },
       {
         name: 'The Forge',
-        tagline: 'For people who want results.',
+        tagline: 'For people who are serious.',
         price: '$4.99',
         period: '/month',
         annualPrice: '$47.88',
         savings: 'Save 20%',
         features: [
           'Everything in The Spark',
-          'Unlimited AI Coach',
-          'Full transformation scores',
-          'Weekly reviews',
+          'Coach PO with full memory — unlimited',
+          'Weekly review every Monday',
+          'Full transformation score breakdown',
           'Reflection insights',
-          'Goal history & archive',
+          'Goal history and archive',
         ],
-        cta: 'Get started',
+        cta: 'Go deeper',
         highlight: true,
       },
       {
         name: 'The Identity',
-        tagline: 'Maximum discipline. No excuses.',
+        tagline: 'For people committed to becoming.',
         price: '$10.99',
         period: '/month',
         annualPrice: '$107.88',
         savings: 'Save 18%',
         features: [
           'Everything in The Forge',
-          'Re-interview anytime',
-          'Behavioral fingerprinting',
+          'Re-interview when your goal evolves',
+          'Behavioural pattern summary',
           'Priority task generation',
           'Early feature access',
           'Priority support',
         ],
-        cta: 'Go All In',
+        cta: 'Commit fully',
         highlight: false,
       },
     ],
@@ -299,12 +299,10 @@ export default function LandingPage() {
 
       {/* ── Hero ──────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 text-center overflow-hidden">
-        {/* Floating orbs */}
         <FloatingOrb size={600} top="20%" left="50%" delay={0} duration={8} opacity={0.07} />
         <FloatingOrb size={300} top="60%" left="15%" delay={2} duration={10} opacity={0.05} />
         <FloatingOrb size={200} top="30%" left="75%" delay={4} duration={7} opacity={0.06} />
 
-        {/* Grid texture */}
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
@@ -327,7 +325,6 @@ export default function LandingPage() {
             Identity-Based Goal System
           </motion.div>
 
-          {/* CHANGE 1 — Static headline, no typewriter */}
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -339,7 +336,6 @@ export default function LandingPage() {
             <span className="text-[#F59E0B] italic">No Excuses.</span>
           </motion.h1>
 
-          {/* CHANGE 2 — Identity problem framing in subheadline */}
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -375,7 +371,6 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -394,7 +389,6 @@ export default function LandingPage() {
           ))}
         </motion.div>
 
-        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -410,7 +404,7 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ── Live Demo — KEEP EXACTLY AS IS ────────────────── */}
+      {/* ── Live Demo ─────────────────────────────────────── */}
       <section className="px-6 py-24 max-w-5xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <Reveal>
@@ -442,7 +436,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── How It Works — KEEP EXACTLY AS IS ────────────── */}
+      {/* ── How It Works ──────────────────────────────────── */}
       <section className="px-6 py-24 bg-[#0D0B09]">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
@@ -496,7 +490,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features — CHANGE 4: 3 outcome statements, no emoji ── */}
+      {/* ── Features ──────────────────────────────────────── */}
       <section className="px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
@@ -540,7 +534,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Social Proof — CHANGE 3: Replace fake testimonials ── */}
+      {/* ── Social Proof ──────────────────────────────────── */}
       <section className="px-6 py-24 bg-[#0D0B09]">
         <div className="max-w-3xl mx-auto text-center">
           <Reveal>
@@ -576,7 +570,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Pricing — KEEP tier names, update CTA labels ──── */}
+      {/* ── Pricing ───────────────────────────────────────── */}
       <section className="px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-12">
@@ -586,7 +580,6 @@ export default function LandingPage() {
               <span className="italic text-[#F59E0B]">commitment</span>
             </h2>
 
-            {/* Billing toggle */}
             <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-[#141210]">
               <button
                 onClick={() => setBilling('monthly')}
@@ -608,7 +601,7 @@ export default function LandingPage() {
               >
                 Annual
                 <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#0A0908]/20' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
-                  Save up to 20% on paid plans
+                  Save on paid plans
                 </span>
               </button>
             </div>
@@ -696,7 +689,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Final CTA — KEEP EXACTLY AS IS ───────────────── */}
+      {/* ── Final CTA ─────────────────────────────────────── */}
       <section className="px-6 py-32 text-center relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <motion.div
@@ -724,7 +717,7 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* ── Footer — updated with Terms link ───────────── */}
+      {/* ── Footer ────────────────────────────────────────── */}
       <footer className="px-6 py-10 border-t border-white/5">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <OneGoalLogo size={22} textSize="text-lg" />

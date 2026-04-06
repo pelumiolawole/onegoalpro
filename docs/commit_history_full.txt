@@ -1,0 +1,1578 @@
+a90131b | 2026-04-06 | fix: move PostHog init to client component — was running on server where window is undefined
+8bb148a | 2026-04-06 | fix: resolve UserSummary type error in PostHog identify call
+dac186c | 2026-04-06 | feat: posthog.capture reintegration on key pages
+0fd5718 | 2026-04-06 | fix: resolve asyncpg connection pool leak in coach streaming endpoint
+ce6c9e3 | 2026-04-05 | fix: interview nudge links pointing to /onboarding/interview — correct path is /interview
+f83a7db | 2026-04-05 | security: harden auth, billing cancellation fix, CSP headers, token hashing, JTI blocklist
+f50a08e | 2026-04-05 | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+0cc80e5 | 2026-04-05 | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+7e5afd9 | 2026-04-02 | fix: annual toggle badge - clarify savings apply to paid plans only
+49e6378 | 2026-04-01 | fix: prevent SQLAlchemy connection leak in coach stream — skip session update after embedding rollback, commit after AI message save
+0648243 | 2026-04-01 | fix: notification_queue INSERT — add required type, title, body, scheduled_at columns
+c4962ae | 2026-04-01 | fix: guard Notification API access on mobile — prevents dashboard crash
+be45d78 | 2026-04-01 | fix: guard Notification API access on mobile — prevents dashboard crash
+09de033 | 2026-04-01 | fix: scheduler coroutine, re-engagement query, robots.txt, onboarding 403 redirect
+7f0dfc8 | 2026-04-01 | fix: scheduler coroutine, re-engagement query, backend robots.txt
+4aeec33 | 2026-03-31 | feat: Terms of Service page, cookie banner, landing footer, signup legal links
+8cc72a7 | 2026-03-30 | feat: install banner
+b4cafe1 | 2026-03-30 | feat: install banner, cookie banner — all files committed together
+a767a16 | 2026-03-30 | feat: install banner, cookie banner — all files committed together
+c29cd76 | 2026-03-30 | layout updated
+c8bd5ce | 2026-03-30 | dashboard reverted
+c0bd2db | 2026-03-30 | banner removed from dashboard
+0fb6eca | 2026-03-30 | banner removed
+45fd20e | 2026-03-30 | Revert "revert cookie banner"
+e9f162a | 2026-03-30 | Revert "feat: add install to home screen banner with push permission request"
+37110ef | 2026-03-30 | revert cookie banner
+3f34be8 | 2026-03-29 | feat: cookie consent banner, AI disclosure on interview and coach
+8e2b6c8 | 2026-03-29 | feat: cookie consent banner, AI disclosure on interview and coach
+f73dfe8 | 2026-03-29 | feat: add install to home screen banner with push permission request
+20d8811 | 2026-03-29 | fix(interview): redirect to dashboard on 400 (already complete)
+40f4611 | 2026-03-29 | fix: push subscribe double api path, add robots.txt
+03beb3b | 2026-03-29 | fix(scheduler): fix interview nudge event loop error
+d09c9e2 | 2026-03-29 | fix(interview): add 30s request timeout, improve error message on slow response
+8b9ab49 | 2026-03-28 | chore: remove temp nudge test endpoint
+3c0dbd8 | 2026-03-28 | temp: add nudge email test endpoint
+e3d2b5a | 2026-03-28 | temp: add nudge email test endpoint
+c249729 | 2026-03-28 | feat: interview completion nudge — 24h and 72h email + push
+93eff5d | 2026-03-28 | feat: add privacy policy page
+a4da94b | 2026-03-28 | fix(onboarding): interview lenght added to landing page
+95e9b59 | 2026-03-28 | fix(meta): merge duplicate metadata exports, add OG image
+72caef2 | 2026-03-27 | fix(mobile): prevent content hiding under nav on goal, progress, settings pages
+4020d22 | 2026-03-27 | add CODING_INSTRUCTIONS.md
+b04edfe | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+66c8704 | 2026-03-27 | fix(coach): date separators in chat history + prevent mobile zoom on input focus
+2f0995c | 2026-03-27 | fix(coach): remove counter update from _save_message — was causing 2min stream stalls
+daad13a | 2026-03-27 | fix(coach): rollback after all silent except blocks to prevent InFailedSQLTransactionError
+01bfbd4 | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+7ec0480 | 2026-03-27 | fix(coach): remove trim() preserving token spaces; switch to gpt-4o-mini for speed
+f178c87 | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+af897ad | 2026-03-27 | fix(reflection): centre modal on mobile instead of snapping to bottom
+569d7ad | 2026-03-27 | feat(diary): expandable past tasks with reflection Q&A and coach insight
+1062e08 | 2026-03-27 | chore: ignore claude code worktrees in gitignore
+5c3149b | 2026-03-27 | chore: remove claude code worktree artifacts
+f5ef8e7 | 2026-03-27 | fix(dashboard): add bottom padding so past tasks clears fixed mobile nav
+cf3cd6c | 2026-03-27 | feat(push): implement web push notifications end-to-end
+8df3de1 | 2026-03-27 | fix(email): migrate all sending to hello@onegoalpro.app, update admin whitelist
+16d66a5 | 2026-03-27 | fix(layout): sidebar stays fixed on desktop scroll
+988cf54 | 2026-03-27 | fix(layout): sticky sidebar on desktop, fixed bottom nav on mobile
+93122cf | 2026-03-26 | fix(coach): SSE parser now correctly intercepts quota_banner system events
+6552727 | 2026-03-25 | fix(coach): swallow session counter timeout, fix deprecated task_type filter
+0a66c32 | 2026-03-25 | fix(notifications): correct goals column from identity_anchor to required_identity
+69e04a4 | 2026-03-25 | fix(auth): correct free tier quota to 5/day, fix upgrade URL; fix(billing): restyle success page to OneGoal Pro brand
+7b63299 | 2026-03-25 | feat(notifications): add daily task email + re-engagement email system
+e1ffcb6 | 2026-03-25 | pricing font updated
+15c3b7c | 2026-03-25 | feat(landing): static headline, identity subhead, social proof block, 3 outcome features, corrected task count
+1775f0e | 2026-03-25 | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+bb77a3b | 2026-03-25 | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+3ed1e0a | 2026-03-25 | docs: update CLAUDE.md v1.1 and TODO after March 25 session
+f5a292c | 2026-03-25 | chore: remove claude code worktree artifacts
+df45b27 | 2026-03-25 | fix(routing): rename Upgrade to upgrade for case-sensitive Vercel routing
+6d34e04 | 2026-03-25 | chore: temp rename for case fix
+2717cf2 | 2026-03-25 | fix(billing): env var for FRONTEND_URL, add verify-session endpoint, dual-write to subscriptions table, log webhook errors
+ef8798b | 2026-03-25 | chore: remove claude code worktree artifacts
+32b26b3 | 2026-03-25 | new todo
+1a37595 | 2026-03-20 | refactor(subscription): simplify status to active/ended only
+7a9caea | 2026-03-20 | feat(billing): show readable plan name in invoice history
+36a87ef | 2026-03-20 | fix(billing): handle cancel_at_period_end in webhook to prevent race condition
+b0f6d64 | 2026-03-20 | fix(migration-010): comprehensive scoring system fix
+b8a888a | 2026-03-20 | fix(migration): update 011_Enhanced_Coach_Memory_System.sql to match deployed schema
+313963e | 2026-03-20 | feat(coach): complete V2 upgrade with PMOS, psychological frameworks, and enhanced memory system
+0720e03 | 2026-03-19 | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+965fed8 | 2026-03-19 | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+50ec053 | 2026-03-19 | domain update
+f9140e2 | 2026-03-19 | fix: progress_metrics column depth_score not avg_depth_score, weekly review query 🎯
+f637a72 | 2026-03-19 | fix: progress_metrics depth_score column name 🎯
+9a31491 | 2026-03-19 | fix: retrieval.py vector embedding ::vector cast syntax for asyncpg 🎯
+e8f073c | 2026-03-19 | fix: reflection analyzer ::jsonb cast syntax breaking asyncpg 🎯
+a7d515c | 2026-03-19 | fix: reflection submission JSON bug, missing db.commit, route ordering 🎯
+69feb3a | 2026-03-19 | fix: morning sweep task_type filter removed, daily generation catches all users 🎯
+0b22497 | 2026-03-19 | feat: Google OAuth on login and signup, auth callback page 🎯
+faa905b | 2026-03-18 | fix: tasks.py indentation, history route ordering, include pending tasks in history 🎯
+aa006e0 | 2026-03-18 | fix: od display bug, HTML entities in traits, past tasks SWR key 🎯
+16aa7dd | 2026-03-18 | fix: bio in sidebar via UserSummary, task history route ordering, api.ts type 🎯
+a84c5d4 | 2026-03-18 | feat: task history panel on dashboard with status indicator
+cb2e19f | 2026-03-18 | feat: avatar in sidebar top-right, Profile nav item replaces settings link + Porgess page redress
+40b40ae | 2026-03-18 | fix: streak updates immediately on completion, task guardrail type-agnostic, progress traits SWR key, timezone endpoint
+11b0847 | 2026-03-18 | interview update
+dbf6eb0 | 2026-03-18 | system propmts update
+90dbd12 | 2026-03-17 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+36ae27a | 2026-03-17 | fix: unblock goal-setup for new users, fix error display, tighten interview engine
+4c528aa | 2026-03-17 | Update page.tsx
+318d2ca | 2026-03-17 | sentry ref rmvd
+f9879f1 | 2026-03-17 | fix: interview page
+7c878f3 | 2026-03-17 | fix: interview page
+5c87d0b | 2026-03-17 | update interview page
+028692d | 2026-03-17 | syntax fix
+bd37a9f | 2026-03-17 | Update api.ts
+11de598 | 2026-03-17 | Update page.tsx
+46a1610 | 2026-03-17 | Update interview.py
+ba3a275 | 2026-03-17 | Update system_prompts.py
+5224394 | 2026-03-06 | chore: remove unused Three.js dependencies
+37ac626 | 2026-03-06 | email.py edit
+909785a | 2026-03-06 | fix: complete unterminated f-string in email templates
+42e0576 | 2026-03-06 | endpoint reverted
+7b0d7e1 | 2026-03-06 | fix: OnboardingStatus enum and add bulk welcome email endpoint
+5b83384 | 2026-03-06 | fix: remove signature image, update sign-off to Pelumi (Coach PO) ++ feat: add temporary admin endpoint to send welcome emails to existing users
+17b47dd | 2026-03-06 | fix: correct OnboardingStatus enum value in email verification
+e5f7557 | 2026-03-06 | fix: correct resend-verification folder spelling
+5c2f05d | 2026-03-05 | staticlanding removed
+5198567 | 2026-03-05 | original laging page restored
+e5a775a | 2026-03-05 | WebGL detection added
+4ed2c81 | 2026-03-05 | fix: add proper JSX returns and client-side mount check to prevent hydration errors
+7139051 | 2026-03-05 | fix: use imperative Three.js API to bypass JSX type conflicts
+8dd80a0 | 2026-03-05 | fix: remove unnecessary extend() calls, use built-in R3F v9 JSX types
+6147a43 | 2026-03-05 | fix: use extend() API and inline JSX types for R3F v9 compatibility
+66247bc | 2026-03-05 | fix: update ParticleCanvas for R3F v9 API - use imperative geometry creation
+ec26330 | 2026-03-05 | fix: upgrade @react-three/fiber to v9 for React 19 compatibility
+b639cc4 | 2026-03-05 | fix: lazy load Three.js landing component to avoid JSX type conflicts
+766f2bc | 2026-03-05 | fix: complete Singularity component with proper JSX and Three.js types
+d7eb3ad | 2026-03-05 | fix: remove deprecated swcMinify from next.config.js
+071bff7 | 2026-03-05 | fix: use pure Three.js without React Three Fiber JSX
+f7a4fd4 | 2026-03-05 | fix: use programmatic geometry to avoid JSX type errors
+ff30307 | 2026-03-05 | fix: add React Three Fiber JSX types
+031289e | 2026-03-05 | fix: add TypeScript types for Three.js JSX elements
+b64cf24 | 2026-03-05 | feat: Phase 1 Genesis Loop landing page
+3df5a9f | 2026-03-05 | feat: add continuous guardrail with BackgroundTasks for async task generation
+9d873a8 | 2026-03-05 | feat: add 4am morning sweep job to catch users missing today's task
+ee8e200 | 2026-03-05 | fix: resolve syntax error in task_generator f-string with escaped quotes
+49dd1f8 | 2026-03-05 | fix: wrap resend-verification in Suspense boundary for Next.js 15
+9075772 | 2026-03-05 | feat: redesign task generation with backlog handling and interventions
+07c85a3 | 2026-03-05 | feat: add static files mount for signature image serving
+db487c7 | 2026-03-05 | verifcatio structure update
+2128161 | 2026-03-05 | signature added to /backend/static
+7ef48be | 2026-03-04 | feat: add email verification reminder job, API client methods, and frontend_url config
+3019bcb | 2026-03-04 | fix: password reset implementation - syntax fixes and endpoint additions
+3365033 | 2026-03-04 | fix(upgrade page):  wrapped useSearchParams() in a Suspense boundary
+36279d9 | 2026-03-04 | fix: Changed api.billing.createCheckoutSession to api.billing.createCheckout for upgrade page
+da4a6f1 | 2026-03-04 | fix: restore profile features and fix billing API - merge old settings page with billing, fix billing_cycle attribute error, add upgrade page, fix sign out handler
+2c974a8 | 2026-03-04 | fix: handle undefined plan in getPlanDisplay call
+4f612a8 | 2026-03-04 | fix: add type assertion for subscription API response in settings page
+1b98ff1 | 2026-03-04 | feat: add logout method to auth store with backend api call and local cleanup
+74cd1e2 | 2026-03-04 | fix: add missing closing brace for ApiClient class in api.ts
+62c7465 | 2026-03-04 | fix: move get_invoices method inside BillingService class and fix stripe error reference
+8be4762 | 2026-03-04 | fix: add billing API methods to ApiClient - adds createCheckout, verifySession, getSubscription, cancel/resume subscription, and getInvoices methods to fix TypeError in billing/success page
+0fb0aee | 2026-03-04 | fix: wrap useSearchParams in Suspense boundary for billing success page ++ resolve Next.js 15 metadata warnings by moving themeColor to viewport
+f70cb25 | 2026-03-04 | fix(settings): remove orphaned subscription code causing TS error
+60abcd8 | 2026-03-04 | fix(settings): add TypeScript type for subscription state
+53fa5ec | 2026-03-04 | fix(coach): replace generic prompt with Coach PO personality
+4bb1c8f | 2026-03-04 | fix(auth): rename shadowed status variable in quota check
+8ee76c6 | 2026-03-04 | feat: polished quota warnings + conversational Coach PO personality
+02f26a9 | 2026-03-03 | feat: implement tier-based quota enforcement for AI coach
+e041ede | 2026-03-03 | fix: import get_current_user error
+be0fa3a | 2026-03-03 | fix: billing endpoints re-orientaion
+e1a6983 | 2026-03-03 | config indentation error fixed
+ca617b0 | 2026-03-03 | stripe webhook added
+76149f6 | 2026-03-03 | billing router param fix
+a2ead45 | 2026-03-03 | feat(billing): Add Stripe subscription integration
+7952b1a | 2026-03-03 | feat(gdpr): Add data export and account deletion
+33990c6 | 2026-03-03 | feat(safety): Add admin endpoints for safety flag review
+2e1bd58 | 2026-03-03 | fix: missing run_weekly_review_generation added to scheduler
+5f8608c | 2026-03-03 | fix: indentation error in _load_recent_messages
+e3f2b61 | 2026-03-03 | fix: indentation error
+34f0675 | 2026-03-03 | fix: coach page seed message added and loading
+aaeb1d8 | 2026-03-03 | timezone endpoints added for backend engine and frontend UI
+492f532 | 2026-03-02 | fix: scheduler updated to track user timezoen for task generation differently
+066052c | 2026-03-02 | fix: ai retrieval :embedding error resolved
+06f6fe4 | 2026-03-02 | dt.staus refined
+ac49398 | 2026-03-02 | fix: submit_goal router path updated
+3303380 | 2026-03-02 | api.ts reroute fixed
+dcdac96 | 2026-03-02 | profile router and auto generate bio updated
+1ab302f | 2026-03-02 | avatar path fixed
+1dc0678 | 2026-03-02 | new profile elements
+832586b | 2026-03-02 | updates for prfilr rebrand
+6248db2 | 2026-03-02 | todo updated, settings page upbranded
+91b9e57 | 2026-03-01 | settings page created and layout fixed for auth-state trigger
+cbc3e4b | 2026-03-01 | task generator update
+a11b93b | 2026-03-01 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+2adc653 | 2026-03-01 | task generator updated
+fc1530b | 2026-03-01 | Merge pull request #4 from pelumiolawole/claude/laughing-jackson
+b0dff87 | 2026-03-01 | fix: align backend goal routes with frontend paths
+bc0970c | 2026-03-01 | Merge pull request #3 from pelumiolawole/claude/laughing-jackson
+3a4885d | 2026-03-01 | fix: replace :key_shifts::text[] cast with CAST() to fix asyncpg syntax error
+da7f67f | 2026-03-01 | Merge pull request #2 from pelumiolawole/claude/laughing-jackson
+3991815 | 2026-03-01 | fix: resolve invalid date type error in get_user_retention_context
+0be0988 | 2026-03-01 | update todo for next session
+87e8482 | 2026-03-01 | fix: onboarding router updated
+fc6aa3e | 2026-02-28 | logo size updated
+5069e69 | 2026-02-28 | update logo extension
+8578c3a | 2026-02-28 | logo-png added
+7423c87 | 2026-02-28 | logo SVG integrated
+36a0ccf | 2026-02-28 | Replace landing page redirect with full marketing page
+1c14441 | 2026-02-28 | fix: cleaned up text
+2f1a623 | 2026-02-28 | fix: add/update interactive landing page
+fd1586a | 2026-02-28 | fix: resolved stray comment in app-layout.tsx
+754f050 | 2026-02-28 | fix: homepage reroute resolved'
+15e32fa | 2026-02-28 | fix: added console.log
+d096147 | 2026-02-28 | fix: paths resolved v2
+7e827b9 | 2026-02-28 | fix: path reroute error corrected
+a428ebd | 2026-02-28 | fix: further path resolve for login reroute
+059a440 | 2026-02-28 | merge resolve
+1b0a58c | 2026-02-28 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+1ecadc3 | 2026-02-28 | fix: further path correction for login reroute
+1d0f701 | 2026-02-28 | Merge pull request #1 from pelumiolawole/claude/nice-cohen
+0ec9d34 | 2026-02-28 | fix: correct activate redirect path in preview page
+81f75ef | 2026-02-28 | fix: addding todo.md for claude code
+5334fd0 | 2026-02-28 | fix: update paths for goal-setup rerouting
+c83e5ef | 2026-02-28 | fix: corrected goal-setup path for onboarding
+ce3b87a | 2026-02-27 | fix: cast JSONB differently to avoid the conflict
+78fcb7a | 2026-02-27 | fix: replace initial schema migration with new version"
+a14f079 | 2026-02-27 | fix: update router.push for auth;login and signup
+19967a9 | 2026-02-27 | fix: update values_callable for SQLAlchemy
+b520a50 | 2026-02-27 | fix: add hashed_password column to users table in migrations
+2e5679c | 2026-02-26 | fix: upgrade Next.js to 15.2.8 and CORS fix
+232752f | 2026-02-26 | fix: upgrade Next.js to 15.2.6 resolved version for patch CVE-2025-66478
+b679aab | 2026-02-26 | fix: upgrade Next.js to 15.2.2 to patch CVE-2025-66478
+a33562e | 2026-02-26 | fix: rename onboarding/goal to goal-setuo to avoid route conflict
+92b9909 | 2026-02-26 | fix: match eslint-config-next version to 15.1.0
+8e1ede1 | 2026-02-26 | fix: sorted JSON syntax error
+4c88c72 | 2026-02-26 | fix: add .npmrc to fix peer dependency conflict
+f64ba54 | 2026-02-26 | fix: upgrade next version for react compatibility
+0385961 | 2026-02-26 | fix: make Redis and scheduler startup non-fatal
+e60b9b6 | 2026-02-26 | fix: make init_db non-fatal so app starts if DB unreachable at boot
+f3d4ca2 | 2026-02-26 | fix: add greenlet for SQLAlchemy async on Python 3,13
+90339fc | 2026-02-26 | fix: suapbase version updated
+4ce446e | 2026-02-22 | fix: use supabase 2.9.1, add email-validator, add project for end of day
+f05a245 | 2026-02-22 | fix: add email-validator dependency
+be5d4bf | 2026-02-22 | fix: sync all backend files with correct versions
+4fe3bda | 2026-02-22 | replace router files with correct versions
+de445a9 | 2026-02-22 | fix: add missing db/models folder
+0ad10da | 2026-02-22 | fix: httpx version conflict
+c279021 | 2026-02-22 | fix: supabase version requirement
+2d036a1 | 2026-02-22 | fix: resolve httpx supabase version conflict
+9245ce3 | 2026-02-22 | fix: downgrade httpx for supabase compatibility
+895f8dc | 2026-02-22 | add Procfile for Railway
+ebe636f | 2026-02-22 | feat: complete frontend
+a3f149d | 2026-02-22 | Onboarding Flow + Goal System API
+de34556 | 2026-02-22 | README File added
+7b647aa | 2026-02-22 | feat: restructure project with proper folder layout
+a874a4e | 2026-02-21 | add all files
+a958aa5 | 2026-02-21 | Update README.md
+923482b | 2026-02-21 | Initial commita90131b | 2026-04-06 | fix: move PostHog init to client component — was running on server where window is undefined
+ frontend/src/app/layout.tsx             |  5 ++---
+ frontend/src/components/PostHogInit.tsx | 11 +++++++++++
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+8bb148a | 2026-04-06 | fix: resolve UserSummary type error in PostHog identify call
+ frontend/src/stores/auth.ts | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+dac186c | 2026-04-06 | feat: posthog.capture reintegration on key pages
+ frontend/.env.example                            | 3 ---
+ frontend/src/app/(app)/billing/success/page.tsx  | 2 ++
+ frontend/src/app/(app)/coach/page.tsx            | 8 ++++++++
+ frontend/src/app/(app)/dashboard/page.tsx        | 2 ++
+ frontend/src/app/(app)/settings/upgrade/page.tsx | 5 +++++
+ frontend/src/app/(onboarding)/activate/page.tsx  | 1 +
+ frontend/src/app/(onboarding)/interview/page.tsx | 2 ++
+ frontend/src/stores/auth.ts                      | 9 ++++-----
+ 8 files changed, 24 insertions(+), 8 deletions(-)
+
+0fd5718 | 2026-04-06 | fix: resolve asyncpg connection pool leak in coach streaming endpoint
+ backend/ai/engines/coach.py   | 147 +++++++++++++++++++++---------------------
+ backend/api/routers/coach.py  |   5 +-
+ backend/services/scheduler.py |   2 +-
+ 3 files changed, 75 insertions(+), 79 deletions(-)
+
+ce6c9e3 | 2026-04-05 | fix: interview nudge links pointing to /onboarding/interview — correct path is /interview
+ backend/services/email.py     | 4 ++--
+ backend/services/scheduler.py | 3 +--
+ 2 files changed, 3 insertions(+), 4 deletions(-)
+
+f83a7db | 2026-04-05 | security: harden auth, billing cancellation fix, CSP headers, token hashing, JTI blocklist
+ backend/api/dependencies/auth.py  |  20 ++++---
+ backend/api/routers/auth.py       | 106 ++++++++++++++++++++++++++------------
+ backend/api/routers/onboarding.py |  20 ++++++-
+ backend/api/routers/profile.py    |  40 +++++++++++---
+ backend/core/cache.py             |  23 +++++++++
+ backend/core/config.py            |  12 ++++-
+ backend/core/middleware.py        |  14 ++++-
+ backend/core/security.py          |  26 ++++++++--
+ backend/main.py                   |  30 ++++++++++-
+ backend/services/billing.py       |  17 +++---
+ frontend/next.config.js           |  54 ++++++++++++++++++-
+ 11 files changed, 296 insertions(+), 66 deletions(-)
+
+f50a08e | 2026-04-05 | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+ backend/ai/engines/task_generator.py | 3 ++-
+ backend/services/scheduler.py        | 5 +++--
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+0cc80e5 | 2026-04-05 | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+ backend/ai/engines/task_generator.py | 1 -
+ backend/services/scheduler.py        | 3 ++-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+7e5afd9 | 2026-04-02 | fix: annual toggle badge - clarify savings apply to paid plans only
+ frontend/src/app/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+49e6378 | 2026-04-01 | fix: prevent SQLAlchemy connection leak in coach stream — skip session update after embedding rollback, commit after AI message save
+ backend/ai/engines/coach.py | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+0648243 | 2026-04-01 | fix: notification_queue INSERT — add required type, title, body, scheduled_at columns
+ backend/services/scheduler.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+c4962ae | 2026-04-01 | fix: guard Notification API access on mobile — prevents dashboard crash
+ frontend/src/components/InstallBanner.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+be45d78 | 2026-04-01 | fix: guard Notification API access on mobile — prevents dashboard crash
+ frontend/src/components/InstallBanner.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+09de033 | 2026-04-01 | fix: scheduler coroutine, re-engagement query, robots.txt, onboarding 403 redirect
+ frontend/src/lib/api.ts | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+7f0dfc8 | 2026-04-01 | fix: scheduler coroutine, re-engagement query, backend robots.txt
+ backend/main.py               | 30 ++++++++++++-----
+ backend/services/scheduler.py | 77 ++++++++++++++++++++++++++++---------------
+ 2 files changed, 72 insertions(+), 35 deletions(-)
+
+4aeec33 | 2026-03-31 | feat: Terms of Service page, cookie banner, landing footer, signup legal links
+ frontend/src/app/(auth)/signup/page.tsx  |  10 +-
+ frontend/src/app/page.tsx                |   4 +-
+ frontend/src/app/terms/page.tsx          | 490 +++++++++++++++++++++++++++++++
+ frontend/src/components/CookieBanner.tsx |   7 +
+ 4 files changed, 509 insertions(+), 2 deletions(-)
+
+8cc72a7 | 2026-03-30 | feat: install banner
+ frontend/src/components/InstallBanner.tsx | 250 ++++++++++++++++++++++++++++++
+ 1 file changed, 250 insertions(+)
+
+b4cafe1 | 2026-03-30 | feat: install banner, cookie banner — all files committed together
+ frontend/src/app/(app)/dashboard/page.tsx | 3 +++
+ frontend/src/components/InstallBanner.tsx | 0
+ 2 files changed, 3 insertions(+)
+
+a767a16 | 2026-03-30 | feat: install banner, cookie banner — all files committed together
+ frontend/src/app/layout.tsx | 2 ++
+ 1 file changed, 2 insertions(+)
+
+c29cd76 | 2026-03-30 | layout updated
+ frontend/src/app/layout.tsx | 1 -
+ 1 file changed, 1 deletion(-)
+
+c8bd5ce | 2026-03-30 | dashboard reverted
+ frontend/src/app/(app)/dashboard/page.tsx | 2 --
+ 1 file changed, 2 deletions(-)
+
+c0bd2db | 2026-03-30 | banner removed from dashboard
+ frontend/src/app/(app)/dashboard/page.tsx | 1 -
+ 1 file changed, 1 deletion(-)
+
+0fb6eca | 2026-03-30 | banner removed
+ frontend/src/app/layout.tsx | 1 -
+ 1 file changed, 1 deletion(-)
+
+45fd20e | 2026-03-30 | Revert "revert cookie banner"
+ frontend/src/app/layout.tsx | 2 ++
+ 1 file changed, 2 insertions(+)
+
+e9f162a | 2026-03-30 | Revert "feat: add install to home screen banner with push permission request"
+ frontend/src/components/InstallBanner.tsx | 250 ------------------------------
+ 1 file changed, 250 deletions(-)
+
+37110ef | 2026-03-30 | revert cookie banner
+ frontend/src/app/layout.tsx | 2 --
+ 1 file changed, 2 deletions(-)
+
+3f34be8 | 2026-03-29 | feat: cookie consent banner, AI disclosure on interview and coach
+ CODING_INSTRUCTIONS.md                           | 79 +++++++++++++++++++++++-
+ frontend/src/app/(app)/coach/page.tsx            |  1 +
+ frontend/src/app/(app)/dashboard/page.tsx        |  3 +
+ frontend/src/app/(onboarding)/interview/page.tsx |  5 +-
+ 4 files changed, 86 insertions(+), 2 deletions(-)
+
+8e2b6c8 | 2026-03-29 | feat: cookie consent banner, AI disclosure on interview and coach
+ frontend/src/app/layout.tsx              |  8 +++-
+ frontend/src/components/CookieBanner.tsx | 73 ++++++++++++++++++++++++++++++++
+ 2 files changed, 79 insertions(+), 2 deletions(-)
+
+f73dfe8 | 2026-03-29 | feat: add install to home screen banner with push permission request
+ frontend/src/components/InstallBanner.tsx | 250 ++++++++++++++++++++++++++++++
+ 1 file changed, 250 insertions(+)
+
+20d8811 | 2026-03-29 | fix(interview): redirect to dashboard on 400 (already complete)
+ frontend/src/app/(onboarding)/interview/page.tsx | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+40f4611 | 2026-03-29 | fix: push subscribe double api path, add robots.txt
+ frontend/public/robot.txt         | 3 +++
+ frontend/src/app/(app)/layout.tsx | 2 +-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+03beb3b | 2026-03-29 | fix(scheduler): fix interview nudge event loop error
+ backend/services/scheduler.py | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+d09c9e2 | 2026-03-29 | fix(interview): add 30s request timeout, improve error message on slow response
+ .gitignore                                       |  1 +
+ frontend/src/app/(onboarding)/interview/page.tsx | 10 ++++++++--
+ frontend/src/lib/api.ts                          |  7 ++++++-
+ 3 files changed, 15 insertions(+), 3 deletions(-)
+
+8b9ab49 | 2026-03-28 | chore: remove temp nudge test endpoint
+ backend/api/routers/admin.py | 21 ---------------------
+ 1 file changed, 21 deletions(-)
+
+3c0dbd8 | 2026-03-28 | temp: add nudge email test endpoint
+ backend/api/routers/admin.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+e3d2b5a | 2026-03-28 | temp: add nudge email test endpoint
+ backend/api/routers/admin.py | 23 ++++++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
+
+c249729 | 2026-03-28 | feat: interview completion nudge — 24h and 72h email + push
+ backend/services/email.py     |  87 ++++++++++++++++++++++++++++++++++-
+ backend/services/scheduler.py | 103 +++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 188 insertions(+), 2 deletions(-)
+
+93eff5d | 2026-03-28 | feat: add privacy policy page
+ frontend/src/app/privacy/page.tsx | 157 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 157 insertions(+)
+
+a4da94b | 2026-03-28 | fix(onboarding): interview lenght added to landing page
+ frontend/src/app/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+95e9b59 | 2026-03-28 | fix(meta): merge duplicate metadata exports, add OG image
+ frontend/public/og-image.png | Bin 0 -> 51216 bytes
+ frontend/src/app/layout.tsx  |  21 ++++++++++++++++-----
+ 2 files changed, 16 insertions(+), 5 deletions(-)
+
+72caef2 | 2026-03-27 | fix(mobile): prevent content hiding under nav on goal, progress, settings pages
+ frontend/src/app/(app)/goal/page.tsx     | 2 +-
+ frontend/src/app/(app)/progress/page.tsx | 2 +-
+ frontend/src/app/(app)/settings/page.tsx | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+4020d22 | 2026-03-27 | add CODING_INSTRUCTIONS.md
+ CODING_INSTRUCTIONS.md | 173 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 173 insertions(+)
+
+b04edfe | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+ frontend/src/app/(app)/coach/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+66c8704 | 2026-03-27 | fix(coach): date separators in chat history + prevent mobile zoom on input focus
+ frontend/src/app/(app)/coach/page.tsx | 54 +++++++++++++++++++++++++++++------
+ 1 file changed, 45 insertions(+), 9 deletions(-)
+
+2f0995c | 2026-03-27 | fix(coach): remove counter update from _save_message — was causing 2min stream stalls
+ backend/ai/engines/coach.py | 18 +++---------------
+ 1 file changed, 3 insertions(+), 15 deletions(-)
+
+daad13a | 2026-03-27 | fix(coach): rollback after all silent except blocks to prevent InFailedSQLTransactionError
+ backend/ai/engines/coach.py | 163 ++++++++++++++++++--------------------------
+ 1 file changed, 65 insertions(+), 98 deletions(-)
+
+01bfbd4 | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+ frontend/src/app/(app)/coach/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+7ec0480 | 2026-03-27 | fix(coach): remove trim() preserving token spaces; switch to gpt-4o-mini for speed
+ backend/core/config.py                |  2 +-
+ frontend/src/app/(app)/coach/page.tsx | 11 ++++++-----
+ 2 files changed, 7 insertions(+), 6 deletions(-)
+
+f178c87 | 2026-03-27 | fix(coach): add bottom padding so input clears fixed mobile nav
+ frontend/src/app/(app)/coach/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+af897ad | 2026-03-27 | fix(reflection): centre modal on mobile instead of snapping to bottom
+ frontend/src/components/reflection/ReflectionModal.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+569d7ad | 2026-03-27 | feat(diary): expandable past tasks with reflection Q&A and coach insight
+ backend/api/routers/tasks.py              |   8 +-
+ frontend/src/app/(app)/dashboard/page.tsx | 173 +++++++++++++++++++++++++-----
+ 2 files changed, 150 insertions(+), 31 deletions(-)
+
+1062e08 | 2026-03-27 | chore: ignore claude code worktrees in gitignore
+ .gitignore | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+5c3149b | 2026-03-27 | chore: remove claude code worktree artifacts
+ .claude/worktrees/confident-chebyshev | 1 -
+ 1 file changed, 1 deletion(-)
+
+f5ef8e7 | 2026-03-27 | fix(dashboard): add bottom padding so past tasks clears fixed mobile nav
+ .claude/worktrees/confident-chebyshev     |   1 +
+ CLAUDE_CODE_PUSH_NOTIFICATIONS.md         | 443 ------------------------------
+ frontend/src/app/(app)/dashboard/page.tsx |   2 +-
+ 3 files changed, 2 insertions(+), 444 deletions(-)
+
+cf3cd6c | 2026-03-27 | feat(push): implement web push notifications end-to-end
+ CLAUDE_CODE_PUSH_NOTIFICATIONS.md | 443 ++++++++++++++++++++++++++++++++++++++
+ backend/api/routers/push.py       |  66 ++++++
+ backend/core/config.py            |   5 +
+ backend/main.py                   |   4 +-
+ backend/requirements.txt          |   3 +
+ backend/services/push.py          |  56 +++++
+ backend/services/scheduler.py     |  98 ++++++++-
+ frontend/public/sw.js             |  47 ++++
+ frontend/src/app/(app)/layout.tsx |  46 ++++
+ 9 files changed, 766 insertions(+), 2 deletions(-)
+
+8df3de1 | 2026-03-27 | fix(email): migrate all sending to hello@onegoalpro.app, update admin whitelist
+ backend/api/dependencies/auth.py |  3 ++-
+ backend/core/config.py           |  6 ++----
+ backend/core/email.py            | 37 ++++++++++++++-----------------------
+ backend/services/email.py        |  5 ++---
+ 4 files changed, 20 insertions(+), 31 deletions(-)
+
+16d66a5 | 2026-03-27 | fix(layout): sidebar stays fixed on desktop scroll
+ frontend/src/app/(app)/layout.tsx | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+988cf54 | 2026-03-27 | fix(layout): sticky sidebar on desktop, fixed bottom nav on mobile
+ frontend/src/app/(app)/layout.tsx | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+93122cf | 2026-03-26 | fix(coach): SSE parser now correctly intercepts quota_banner system events
+ frontend/src/app/(app)/coach/page.tsx | 52 +++++++++++++++++++++--------------
+ 1 file changed, 31 insertions(+), 21 deletions(-)
+
+6552727 | 2026-03-25 | fix(coach): swallow session counter timeout, fix deprecated task_type filter
+ backend/ai/engines/coach.py | 118 +++++++++++++++++++-------------------------
+ 1 file changed, 52 insertions(+), 66 deletions(-)
+
+0a66c32 | 2026-03-25 | fix(notifications): correct goals column from identity_anchor to required_identity
+ backend/services/scheduler.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+69e04a4 | 2026-03-25 | fix(auth): correct free tier quota to 5/day, fix upgrade URL; fix(billing): restyle success page to OneGoal Pro brand
+ backend/api/dependencies/auth.py                |  78 +++++------
+ frontend/src/app/(app)/billing/success/page.tsx | 165 +++++++++++++-----------
+ 2 files changed, 123 insertions(+), 120 deletions(-)
+
+7b63299 | 2026-03-25 | feat(notifications): add daily task email + re-engagement email system
+ backend/services/email.py     | 528 ++++++++++++++++++++++++++++++------------
+ backend/services/scheduler.py | 253 +++++++++++++++-----
+ 2 files changed, 580 insertions(+), 201 deletions(-)
+
+e1ffcb6 | 2026-03-25 | pricing font updated
+ frontend/src/app/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+15c3b7c | 2026-03-25 | feat(landing): static headline, identity subhead, social proof block, 3 outcome features, corrected task count
+ frontend/src/app/page.tsx | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+1775f0e | 2026-03-25 | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+ frontend/src/app/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+bb77a3b | 2026-03-25 | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+ frontend/next-env.d.ts    |   3 +-
+ frontend/src/app/page.tsx | 186 ++++++++++++++++++----------------------------
+ 2 files changed, 75 insertions(+), 114 deletions(-)
+
+3ed1e0a | 2026-03-25 | docs: update CLAUDE.md v1.1 and TODO after March 25 session
+ Claude.md | 418 ++++++++++++++-----------------
+ PRD_v2.md | 825 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ todo.md   | 167 +++++++++++--
+ 3 files changed, 1145 insertions(+), 265 deletions(-)
+
+f5a292c | 2026-03-25 | chore: remove claude code worktree artifacts
+ Claude.md | 429 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 429 insertions(+)
+
+df45b27 | 2026-03-25 | fix(routing): rename Upgrade to upgrade for case-sensitive Vercel routing
+ frontend/src/app/(app)/settings/{upgrade_temp => upgrade}/page.tsx | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+6d34e04 | 2026-03-25 | chore: temp rename for case fix
+ frontend/src/app/(app)/settings/{Upgrade => upgrade_temp}/page.tsx | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+2717cf2 | 2026-03-25 | fix(billing): env var for FRONTEND_URL, add verify-session endpoint, dual-write to subscriptions table, log webhook errors
+ backend/api/routers/billing.py |  75 ++++++----
+ backend/services/billing.py    | 310 ++++++++++++++++++++++++++++++-----------
+ 2 files changed, 275 insertions(+), 110 deletions(-)
+
+ef8798b | 2026-03-25 | chore: remove claude code worktree artifacts
+ docs/commit_history.txt | 179 ++++++++++++++++++++++++++++++++++++++++++
+ docs/file_tree.txt      | 204 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 383 insertions(+)
+
+32b26b3 | 2026-03-25 | new todo
+ todo.md | 99 ++++++++++++++++++++++++-----------------------------------------
+ 1 file changed, 37 insertions(+), 62 deletions(-)
+
+1a37595 | 2026-03-20 | refactor(subscription): simplify status to active/ended only
+ backend/services/billing.py              | 33 ++++++++++--------
+ frontend/src/app/(app)/settings/page.tsx | 57 ++++++++++++++++----------------
+ 2 files changed, 48 insertions(+), 42 deletions(-)
+
+7a9caea | 2026-03-20 | feat(billing): show readable plan name in invoice history
+ backend/services/billing.py | 62 +++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 54 insertions(+), 8 deletions(-)
+
+36a87ef | 2026-03-20 | fix(billing): handle cancel_at_period_end in webhook to prevent race condition
+ backend/services/billing.py | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
+
+b0f6d64 | 2026-03-20 | fix(migration-010): comprehensive scoring system fix
+ backend/db/migrations/010_fix_scoring_schema.sql | 113 ++++++++++++++---------
+ 1 file changed, 68 insertions(+), 45 deletions(-)
+
+b8a888a | 2026-03-20 | fix(migration): update 011_Enhanced_Coach_Memory_System.sql to match deployed schema
+ .../011_Enhanced_Coach_Memory_System.sql           | 103 ++++++++++++++-------
+ 1 file changed, 67 insertions(+), 36 deletions(-)
+
+313963e | 2026-03-20 | feat(coach): complete V2 upgrade with PMOS, psychological frameworks, and enhanced memory system
+ backend/ai/engines/coach.py                        | 451 +++++++++++++++++----
+ backend/ai/memory/context_builder.py               | 321 ++++++++++++++-
+ backend/ai/prompts/system_prompts.py               | 345 ++++++++++++----
+ backend/api/routers/coach.py                       | 256 ++++++++++--
+ .../011_Enhanced_Coach_Memory_System.sql           |  85 ++++
+ 5 files changed, 1265 insertions(+), 193 deletions(-)
+
+0720e03 | 2026-03-19 | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+ backend/services/scoring.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+965fed8 | 2026-03-19 | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+ backend/api/routers/progress.py                  |  50 ++++++++-
+ backend/api/routers/reflections.py               |  20 +++-
+ backend/api/routers/tasks.py                     |  52 +++++++--
+ backend/db/migrations/010_fix_scoring_schema.sql | 130 +++++++++++++++++++++++
+ backend/services/scheduler.py                    |   4 +-
+ backend/services/scoring.py                      | 100 +++++++++++++++++
+ 6 files changed, 339 insertions(+), 17 deletions(-)
+
+50ec053 | 2026-03-19 | domain update
+ frontend/src/app/(auth)/login/page.tsx  | 2 +-
+ frontend/src/app/(auth)/signup/page.tsx | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+f9140e2 | 2026-03-19 | fix: progress_metrics column depth_score not avg_depth_score, weekly review query 🎯
+ backend/ai/engines/reflection_analyzer.py | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+f637a72 | 2026-03-19 | fix: progress_metrics depth_score column name 🎯
+ backend/api/routers/reflections.py | 49 ++++++++++----------------------------
+ 1 file changed, 12 insertions(+), 37 deletions(-)
+
+9a31491 | 2026-03-19 | fix: retrieval.py vector embedding ::vector cast syntax for asyncpg 🎯
+ backend/ai/memory/retrieval.py | 36 +++++++++++++++++-------------------
+ 1 file changed, 17 insertions(+), 19 deletions(-)
+
+e8f073c | 2026-03-19 | fix: reflection analyzer ::jsonb cast syntax breaking asyncpg 🎯
+ backend/ai/engines/reflection_analyzer.py | 73 ++++++++-----------------------
+ 1 file changed, 19 insertions(+), 54 deletions(-)
+
+a7d515c | 2026-03-19 | fix: reflection submission JSON bug, missing db.commit, route ordering 🎯
+ backend/api/routers/reflections.py | 192 +++++++++++++++++--------------------
+ 1 file changed, 90 insertions(+), 102 deletions(-)
+
+69feb3a | 2026-03-19 | fix: morning sweep task_type filter removed, daily generation catches all users 🎯
+ backend/services/scheduler.py | 285 ++++++++++++------------------------------
+ 1 file changed, 78 insertions(+), 207 deletions(-)
+
+0b22497 | 2026-03-19 | feat: Google OAuth on login and signup, auth callback page 🎯
+ frontend/src/app/(auth)/login/page.tsx  | 145 +++++++++++++++-----------------
+ frontend/src/app/(auth)/signup/page.tsx | 128 ++++++++++++++--------------
+ frontend/src/app/auth/callback/page.tsx |  84 ++++++++++++++++++
+ frontend/src/lib/api.ts                 |   7 ++
+ 4 files changed, 225 insertions(+), 139 deletions(-)
+
+faa905b | 2026-03-18 | fix: tasks.py indentation, history route ordering, include pending tasks in history 🎯
+ backend/api/routers/tasks.py | 269 +++++++++++++------------------------------
+ 1 file changed, 82 insertions(+), 187 deletions(-)
+
+aa006e0 | 2026-03-18 | fix: od display bug, HTML entities in traits, past tasks SWR key 🎯
+ frontend/src/app/(app)/dashboard/page.tsx | 106 +++++++++++++++++-------------
+ 1 file changed, 61 insertions(+), 45 deletions(-)
+
+16aa7dd | 2026-03-18 | fix: bio in sidebar via UserSummary, task history route ordering, api.ts type 🎯
+ backend/api/routers/tasks.py      |  2 +-
+ backend/api/schemas/auth.py       | 10 +++-------
+ frontend/src/app/(app)/layout.tsx | 33 +++++++++++++++++++--------------
+ frontend/src/lib/api.ts           |  1 +
+ 4 files changed, 24 insertions(+), 22 deletions(-)
+
+a84c5d4 | 2026-03-18 | feat: task history panel on dashboard with status indicator
+ frontend/src/app/(app)/dashboard/page.tsx | 175 ++++++++++++++++++++++++++++--
+ 1 file changed, 166 insertions(+), 9 deletions(-)
+
+cb2e19f | 2026-03-18 | feat: avatar in sidebar top-right, Profile nav item replaces settings link + Porgess page redress
+ frontend/src/app/(app)/layout.tsx        |  97 +++++++++++----
+ frontend/src/app/(app)/progress/page.tsx | 200 +++++++++++++++++--------------
+ 2 files changed, 182 insertions(+), 115 deletions(-)
+
+40b40ae | 2026-03-18 | fix: streak updates immediately on completion, task guardrail type-agnostic, progress traits SWR key, timezone endpoint
+ backend/api/routers/profile.py           |  74 ++++++-----
+ backend/api/routers/tasks.py             | 219 +++++++++++++++++++------------
+ frontend/src/app/(app)/progress/page.tsx |  70 ++++++++--
+ 3 files changed, 237 insertions(+), 126 deletions(-)
+
+11b0847 | 2026-03-18 | interview update
+ backend/ai/engines/interview.py | 703 ++++++++++++++++++++--------------------
+ 1 file changed, 347 insertions(+), 356 deletions(-)
+
+dbf6eb0 | 2026-03-18 | system propmts update
+ backend/ai/prompts/system_prompts.py | 507 +++++++++++++++++------------------
+ 1 file changed, 241 insertions(+), 266 deletions(-)
+
+90dbd12 | 2026-03-17 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+36ae27a | 2026-03-17 | fix: unblock goal-setup for new users, fix error display, tighten interview engine
+ backend/api/routers/onboarding.py                 | 97 ++++++-----------------
+ frontend/src/app/(onboarding)/goal-setup/page.tsx | 26 +++---
+ 2 files changed, 40 insertions(+), 83 deletions(-)
+
+4c528aa | 2026-03-17 | Update page.tsx
+ frontend/src/app/(onboarding)/interview/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+318d2ca | 2026-03-17 | sentry ref rmvd
+ frontend/instrumentation.ts                      | 11 -----------
+ frontend/src/app/(onboarding)/interview/page.tsx |  2 +-
+ 2 files changed, 1 insertion(+), 12 deletions(-)
+
+f9879f1 | 2026-03-17 | fix: interview page
+ frontend/src/app/(onboarding)/interview/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+7c878f3 | 2026-03-17 | fix: interview page
+ frontend/src/app/(onboarding)/interview/page.tsx | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+5c87d0b | 2026-03-17 | update interview page
+ frontend/src/app/(onboarding)/interview/page.tsx | 397 ++++++++++-------------
+ 1 file changed, 163 insertions(+), 234 deletions(-)
+
+028692d | 2026-03-17 | syntax fix
+ backend/api/routers/auth.py                      |    6 +-
+ backend/core/config.py                           |    5 +
+ backend/main.py                                  |   17 +
+ backend/requirements.txt                         |    2 +
+ backend/services/analytics.py                    |   55 +
+ dead code/instrumentation-client.ts              |    9 +
+ dead code/instrumentation.ts                     |   11 +
+ dead code/posthog.ts                             |   29 +
+ dead code/sentry.client.config.ts                |    7 +
+ dead code/sentry.edge.config.ts                  |    6 +
+ dead code/sentry.server.config.ts                |    6 +
+ frontend/instrumentation-client.ts               |    9 +
+ frontend/instrumentation.ts                      |   11 +
+ frontend/next.config.js                          |   10 +-
+ frontend/package-lock.json                       | 2948 +++++++++++++++++++++-
+ frontend/package.json                            |    2 +
+ frontend/src/app/(onboarding)/interview/page.tsx |    2 +-
+ frontend/src/app/layout.tsx                      |    3 +
+ frontend/src/lib/api.ts                          |   15 +-
+ frontend/src/lib/posthog.ts                      |   29 +
+ package-lock.json                                | 1919 +++++++++++++-
+ package.json                                     |   12 +-
+ 22 files changed, 4960 insertions(+), 153 deletions(-)
+
+bd37a9f | 2026-03-17 | Update api.ts
+ frontend/src/lib/api.ts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+11de598 | 2026-03-17 | Update page.tsx
+ frontend/src/app/(onboarding)/interview/page.tsx | 519 ++++++++++-------------
+ 1 file changed, 216 insertions(+), 303 deletions(-)
+
+46a1610 | 2026-03-17 | Update interview.py
+ backend/ai/engines/interview.py | 686 +++++++++++++++++++++-------------------
+ 1 file changed, 360 insertions(+), 326 deletions(-)
+
+ba3a275 | 2026-03-17 | Update system_prompts.py
+ backend/ai/prompts/system_prompts.py | 538 +++++++++++++++++++++--------------
+ 1 file changed, 320 insertions(+), 218 deletions(-)
+
+5224394 | 2026-03-06 | chore: remove unused Three.js dependencies
+ package-lock.json | 305 +-----------------------------------------------------
+ package.json      |  10 +-
+ 2 files changed, 5 insertions(+), 310 deletions(-)
+
+37ac626 | 2026-03-06 | email.py edit
+ backend/services/email.py | 564 +++++++++++++++++++++++++---------------------
+ 1 file changed, 310 insertions(+), 254 deletions(-)
+
+909785a | 2026-03-06 | fix: complete unterminated f-string in email templates
+ backend/services/email.py | 70 +++++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 55 insertions(+), 15 deletions(-)
+
+42e0576 | 2026-03-06 | endpoint reverted
+ backend/api/routers/auth.py | 202 +++++++-------------------------------------
+ 1 file changed, 32 insertions(+), 170 deletions(-)
+
+7b0d7e1 | 2026-03-06 | fix: OnboardingStatus enum and add bulk welcome email endpoint
+ backend/api/routers/auth.py | 167 ++++++++++++++++++++++++++++++++------------
+ 1 file changed, 122 insertions(+), 45 deletions(-)
+
+5b83384 | 2026-03-06 | fix: remove signature image, update sign-off to Pelumi (Coach PO) ++ feat: add temporary admin endpoint to send welcome emails to existing users
+ backend/api/routers/auth.py                     |  63 +-
+ backend/services/email.py                       | 543 +++++++----------
+ dead code/router auth - before temp endpoint.py | 756 ++++++++++++++++++++++++
+ 3 files changed, 1036 insertions(+), 326 deletions(-)
+
+17b47dd | 2026-03-06 | fix: correct OnboardingStatus enum value in email verification
+ backend/api/routers/auth.py |   2 +-
+ backend/core/config.py      |   4 +-
+ dead code/old app page.tsx  | 831 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 834 insertions(+), 3 deletions(-)
+
+e5f7557 | 2026-03-06 | fix: correct resend-verification folder spelling
+ .../src/app/(auth)/{resend-verfication => resend-verification}/page.tsx   | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+5c2f05d | 2026-03-05 | staticlanding removed
+ frontend/package-lock.json | 517 ++++++++++++---------------------------------
+ frontend/package.json      |   3 -
+ frontend/src/app/page.tsx  |   4 +-
+ 3 files changed, 134 insertions(+), 390 deletions(-)
+
+5198567 | 2026-03-05 | original laging page restored
+ .../genesis => dead code}/ParticleCanvas.tsx       |   0
+ .../landing/genesis => dead code}/Singularity.tsx  |   0
+ {frontend/src => dead code}/types/r3f.d.ts         |   0
+ dead code/webGL page.tsx                           |  46 ++
+ frontend/src/app/page.tsx                          | 861 ++++++++++++++++++++-
+ 5 files changed, 869 insertions(+), 38 deletions(-)
+
+e5a775a | 2026-03-05 | WebGL detection added
+ .../src/components/landing/genesis/Singularity.tsx | 82 ++++++++++++++++------
+ 1 file changed, 62 insertions(+), 20 deletions(-)
+
+4ed2c81 | 2026-03-05 | fix: add proper JSX returns and client-side mount check to prevent hydration errors
+ .../components/landing/genesis/ParticleCanvas.tsx  |  4 +--
+ .../src/components/landing/genesis/Singularity.tsx | 38 +++++++++++++++++-----
+ 2 files changed, 32 insertions(+), 10 deletions(-)
+
+7139051 | 2026-03-05 | fix: use imperative Three.js API to bypass JSX type conflicts
+ .../components/landing/genesis/ParticleCanvas.tsx  | 131 +++++++++++----------
+ 1 file changed, 69 insertions(+), 62 deletions(-)
+
+8dd80a0 | 2026-03-05 | fix: remove unnecessary extend() calls, use built-in R3F v9 JSX types
+ .../components/landing/genesis/ParticleCanvas.tsx    | 20 ++------------------
+ 1 file changed, 2 insertions(+), 18 deletions(-)
+
+6147a43 | 2026-03-05 | fix: use extend() API and inline JSX types for R3F v9 compatibility
+ .../components/landing/genesis/ParticleCanvas.tsx    | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
+
+66247bc | 2026-03-05 | fix: update ParticleCanvas for R3F v9 API - use imperative geometry creation
+ frontend/package-lock.json                         | 449 +++++++++++----------
+ frontend/package.json                              |  39 +-
+ .../components/landing/genesis/ParticleCanvas.tsx  |  49 +--
+ 3 files changed, 281 insertions(+), 256 deletions(-)
+
+ec26330 | 2026-03-05 | fix: upgrade @react-three/fiber to v9 for React 19 compatibility
+ frontend/package-lock.json  | 35 +++++++++++------------------------
+ frontend/package.json       |  7 ++++---
+ frontend/src/types/r3f.d.ts |  9 +++++++++
+ frontend/tsconfig.json      |  7 ++++---
+ 4 files changed, 28 insertions(+), 30 deletions(-)
+
+b639cc4 | 2026-03-05 | fix: lazy load Three.js landing component to avoid JSX type conflicts
+ .../components/landing/genesis/ParticleCanvas.tsx  | 212 ++++++++++++++++++
+ .../src/components/landing/genesis/Singularity.tsx | 243 +++------------------
+ 2 files changed, 237 insertions(+), 218 deletions(-)
+
+766f2bc | 2026-03-05 | fix: complete Singularity component with proper JSX and Three.js types
+ frontend/src/components/landing/genesis/Singularity.tsx | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+d7eb3ad | 2026-03-05 | fix: remove deprecated swcMinify from next.config.js
+ frontend/next.config.js                            |   1 -
+ .../src/components/landing/genesis/Singularity.tsx | 295 +++++++++------------
+ 2 files changed, 125 insertions(+), 171 deletions(-)
+
+071bff7 | 2026-03-05 | fix: use pure Three.js without React Three Fiber JSX
+ .../src/components/landing/genesis/Singularity.tsx | 250 +++++++++++++--------
+ 1 file changed, 157 insertions(+), 93 deletions(-)
+
+f7a4fd4 | 2026-03-05 | fix: use programmatic geometry to avoid JSX type errors
+ {frontend/src => dead code}/types/three-fiber.d.ts |  0
+ .../src/components/landing/genesis/Singularity.tsx | 94 +++++++++-------------
+ frontend/tsconfig.json                             |  4 +-
+ 3 files changed, 42 insertions(+), 56 deletions(-)
+
+ff30307 | 2026-03-05 | fix: add React Three Fiber JSX types
+ frontend/src/types/three-fiber.d.ts | 9 +++++++++
+ frontend/tsconfig.json              | 4 ++--
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+
+031289e | 2026-03-05 | fix: add TypeScript types for Three.js JSX elements
+ frontend/package-lock.json                         | 399 ++++++++++++++++++---
+ .../src/components/landing/genesis/Singularity.tsx | 112 +++---
+ 2 files changed, 392 insertions(+), 119 deletions(-)
+
+b64cf24 | 2026-03-05 | feat: Phase 1 Genesis Loop landing page
+ dead code/(landing)/globals.css                    | 124 +++
+ dead code/(landing)/layout.tsx                     |  57 ++
+ dead code/(landing)/page.tsx                       |  49 ++
+ frontend/next.config.js                            |   4 +-
+ frontend/package.json                              |   9 +-
+ frontend/src/app/layout.tsx                        |  17 +-
+ frontend/src/app/page.tsx                          | 859 +--------------------
+ .../components/landing/fallback/StaticLanding.tsx  | 831 ++++++++++++++++++++
+ .../src/components/landing/genesis/Singularity.tsx | 256 ++++++
+ .../components/landing/shared/ContentOverlay.tsx   | 105 +++
+ .../components/landing/shared/ParticleCanvas.tsx   |   0
+ frontend/src/hooks/useReducedMotion.ts             |  21 +
+ frontend/src/hooks/useScrollProgress.ts            |  62 ++
+ frontend/src/hooks/useWebGLSupport.ts              |  39 +
+ frontend/src/lib/landing/constants.ts              |  55 ++
+ frontend/src/lib/landing/shaders/singularity.frag  |   0
+ frontend/src/lib/landing/shaders/singularity.vert  |   0
+ frontend/src/lib/utils.ts                          |  37 +
+ frontend/tailwind.config.js                        |  58 +-
+ package-lock.json                                  | 341 ++++++++
+ package.json                                       |  11 +
+ 21 files changed, 2095 insertions(+), 840 deletions(-)
+
+3df5a9f | 2026-03-05 | feat: add continuous guardrail with BackgroundTasks for async task generation
+ backend/api/routers/tasks.py | 127 +++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 117 insertions(+), 10 deletions(-)
+
+9d873a8 | 2026-03-05 | feat: add 4am morning sweep job to catch users missing today's task
+ backend/services/scheduler.py | 147 ++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 141 insertions(+), 6 deletions(-)
+
+ee8e200 | 2026-03-05 | fix: resolve syntax error in task_generator f-string with escaped quotes
+ backend/ai/engines/task_generator.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+49dd1f8 | 2026-03-05 | fix: wrap resend-verification in Suspense boundary for Next.js 15
+ .../src/app/(auth)/resend-verfication/page.tsx     | 28 +++++++++++++++++++++-
+ 1 file changed, 27 insertions(+), 1 deletion(-)
+
+9075772 | 2026-03-05 | feat: redesign task generation with backlog handling and interventions
+ backend/ai/engines/task_generator.py               | 337 ++++++++++++++++++---
+ backend/api/routers/tasks.py                       | 231 ++++++++++----
+ .../009_task_backlog_and_interventions.sql         |  26 ++
+ backend/services/scheduler.py                      |  94 +++---
+ 4 files changed, 549 insertions(+), 139 deletions(-)
+
+07c85a3 | 2026-03-05 | feat: add static files mount for signature image serving
+ backend/main.py           | 7 ++++++-
+ backend/services/email.py | 2 +-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+db487c7 | 2026-03-05 | verifcatio structure update
+ frontend/src/app/(auth)/login/page.tsx             |  28 +++++-
+ .../src/app/(auth)/resend-verfication/page.tsx     | 111 +++++++++++++++++++++
+ frontend/src/app/(auth)/signup/page.tsx            |  82 ++++++++++++++-
+ 3 files changed, 215 insertions(+), 6 deletions(-)
+
+2128161 | 2026-03-05 | signature added to /backend/static
+ backend/services/email.py    |   3 +--
+ backend/static/signature.png | Bin 0 -> 31268 bytes
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+
+7ef48be | 2026-03-04 | feat: add email verification reminder job, API client methods, and frontend_url config
+ backend/api/routers/auth.py                       | 169 ++++++++++--
+ backend/core/config.py                            |  15 +-
+ backend/db/migrations/006_password_reset.sql      |   0
+ backend/db/migrations/007_add_billing_columns.sql |   0
+ backend/db/migrations/008_email_verification.sql  |  12 +
+ backend/db/models/user.py                         |  10 +-
+ backend/services/email.py                         | 320 +++++++++++++++++++---
+ backend/services/scheduler.py                     | 174 +++++++++++-
+ frontend/src/app/(auth)/verify-email/page.tsx     | 110 ++++++++
+ frontend/src/lib/api.ts                           |  14 +
+ 10 files changed, 748 insertions(+), 76 deletions(-)
+
+3019bcb | 2026-03-04 | fix: password reset implementation - syntax fixes and endpoint additions
+ backend/api/routers/auth.py                      | 133 ++++++++++++++++++-
+ backend/api/schemas/auth.py                      |   2 +-
+ backend/core/config.py                           |  30 ++++-
+ backend/db/models/user.py                        |   4 +
+ backend/requirements.txt                         |   1 +
+ backend/services/email.py                        | 131 +++++++++++++++++++
+ frontend/src/app/(auth)/forgot-password/page.tsx | 128 ++++++++++++++++++
+ frontend/src/app/(auth)/login/page.tsx           |  14 +-
+ frontend/src/app/(auth)/reset-password/page.tsx  | 160 +++++++++++++++++++++++
+ frontend/src/lib/api.ts                          |  88 +++++++------
+ 10 files changed, 642 insertions(+), 49 deletions(-)
+
+3365033 | 2026-03-04 | fix(upgrade page):  wrapped useSearchParams() in a Suspense boundary
+ frontend/src/app/(app)/settings/Upgrade/page.tsx | 24 +++++++++++++++++++++---
+ 1 file changed, 21 insertions(+), 3 deletions(-)
+
+36279d9 | 2026-03-04 | fix: Changed api.billing.createCheckoutSession to api.billing.createCheckout for upgrade page
+ frontend/src/app/(app)/settings/Upgrade/page.tsx | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+da4a6f1 | 2026-03-04 | fix: restore profile features and fix billing API - merge old settings page with billing, fix billing_cycle attribute error, add upgrade page, fix sign out handler
+ backend/api/routers/billing.py                   |  15 +-
+ backend/db/models/user.py                        |   4 +-
+ frontend/src/app/(app)/settings/Upgrade/page.tsx | 133 +++++++++
+ frontend/src/app/(app)/settings/page.tsx         | 333 ++++++++++++++++++++---
+ 4 files changed, 444 insertions(+), 41 deletions(-)
+
+2c974a8 | 2026-03-04 | fix: handle undefined plan in getPlanDisplay call
+ frontend/src/app/(app)/settings/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+4f612a8 | 2026-03-04 | fix: add type assertion for subscription API response in settings page
+ frontend/src/app/(app)/settings/page.tsx | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+1b98ff1 | 2026-03-04 | feat: add logout method to auth store with backend api call and local cleanup
+ frontend/src/stores/auth.ts | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+74cd1e2 | 2026-03-04 | fix: add missing closing brace for ApiClient class in api.ts
+ frontend/src/lib/api.ts | 75 +++++++++++++++++++++++++------------------------
+ 1 file changed, 39 insertions(+), 36 deletions(-)
+
+62c7465 | 2026-03-04 | fix: move get_invoices method inside BillingService class and fix stripe error reference
+ backend/api/routers/billing.py           |  32 +-
+ backend/services/billing.py              |  25 ++
+ frontend/src/app/(app)/settings/page.tsx | 546 +++++++++++++++++--------------
+ frontend/src/lib/api.ts                  |   6 +-
+ 4 files changed, 360 insertions(+), 249 deletions(-)
+
+8be4762 | 2026-03-04 | fix: add billing API methods to ApiClient - adds createCheckout, verifySession, getSubscription, cancel/resume subscription, and getInvoices methods to fix TypeError in billing/success page
+ frontend/src/app/(app)/billing/success/page.tsx |  7 ++---
+ frontend/src/lib/api.ts                         | 37 +++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+), 4 deletions(-)
+
+0fb0aee | 2026-03-04 | fix: wrap useSearchParams in Suspense boundary for billing success page ++ resolve Next.js 15 metadata warnings by moving themeColor to viewport
+ frontend/src/app/(app)/billing/success/page.tsx | 187 ++++++++++++++----------
+ frontend/src/app/(app)/layout.tsx               |   2 +-
+ frontend/src/app/layout.tsx                     |   7 +-
+ 3 files changed, 114 insertions(+), 82 deletions(-)
+
+f70cb25 | 2026-03-04 | fix(settings): remove orphaned subscription code causing TS error
+ frontend/src/app/(app)/settings/page.tsx           | 46 +---------------------
+ .../src/app/(app)/settings/subscription/page.tsx   | 15 ++-----
+ 2 files changed, 4 insertions(+), 57 deletions(-)
+
+60abcd8 | 2026-03-04 | fix(settings): add TypeScript type for subscription state
+ frontend/src/app/(app)/settings/subscription/page.tsx | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+53fa5ec | 2026-03-04 | fix(coach): replace generic prompt with Coach PO personality
+ backend/ai/prompts/system_prompts.py       | 102 +++++++++++++++++++----------
+ {backend/ai/prompts => dead code}/coach.py |   0
+ 2 files changed, 66 insertions(+), 36 deletions(-)
+
+4bb1c8f | 2026-03-04 | fix(auth): rename shadowed status variable in quota check
+ backend/api/dependencies/auth.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+8ee76c6 | 2026-03-04 | feat: polished quota warnings + conversational Coach PO personality
+ backend/ai/prompts/coach.py             |  91 +++++++++++++++
+ backend/api/routers/coach.py            |  51 ++++++--
+ frontend/src/app/(app)/coach/page.tsx   | 199 +++++++++++++++++++++++++++++---
+ frontend/src/components/QuotaBanner.tsx | 140 ++++++++++++++++++++++
+ 4 files changed, 454 insertions(+), 27 deletions(-)
+
+02f26a9 | 2026-03-03 | feat: implement tier-based quota enforcement for AI coach
+ backend/api/dependencies/auth.py | 86 +++++++++++++++++++++++++++++-----------
+ backend/api/routers/coach.py     | 47 ++++++++++++++--------
+ 2 files changed, 93 insertions(+), 40 deletions(-)
+
+e041ede | 2026-03-03 | fix: import get_current_user error
+ backend/api/routers/billing.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+be0fa3a | 2026-03-03 | fix: billing endpoints re-orientaion
+ backend/api/routers/billing.py                     | 161 ++++++++------
+ backend/services/billing.py                        | 113 +++++++---
+ frontend/src/app/(app)/billing/cancel/page.tsx     |  73 +++++++
+ frontend/src/app/(app)/billing/success/page.tsx    | 137 ++++++++++++
+ frontend/src/app/(app)/settings/page.tsx           |  44 ++++
+ .../src/app/(app)/settings/subscription/page.tsx   | 236 +++++++++++++++++++++
+ frontend/src/app/page.tsx                          |  28 ++-
+ 7 files changed, 693 insertions(+), 99 deletions(-)
+
+e1a6983 | 2026-03-03 | config indentation error fixed
+ backend/core/config.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+ca617b0 | 2026-03-03 | stripe webhook added
+ backend/core/config.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+76149f6 | 2026-03-03 | billing router param fix
+ backend/api/routers/billing.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+a2ead45 | 2026-03-03 | feat(billing): Add Stripe subscription integration
+ backend/api/routers/billing.py | 142 ++++++++++++++++
+ backend/db/models/user.py      |  10 +-
+ backend/main.py                |   5 +-
+ backend/requirements.txt       |   1 +
+ backend/services/billing.py    | 363 +++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 518 insertions(+), 3 deletions(-)
+
+7952b1a | 2026-03-03 | feat(gdpr): Add data export and account deletion
+ backend/api/routers/settings.py | 183 +++++++++++++++++++
+ backend/main.py                 |   2 +
+ backend/services/data_export.py | 393 ++++++++++++++++++++++++++++++++++++++++
+ backend/services/scheduler.py   | 102 ++++++++++-
+ 4 files changed, 679 insertions(+), 1 deletion(-)
+
+33990c6 | 2026-03-03 | feat(safety): Add admin endpoints for safety flag review
+ backend/ai/utils/safety_filter.py | 379 +++++++++++++++++++-------------------
+ backend/api/dependencies/auth.py  |  29 +++
+ backend/api/routers/admin.py      | 239 ++++++++++++++++++++++++
+ backend/core/email.py             | 244 ++++++++++++++++++++++++
+ backend/main.py                   |   2 +
+ backend/requirements.txt          |   1 +
+ 6 files changed, 700 insertions(+), 194 deletions(-)
+
+2e1bd58 | 2026-03-03 | fix: missing run_weekly_review_generation added to scheduler
+ backend/services/scheduler.py | 85 +++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 82 insertions(+), 3 deletions(-)
+
+5f8608c | 2026-03-03 | fix: indentation error in _load_recent_messages
+ backend/ai/engines/coach.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+e3f2b61 | 2026-03-03 | fix: indentation error
+ backend/ai/engines/coach.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+34f0675 | 2026-03-03 | fix: coach page seed message added and loading
+ backend/ai/engines/coach.py | 33 ++++++++++++++++++++++++++-------
+ 1 file changed, 26 insertions(+), 7 deletions(-)
+
+aaeb1d8 | 2026-03-03 | timezone endpoints added for backend engine and frontend UI
+ backend/ai/engines/interview.py                  |  10 ++
+ backend/ai/prompts/system_prompts.py             |   5 +-
+ frontend/src/app/(onboarding)/interview/page.tsx | 112 ++++++++++++++++++++++-
+ 3 files changed, 123 insertions(+), 4 deletions(-)
+
+492f532 | 2026-03-02 | fix: scheduler updated to track user timezoen for task generation differently
+ backend/services/scheduler.py | 215 +++++++++---------------------------------
+ 1 file changed, 42 insertions(+), 173 deletions(-)
+
+066052c | 2026-03-02 | fix: ai retrieval :embedding error resolved
+ backend/ai/memory/retrieval.py | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+06f6fe4 | 2026-03-02 | dt.staus refined
+ backend/api/routers/progress.py |  4 ++--
+ backend/api/routers/tasks.py    | 34 +++++-----------------------------
+ 2 files changed, 7 insertions(+), 31 deletions(-)
+
+ac49398 | 2026-03-02 | fix: submit_goal router path updated
+ backend/api/routers/onboarding.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+3303380 | 2026-03-02 | api.ts reroute fixed
+ .vscode/settings.json             |  3 +++
+ backend/api/routers/onboarding.py | 16 ++++++++--------
+ backend/api/routers/profile.py    |  2 +-
+ frontend/src/lib/api.ts           |  2 +-
+ 4 files changed, 13 insertions(+), 10 deletions(-)
+
+dcdac96 | 2026-03-02 | profile router and auto generate bio updated
+ backend/api/routers/profile.py                   | 187 ++++++++++++-----------
+ backend/api/routers/tasks.py                     |  24 +++
+ frontend/src/app/(app)/settings/page.tsx         |  23 +--
+ frontend/src/app/(onboarding)/interview/page.tsx |   2 +-
+ 4 files changed, 125 insertions(+), 111 deletions(-)
+
+1ab302f | 2026-03-02 | avatar path fixed
+ backend/api/routers/profile.py | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+1dc0678 | 2026-03-02 | new profile elements
+ frontend/src/app/(app)/settings/page.tsx | 343 ++++++++++++++++++++++---------
+ frontend/src/lib/api.ts                  |  50 ++++-
+ 2 files changed, 293 insertions(+), 100 deletions(-)
+
+832586b | 2026-03-02 | updates for prfilr rebrand
+ backend/api/routers/profile.py | 356 +++++++++++++++++++++++++++++++++++++++++
+ backend/main.py                |   5 +-
+ 2 files changed, 359 insertions(+), 2 deletions(-)
+
+6248db2 | 2026-03-02 | todo updated, settings page upbranded
+ frontend/src/app/(app)/layout.tsx        |   2 +-
+ frontend/src/app/(app)/settings/page.tsx | 140 +++++++++++++++++++++++++------
+ todo.md                                  |  69 +++++++--------
+ 3 files changed, 148 insertions(+), 63 deletions(-)
+
+91b9e57 | 2026-03-01 | settings page created and layout fixed for auth-state trigger
+ frontend/src/app/(app)/layout.tsx        | 18 ++++++--
+ frontend/src/app/(app)/settings/page.tsx | 70 ++++++++++++++++++++++++++++++++
+ 2 files changed, 85 insertions(+), 3 deletions(-)
+
+cbc3e4b | 2026-03-01 | task generator update
+ .claude/worktrees/laughing-jackson   | 1 -
+ backend/ai/engines/task_generator.py | 3 ++-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+a11b93b | 2026-03-01 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+2adc653 | 2026-03-01 | task generator updated
+ .claude/worktrees/laughing-jackson   | 1 +
+ backend/ai/engines/task_generator.py | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+fc1530b | 2026-03-01 | Merge pull request #4 from pelumiolawole/claude/laughing-jackson
+b0dff87 | 2026-03-01 | fix: align backend goal routes with frontend paths
+ backend/api/routers/onboarding.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+bc0970c | 2026-03-01 | Merge pull request #3 from pelumiolawole/claude/laughing-jackson
+3a4885d | 2026-03-01 | fix: replace :key_shifts::text[] cast with CAST() to fix asyncpg syntax error
+ backend/ai/engines/goal_decomposer.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+da7f67f | 2026-03-01 | Merge pull request #2 from pelumiolawole/claude/laughing-jackson
+3991815 | 2026-03-01 | fix: resolve invalid date type error in get_user_retention_context
+ backend/db/migrations/003_behavioral_analytics.sql |  4 +-
+ .../db/migrations/005_fix_retention_context.sql    | 65 ++++++++++++++++++++++
+ todo.md                                            | 22 ++++----
+ 3 files changed, 78 insertions(+), 13 deletions(-)
+
+0be0988 | 2026-03-01 | update todo for next session
+ todo.md | 124 +++++++++++++++++++++++++++++++++++-----------------------------
+ 1 file changed, 67 insertions(+), 57 deletions(-)
+
+87e8482 | 2026-03-01 | fix: onboarding router updated
+ backend/api/routers/onboarding.py | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+fc6aa3e | 2026-02-28 | logo size updated
+ frontend/src/components/OneGoalLogo.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+5069e69 | 2026-02-28 | update logo extension
+ frontend/src/components/OneGoalLogo.tsx | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+8578c3a | 2026-02-28 | logo-png added
+ frontend/public/logo-icon.png           | Bin 0 -> 48102 bytes
+ frontend/src/app/page.tsx               |   6 +--
+ frontend/src/components/OneGoalLogo.tsx |  79 ++++----------------------------
+ 3 files changed, 12 insertions(+), 73 deletions(-)
+
+7423c87 | 2026-02-28 | logo SVG integrated
+ frontend/src/app/(app)/layout.tsx        | 12 +++-
+ frontend/src/app/(auth)/login/page.tsx   |  5 +-
+ frontend/src/app/(auth)/signup/page.tsx  |  5 +-
+ frontend/src/app/(onboarding)/layout.tsx | 13 +++--
+ frontend/src/app/page.tsx                |  5 +-
+ frontend/src/components/OneGoalLogo.tsx  | 94 ++++++++++++++++++++++++++++++++
+ 6 files changed, 119 insertions(+), 15 deletions(-)
+
+36a0ccf | 2026-02-28 | Replace landing page redirect with full marketing page
+ frontend/src/app/page.tsx | 2 ++
+ 1 file changed, 2 insertions(+)
+
+1c14441 | 2026-02-28 | fix: cleaned up text
+ frontend/src/app/(app)/coach/page.tsx             |  8 +-
+ frontend/src/app/(app)/dashboard/page.tsx         |  2 +-
+ frontend/src/app/(auth)/login/page.tsx            | 17 +++-
+ frontend/src/app/(auth)/signup/page.tsx           |  2 +-
+ frontend/src/app/(onboarding)/activate/page.tsx   | 16 ++--
+ frontend/src/app/(onboarding)/goal-setup/page.tsx | 13 ++--
+ frontend/src/app/(onboarding)/interview/page.tsx  |  9 +--
+ frontend/src/app/(onboarding)/preview/page.tsx    |  3 +-
+ frontend/src/app/page.tsx                         | 94 +++++++++++------------
+ 9 files changed, 84 insertions(+), 80 deletions(-)
+
+2f1a623 | 2026-02-28 | fix: add/update interactive landing page
+ frontend/src/app/page.tsx | 924 +++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 782 insertions(+), 142 deletions(-)
+
+fd1586a | 2026-02-28 | fix: resolved stray comment in app-layout.tsx
+ frontend/src/app/(app)/layout.tsx      | 20 +++++++-------------
+ frontend/src/app/(auth)/login/page.tsx | 21 ++++-----------------
+ 2 files changed, 11 insertions(+), 30 deletions(-)
+
+754f050 | 2026-02-28 | fix: homepage reroute resolved'
+ frontend/src/app/(auth)/login/page.tsx | 24 ++++++++++++------------
+ frontend/src/app/page.tsx              |  2 +-
+ 2 files changed, 13 insertions(+), 13 deletions(-)
+
+15e32fa | 2026-02-28 | fix: added console.log
+ frontend/src/app/(auth)/login/page.tsx | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+
+d096147 | 2026-02-28 | fix: paths resolved v2
+ frontend/src/app/(auth)/login/page.tsx            | 22 +++++++++++-----------
+ frontend/src/app/(onboarding)/goal-setup/page.tsx |  2 +-
+ frontend/src/app/(onboarding)/preview/page.tsx    |  2 +-
+ 3 files changed, 13 insertions(+), 13 deletions(-)
+
+7e827b9 | 2026-02-28 | fix: path reroute error corrected
+ frontend/src/app/(app)/layout.tsx                                | 9 ++++++++-
+ .../src/app/(onboarding)/{layout-ONBOARDING.tsx => layout.tsx}   | 0
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+a428ebd | 2026-02-28 | fix: further path resolve for login reroute
+ frontend/src/app/(onboarding)/preview/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+059a440 | 2026-02-28 | merge resolve
+1b0a58c | 2026-02-28 | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+1ecadc3 | 2026-02-28 | fix: further path correction for login reroute
+ frontend/src/app/(onboarding)/goal-setup/page.tsx | 4 ++--
+ frontend/src/app/(onboarding)/preview/page.tsx    | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+1d0f701 | 2026-02-28 | Merge pull request #1 from pelumiolawole/claude/nice-cohen
+0ec9d34 | 2026-02-28 | fix: correct activate redirect path in preview page
+ frontend/src/app/(onboarding)/preview/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+81f75ef | 2026-02-28 | fix: addding todo.md for claude code
+ todo.md | 57 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 57 insertions(+)
+
+5334fd0 | 2026-02-28 | fix: update paths for goal-setup rerouting
+ frontend/src/app/(auth)/login/page.tsx              | 16 +++++++++++-----
+ frontend/src/app/(onboarding)/layout-ONBOARDING.tsx |  2 +-
+ 2 files changed, 12 insertions(+), 6 deletions(-)
+
+c83e5ef | 2026-02-28 | fix: corrected goal-setup path for onboarding
+ frontend/src/app/(onboarding)/interview/page.tsx | 2 +-
+ frontend/src/app/(onboarding)/preview/page.tsx   | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+ce3b87a | 2026-02-27 | fix: cast JSONB differently to avoid the conflict
+ backend/ai/engines/interview.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+78fcb7a | 2026-02-27 | fix: replace initial schema migration with new version"
+ backend/db/migrations/001_initial_schema.sql | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+a14f079 | 2026-02-27 | fix: update router.push for auth;login and signup
+ backend/db/migrations/001_initial_schema.sql | 2 +-
+ frontend/src/app/(auth)/login/page.tsx       | 2 +-
+ frontend/src/app/(auth)/signup/page.tsx      | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+19967a9 | 2026-02-27 | fix: update values_callable for SQLAlchemy
+ backend/db/models/user.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+b520a50 | 2026-02-27 | fix: add hashed_password column to users table in migrations
+ backend/db/migrations/001_fixed.sql          | 709 +++++++++++++++++++++++++++
+ backend/db/migrations/001_initial_schema.sql |   1 +
+ 2 files changed, 710 insertions(+)
+
+2e5679c | 2026-02-26 | fix: upgrade Next.js to 15.2.8 and CORS fix
+ frontend/package.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+232752f | 2026-02-26 | fix: upgrade Next.js to 15.2.6 resolved version for patch CVE-2025-66478
+ frontend/package.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+b679aab | 2026-02-26 | fix: upgrade Next.js to 15.2.2 to patch CVE-2025-66478
+ frontend/package.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+a33562e | 2026-02-26 | fix: rename onboarding/goal to goal-setuo to avoid route conflict
+ backend/API_REFERENCE.md                           | 24 +++++++++++-----------
+ backend/api/routers/onboarding.py                  |  8 ++++----
+ .../app/(onboarding)/{goal => goal-setup}/page.tsx |  0
+ frontend/src/app/(onboarding)/interview/page.tsx   |  2 +-
+ frontend/src/app/(onboarding)/preview/page.tsx     |  4 ++--
+ frontend/src/lib/api.ts                            |  8 ++++----
+ 6 files changed, 23 insertions(+), 23 deletions(-)
+
+92b9909 | 2026-02-26 | fix: match eslint-config-next version to 15.1.0
+ frontend/package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+8e1ede1 | 2026-02-26 | fix: sorted JSON syntax error
+ frontend/package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+4c88c72 | 2026-02-26 | fix: add .npmrc to fix peer dependency conflict
+ frontend/.npmrc | 1 +
+ 1 file changed, 1 insertion(+)
+
+f64ba54 | 2026-02-26 | fix: upgrade next version for react compatibility
+ frontend/package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+0385961 | 2026-02-26 | fix: make Redis and scheduler startup non-fatal
+ backend/main.py | 30 +++++++++++++++++++++---------
+ 1 file changed, 21 insertions(+), 9 deletions(-)
+
+e60b9b6 | 2026-02-26 | fix: make init_db non-fatal so app starts if DB unreachable at boot
+ backend/core/database.py | 69 +++++++++++++++++++++++++-----------------------
+ 1 file changed, 36 insertions(+), 33 deletions(-)
+
+f3d4ca2 | 2026-02-26 | fix: add greenlet for SQLAlchemy async on Python 3,13
+ backend/requirements.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+90339fc | 2026-02-26 | fix: suapbase version updated
+ backend/requirements.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+4ce446e | 2026-02-22 | fix: use supabase 2.9.1, add email-validator, add project for end of day
+ ONE_GOAL_PROJECT_MAP.md  | 164 +++++++++++++++++++++++++++++++++++++++++++++++
+ backend/requirements.txt |   2 +-
+ 2 files changed, 165 insertions(+), 1 deletion(-)
+
+f05a245 | 2026-02-22 | fix: add email-validator dependency
+ backend/requirements.txt | 64 ++++++++++++++++++++++++------------------------
+ 1 file changed, 32 insertions(+), 32 deletions(-)
+
+be5d4bf | 2026-02-22 | fix: sync all backend files with correct versions
+ backend/api/schemas/auth.py | 320 ++++++++++++++------------------------------
+ backend/api/schemas/core.py | 197 +++++++++++++++++++++++++++
+ 2 files changed, 298 insertions(+), 219 deletions(-)
+
+4fe3bda | 2026-02-22 | replace router files with correct versions
+ backend/api/routers/auth.py  | 581 ++++++++++++++++++++++++++++++++-----------
+ backend/api/routers/coach.py | 564 ++++++++++++++++-------------------------
+ 2 files changed, 644 insertions(+), 501 deletions(-)
+
+de445a9 | 2026-02-22 | fix: add missing db/models folder
+ backend/db/models/__init__.py         |  24 ++++++
+ backend/db/models/goal.py             | 144 ++++++++++++++++++++++++++++++++++
+ backend/db/models/identity_profile.py |  81 +++++++++++++++++++
+ backend/db/models/task.py             | 131 +++++++++++++++++++++++++++++++
+ backend/db/models/user.py             | 114 +++++++++++++++++++++++++++
+ 5 files changed, 494 insertions(+)
+
+0ad10da | 2026-02-22 | fix: httpx version conflict
+ backend/requirements.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+c279021 | 2026-02-22 | fix: supabase version requirement
+ backend/requirements.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+2d036a1 | 2026-02-22 | fix: resolve httpx supabase version conflict
+ backend/requirements.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+9245ce3 | 2026-02-22 | fix: downgrade httpx for supabase compatibility
+ backend/requirements.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+895f8dc | 2026-02-22 | add Procfile for Railway
+ backend/procfile           |    1 +
+ frontend/next-env.d.ts     |    5 +
+ frontend/package-lock.json | 6803 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 6809 insertions(+)
+
+ebe636f | 2026-02-22 | feat: complete frontend
+ frontend/.env.example                              |   3 +
+ frontend/next.config.js                            |  14 +
+ frontend/package.json                              |  38 +++
+ frontend/postcss.config.js                         |   6 +
+ frontend/src/app/(app)/coach/page.tsx              | 260 +++++++++++++++
+ frontend/src/app/(app)/dashboard/page.tsx          | 279 ++++++++++++++++
+ frontend/src/app/(app)/goal/page.tsx               | 208 ++++++++++++
+ frontend/src/app/(app)/layout.tsx                  | 154 +++++++++
+ frontend/src/app/(app)/progress/page.tsx           | 244 ++++++++++++++
+ frontend/src/app/(auth)/login/page.tsx             | 180 ++++++++++
+ frontend/src/app/(auth)/signup/page.tsx            | 168 ++++++++++
+ frontend/src/app/(onboarding)/activate/page.tsx    | 130 ++++++++
+ frontend/src/app/(onboarding)/goal/page.tsx        | 209 ++++++++++++
+ frontend/src/app/(onboarding)/interview/page.tsx   | 236 +++++++++++++
+ .../src/app/(onboarding)/layout-ONBOARDING.tsx     |  87 +++++
+ frontend/src/app/(onboarding)/preview/page.tsx     | 171 ++++++++++
+ frontend/src/app/globals.css                       | 245 ++++++++++++++
+ frontend/src/app/layout.tsx                        |  44 +++
+ frontend/src/app/page.tsx                          | 180 ++++++++++
+ frontend/src/components/dashboard/ScoreRing.tsx    | 115 +++++++
+ frontend/src/components/dashboard/WeekGrid.tsx     |  61 ++++
+ .../src/components/reflection/ReflectionModal.tsx  | 201 ++++++++++++
+ frontend/src/components/task/TaskCard.tsx          | 208 ++++++++++++
+ frontend/src/lib/api.ts                            | 364 +++++++++++++++++++++
+ frontend/src/stores/auth.ts                        |  52 +++
+ frontend/tailwind.config.js                        | 109 ++++++
+ frontend/tsconfig.json                             |  23 ++
+ 27 files changed, 3989 insertions(+)
+
+a3f149d | 2026-02-22 | Onboarding Flow + Goal System API
+ backend/API_REFERENCE.md           | 296 ++++++++++++++++++++
+ backend/api/routers/goals.py       | 527 +++++++++++++++++++++++++++++++++++
+ backend/api/routers/onboarding.py  | 552 +++++++++++++++++++++++++++++++++++++
+ backend/api/routers/progress.py    | 447 ++++++++++++++++++++++++++++++
+ backend/api/routers/reflections.py | 436 +++++++++++++++++++++++++++++
+ backend/api/routers/tasks.py       | 455 ++++++++++++++++++++++++++++++
+ backend/main.py                    |  30 +-
+ 7 files changed, 2726 insertions(+), 17 deletions(-)
+
+de34556 | 2026-02-22 | README File added
+ README.md | 201 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 201 insertions(+)
+
+7b647aa | 2026-02-22 | feat: restructure project with proper folder layout
+ .gitignore                                         |  10 +
+ README.md                                          | 201 --------
+ README_PO.md                                       | 186 --------
+ .env.example => backend/.env.example               |   0
+ backend/ai/base.py                                 | 322 +++++++++++++
+ backend/ai/engines/coach.py                        | 375 +++++++++++++++
+ backend/ai/engines/goal_decomposer.py              | 261 +++++++++++
+ backend/ai/engines/interview.py                    | 377 +++++++++++++++
+ backend/ai/engines/profile_updater.py              | 332 ++++++++++++++
+ backend/ai/engines/reflection_analyzer.py          | 492 ++++++++++++++++++++
+ backend/ai/engines/task_generator.py               | 257 +++++++++++
+ backend/ai/memory/context_builder.py               | 205 +++++++++
+ backend/ai/memory/retrieval.py                     | 251 ++++++++++
+ backend/ai/prompts/system_prompts.py               | 390 ++++++++++++++++
+ backend/ai/utils/cost_tracker.py                   |  95 ++++
+ backend/ai/utils/safety_filter.py                  | 237 ++++++++++
+ auth.py => backend/api/dependencies/auth.py        |   0
+ backend/api/routers/auth.py                        | 225 +++++++++
+ backend/api/routers/coach.py                       | 375 +++++++++++++++
+ backend/api/schemas/auth.py                        | 225 +++++++++
+ cache.py => backend/core/cache.py                  |   0
+ config.py => backend/core/config.py                |   0
+ database.py => backend/core/database.py            |   0
+ middleware.py => backend/core/middleware.py        |   0
+ security.py => backend/core/security.py            |   0
+ .../db/migrations/001_initial_schema.sql           |   0
+ .../db/migrations/002_scoring_system.sql           |   0
+ .../db/migrations/003_behavioral_analytics.sql     |   0
+ .../db/migrations/004_privacy_and_security.sql     |   0
+ main.py => backend/main.py                         |   0
+ requirements.txt => backend/requirements.txt       |   0
+ scheduler.py => backend/services/scheduler.py      |   0
+ .../docker/docker-compose.yml                      |   0
+ setup.sh => infrastructure/scripts/setup.sh        |   0
+ .../outputs/one-goal/backend/api/routers/auth.py   | 510 ---------------------
+ .../outputs/one-goal/backend/api/schemas/auth.py   | 107 -----
+ 36 files changed, 4429 insertions(+), 1004 deletions(-)
+
+a874a4e | 2026-02-21 | add all files
+ .env.example                                       |  58 ++
+ 001_initial_schema.sql                             | 708 +++++++++++++++++++++
+ 002_scoring_system.sql                             | 281 ++++++++
+ 003_behavioral_analytics.sql                       | 337 ++++++++++
+ 004_privacy_and_security.sql                       | 337 ++++++++++
+ README.md                                          | 315 ++++-----
+ README_PO.md                                       | 186 ++++++
+ auth.py                                            | 225 +++++++
+ cache.py                                           | 174 +++++
+ config.py                                          | 144 +++++
+ database.py                                        | 145 +++++
+ docker-compose.yml                                 |  93 +++
+ main.py                                            | 218 +++++++
+ middleware.py                                      | 239 +++++++
+ .../outputs/one-goal/backend/api/routers/auth.py   | 510 +++++++++++++++
+ .../outputs/one-goal/backend/api/schemas/auth.py   | 107 ++++
+ requirements.txt                                   |  48 ++
+ scheduler.py                                       | 312 +++++++++
+ security.py                                        | 239 +++++++
+ setup.sh                                           |  81 +++
+ 20 files changed, 4607 insertions(+), 150 deletions(-)
+
+a958aa5 | 2026-02-21 | Update README.md
+ README.md | 187 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 186 insertions(+), 1 deletion(-)
+
+923482b | 2026-02-21 | Initial commit
+ README.md | 1 +
+ 1 file changed, 1 insertion(+)
