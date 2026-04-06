@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import { trackEvent } from '@/lib/posthog'
 import { X, Zap, AlertTriangle, AlertCircle } from 'lucide-react'
 
 interface Message {
@@ -103,6 +104,7 @@ export default function CoachPage() {
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const msgId = useRef(0)
+  const sessionTracked = useRef(false)
 
   // Load active session
   useEffect(() => {
@@ -129,6 +131,12 @@ export default function CoachPage() {
     const text = input.trim()
     setInput('')
     setStreaming(true)
+
+    // Track first message of session only
+    if (!sessionTracked.current) {
+      trackEvent('coach_session_started')
+      sessionTracked.current = true
+    }
 
     // Add user message
     const userId = String(msgId.current++)

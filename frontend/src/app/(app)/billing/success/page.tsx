@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
+import { trackEvent } from '@/lib/posthog'
 
 function SuccessLoading() {
   return (
@@ -41,6 +42,7 @@ function SuccessContent() {
       try {
         const response = await api.billing.verifySession({ session_id: sessionId })
         setSubscription(response)
+        trackEvent('subscription_activated', { tier: response.plan })
       } catch (err) {
         setError('Could not verify subscription')
       } finally {

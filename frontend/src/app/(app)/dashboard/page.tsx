@@ -10,6 +10,7 @@ import TaskCard from '@/components/task/TaskCard'
 import ScoreRing from '@/components/dashboard/ScoreRing'
 import WeekGrid from '@/components/dashboard/WeekGrid'
 import InstallBanner from '@/components/InstallBanner'
+import { trackEvent } from '@/lib/posthog'
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   async function handleTaskComplete() {
     if (!task) return
     await api.tasks.complete(task.id)
+    trackEvent('task_completed', { task_id: task.id })
     await mutate()
   }
 

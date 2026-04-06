@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2, Sparkles, Shield, Check, ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
+import { trackEvent } from '@/lib/posthog'
 
 // Separate component that uses useSearchParams
 function UpgradeContent() {
@@ -37,6 +38,10 @@ function UpgradeContent() {
   }
 
   const selectedPlan = plan && plans[plan] ? plans[plan] : plans.forge
+
+  useEffect(() => {
+    trackEvent('upgrade_modal_viewed', { plan: plan || 'forge' })
+  }, [plan])
 
   const handleCheckout = async (billingCycle: 'monthly' | 'annual') => {
     setLoading(true)

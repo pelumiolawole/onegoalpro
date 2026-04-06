@@ -13,6 +13,7 @@ export default function ActivatePage() {
   const [done, setDone]             = useState(false)
 
   async function handleActivate() {
+    if (activating) return
     setActivating(true)
     try {
       await api.onboarding.activate()

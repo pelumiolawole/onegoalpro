@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import { trackEvent } from '@/lib/posthog'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -77,6 +78,7 @@ export default function InterviewPage() {
       setMessages([...newMessages, { role: 'assistant', content: res.message }])
       setPhase(res.phase)
       if (res.is_complete) {
+        trackEvent('interview_completed')
         await refreshUser()
         setTimeout(() => router.push('/goal-setup'), 1200)
       }
