@@ -26,10 +26,12 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (data: TokenResponse) => {
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
-        identifyUser(data.user.id, data.user.email, {
-          tier: data.user.subscription_plan,
-        })
+        identifyUser(data.user.id, data.user.email)
         set({ user: data.user, isAuthenticated: true })
+        // Fetch tier separately — not on UserSummary, lives in billing
+        api.billing.getSubscription().then(sub => {
+          identifyUser(data.user.id, data.user.email, { tier: sub.plan })
+        }).catch(() => {})
       },
       clearAuth: () => {
         localStorage.removeItem('access_token')
