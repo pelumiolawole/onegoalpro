@@ -374,13 +374,12 @@ async def send_message(
                 }
                 yield f"event: system\nid: quota-warning\ndata: {json.dumps(warning_event)}\n\n"
             
-            # V2: Stream with is_new_session flag for continuity handling
+            # V2: Stream without passing db — engine manages its own connections
             async for chunk in coach_engine.stream_response(
                 user_id=current_user.id,
                 session_id=session_id,
                 user_message=payload.content,
-                db=db,
-                is_new_session=is_new_session,  # V2: triggers opening context capture
+                is_new_session=is_new_session,
             ):
                 # SSE format: each event is "data: <content>\n\n"
                 escaped = chunk.replace("\n", "\\n")

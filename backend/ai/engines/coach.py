@@ -64,9 +64,10 @@ class CoachEngine(BaseAIEngine):
         user_id: UUID | str,
         session_id: UUID | str,
         user_message: str,
-        db: AsyncSession,
         is_new_session: bool = False,
     ) -> AsyncGenerator[str, None]:
+        from core.database import get_db_context
+
         uid = str(user_id)
         sid = str(session_id)
 
@@ -74,23 +75,24 @@ class CoachEngine(BaseAIEngine):
         safety_level = safety_filter.classify(user_message)
         if safety_level in (SafetyLevel.CRISIS, SafetyLevel.DISTRESS):
             safe_response = safety_filter.get_safe_response(safety_level)
-            await safety_filter.log_safety_flag(
-                user_id=uid,
-                source_type="coach_message",
-                source_id=str(uuid4()),
-                level=safety_level,
-                excerpt=user_message[:200],
-                ai_response=safe_response,
-                db=db,
-            )
-            if safety_level == SafetyLevel.CRISIS:
-                await self._log_moment(
-                    uid, sid, "crisis_signal", user_message[:500],
-                    "Crisis language detected", db
+            async with get_db_context() as db:
+                await safety_filter.log_safety_flag(
+                    user_id=uid,
+                    source_type="coach_message",
+                    source_id=str(uuid4()),
+                    level=safety_level,
+                    excerpt=user_message[:200],
+                    ai_response=safe_response,
+                    db=db,
                 )
+                if safety_level == SafetyLevel.CRISIS:
+                    await self._log_moment(
+                        uid, sid, "crisis_signal", user_message[:500],
+                        "Crisis language detected", db
+                    )
+                await self._save_message(uid, sid, "user", user_message, db)
+                await self._save_message(uid, sid, "assistant", safe_response, db)
             yield safe_response
-            await self._save_message(uid, sid, "user", user_message, db)
-            await self._save_message(uid, sid, "assistant", safe_response, db)
             return
 
         # ── Prompt injection check ─────────────────────────────────────
@@ -102,40 +104,37 @@ class CoachEngine(BaseAIEngine):
         # ── Out of scope check ───────────────────────────────────────
         if safety_filter.detect_out_of_scope(user_message):
             response = safety_filter.get_out_of_scope_response()
+            async with get_db_context() as db:
+                await self._save_message(uid, sid, "user", user_message, db)
+                await self._save_message(uid, sid, "assistant", response, db)
             yield response
-            await self._save_message(uid, sid, "user", user_message, db)
-            await self._save_message(uid, sid, "assistant", response, db)
             return
 
         # ── Clean input ──────────────────────────────────────────────
         clean_message = sanitize_input(user_message)
 
-        # ── Load context (with enhanced V2 memory) ───────────────────
-        context = await context_builder.get_context(uid, db)
+        # ── Load context and semantic memories ───────────────────────
+        async with get_db_context() as db:
+            context = await context_builder.get_context(uid, db)
+            relevant_reflections = await memory_retrieval.retrieve_relevant_reflections(
+                user_id=uid,
+                query=clean_message,
+                limit=2,
+                db=db,
+            )
+            relevant_exchanges = await memory_retrieval.retrieve_relevant_coach_exchanges(
+                user_id=uid,
+                query=clean_message,
+                limit=2,
+                db=db,
+            )
+            daily_context = await self._get_daily_context(uid, db)
+
         context_str = context_builder.format_for_prompt(context)
-
-        # ── Get coaching mode from context ─────────────────────────
         coaching_mode = context.get("current_coach_mode", "guide")
-
-        # ── Retrieve semantic memories ─────────────────────────────────
-        relevant_reflections = await memory_retrieval.retrieve_relevant_reflections(
-            user_id=uid,
-            query=clean_message,
-            limit=2,
-            db=db,
-        )
-        relevant_exchanges = await memory_retrieval.retrieve_relevant_coach_exchanges(
-            user_id=uid,
-            query=clean_message,
-            limit=2,
-            db=db,
-        )
         memories_str = memory_retrieval.format_memories_for_prompt(
             relevant_reflections, relevant_exchanges
         )
-
-        # ── Build today's context ────────────────────────────────────
-        daily_context = await self._get_daily_context(uid, db)
 
         # ── Build session-aware context strings (V2) ───────────────────
         session_continuity = context.get("session_continuity", {})
@@ -160,13 +159,20 @@ class CoachEngine(BaseAIEngine):
             daily_context=daily_context,
         )
 
-        # ── Load recent conversation history ─────────────────────────
-        recent_messages = await self._load_recent_messages(sid, db, limit=10)
+        # ── Load recent messages, save user message, handle new session ──
+        async with get_db_context() as db:
+            recent_messages = await self._load_recent_messages(sid, db, limit=10)
 
-        # ── Detect and log significant moments (V2) ──────────────────
-        moment_type = self._detect_moment_type(clean_message, full_response="", context=context)
-        if moment_type:
-            await self._log_moment(uid, sid, moment_type, clean_message, None, db)
+            moment_type = self._detect_moment_type(clean_message, full_response="", context=context)
+            if moment_type:
+                await self._log_moment(uid, sid, moment_type, clean_message, None, db)
+
+            user_msg_id = await self._save_message(uid, sid, "user", clean_message, db)
+
+            if is_new_session and session_continuity:
+                await self._update_session_opening(uid, sid, session_continuity, db)
+
+            await db.commit()
 
         # ── Assemble full message list ──────────────────────────────
         prompt_messages = [
@@ -174,13 +180,6 @@ class CoachEngine(BaseAIEngine):
             *recent_messages,
             {"role": "user", "content": clean_message},
         ]
-
-        # ── Save user message first ──────────────────────────────────
-        user_msg_id = await self._save_message(uid, sid, "user", clean_message, db)
-
-        # ── Update session opening if new session (V2) ───────────────
-        if is_new_session and session_continuity:
-            await self._update_session_opening(uid, sid, session_continuity, db)
 
         # ── Stream AI response ───────────────────────────────────────
         full_response = ""
@@ -193,33 +192,31 @@ class CoachEngine(BaseAIEngine):
             full_response += chunk
             yield chunk
 
-        # ── Save AI response ─────────────────────────────────────────
-        ai_msg_id = await self._save_message(uid, sid, "assistant", full_response, db)
-        try:
-            await db.commit()
-        except Exception as e:
-            logger.warning("post_response_commit_failed", error=str(e))
-            await _safe_rollback(db)
+        # ── Save AI response and post-stream updates ─────────────────
+        async with get_db_context() as db:
+            ai_msg_id = await self._save_message(uid, sid, "assistant", full_response, db)
+            try:
+                await db.commit()
+            except Exception as e:
+                logger.warning("post_response_commit_failed", error=str(e))
+                await _safe_rollback(db)
 
-        # ── Detect response moments and update session (V2) ────────────
-        response_moment = self._detect_response_moment(full_response)
-        if response_moment:
-            await self._log_moment(uid, sid, response_moment, full_response[:300], None, db)
+            response_moment = self._detect_response_moment(full_response)
+            if response_moment:
+                await self._log_moment(uid, sid, response_moment, full_response[:300], None, db)
 
-        # ── Update session closing insight periodically (V2) ─────────
-        await self._maybe_update_session_closing(uid, sid, full_response, db)
+            await self._maybe_update_session_closing(uid, sid, full_response, db)
 
-        # ── Store embeddings (async, non-blocking) ───────────────────
-        embedding_ok = True
-        try:
-            await memory_retrieval.store_message_embedding(user_msg_id, clean_message, db)
-        except Exception as e:
-            logger.warning("embedding_storage_failed", error=str(e))
-            await _safe_rollback(db)
-            embedding_ok = False
+            embedding_ok = True
+            try:
+                await memory_retrieval.store_message_embedding(user_msg_id, clean_message, db)
+            except Exception as e:
+                logger.warning("embedding_storage_failed", error=str(e))
+                await _safe_rollback(db)
+                embedding_ok = False
 
-        if embedding_ok:
-            await self._update_session_after_message(uid, sid, clean_message, db)
+            if embedding_ok:
+                await self._update_session_after_message(uid, sid, clean_message, db)
 
         logger.info(
             "coach_message_processed",

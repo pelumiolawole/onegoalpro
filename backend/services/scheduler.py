@@ -666,7 +666,7 @@ async def run_behavioral_snapshots() -> None:
 
             for user_id in user_ids:
                 try:
-                    await db.execute(text("SELECT build_behavioral_snapshot(:user_id)"), {"user_id": user_id})
+                    await db.execute(text("SELECT build_behavioral_snapshot(CAST(:user_id AS uuid))"), {"user_id": user_id})
                 except Exception as e:
                     logger.error("behavioral_snapshot_failed", user_id=user_id, error=str(e))
 
