@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
 import './globals.css'
-import { initPostHog } from "@/lib/posthog"
+import PostHogInit from '@/components/PostHogInit'
 import CookieBanner from '@/components/CookieBanner'  
 
 const playfair = Playfair_Display({
@@ -60,14 +60,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  initPostHog();
-  
   return (
     <html
       lang="en"
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <body className="antialiased overflow-x-hidden">
+        <PostHogInit />
         {children}
         <CookieBanner />
       </body>
