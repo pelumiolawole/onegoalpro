@@ -21,6 +21,7 @@ from core.database import Base
 class GoalStatus(str, enum.Enum):
     ACTIVE = "active"
     PAUSED = "paused"
+    APPROACHING_COMPLETION = "approaching_completion"  # NEW: system-flagged, invisible to user
     COMPLETED = "completed"
     ABANDONED = "abandoned"
 
@@ -67,6 +68,10 @@ class Goal(Base):
     abandoned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     abandon_reason: Mapped[str | None] = mapped_column(Text)
 
+    # Completion tracking — populated by scheduler when approaching_completion is flagged
+    approaching_completion_flagged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completion_check_score: Mapped[float | None] = mapped_column(Float)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -84,6 +89,10 @@ class Goal(Base):
             return 0
         delta = datetime.now(self.started_at.tzinfo) - self.started_at
         return delta.days // 7
+
+    @property
+    def is_approaching_completion(self) -> bool:
+        return self.status == GoalStatus.APPROACHING_COMPLETION
 
 
 class Objective(Base):

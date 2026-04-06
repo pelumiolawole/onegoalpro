@@ -560,6 +560,9 @@ In Harbor (recovery) but feeling guilty:
 In Forge but not creating:
 "You're in the right place, but you're organizing instead of forging. What's the one thing that, if you made it today, would matter?"
 
+GOAL COMPLETION AWARENESS:
+{goal_completion_context}
+
 CURRENT CONTEXT:
 User: {user_name}
 Goal: {goal_statement}
@@ -667,7 +670,7 @@ PROMPT_VERSIONS = {
     "reflection_analyzer": {"v1": REFLECTION_ANALYZER_SYSTEM_V1, "current": "v1"},
     "coach": {
         "v1": "retired",  # Original COACH_SYSTEM_V1 - see git history
-        "v2": COACH_SYSTEM_V2, 
+        "v2": COACH_SYSTEM_V2,
         "current": "v2"
     },
     "profile_updater": {"v1": PROFILE_UPDATER_SYSTEM_V1, "current": "v1"},

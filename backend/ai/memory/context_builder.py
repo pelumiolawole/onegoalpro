@@ -23,13 +23,16 @@ Context structure:
         patterns: [{ type, name, confidence }],
         retention: { streak, days_since_last_task, needs_intervention },
         recent_coach_themes: [str],
-        
-        # NEW: Enhanced Coach Memory (V2)
+
+        # Enhanced Coach Memory (V2)
         last_session: { summary, closing_insight, days_since },
         active_patterns: [{ name, type, description, first_seen }],
         recent_moments: [{ type, content, when, trait_referenced }],
         current_coach_mode: str,  # guide|support|challenge|celebrate|intervention|crisis
         session_continuity: { opening_hook, pending_follow_up, last_commitment },
+
+        # Goal completion (invisible to user, surfaces in coach prompt)
+        goal_completion_context: str,  # "" when normal, instruction text when approaching completion
     }
 """
 
@@ -80,12 +83,16 @@ class ContextBuilder:
 
         # Enrich with recent coach themes (not in the SQL function)
         context = await self._enrich_with_coach_themes(context, uid, db)
-        
-        # NEW: Enrich with enhanced coach memory (V2)
+
+        # Enhanced coach memory (V2)
         context = await self._enrich_with_session_memory(context, uid, db)
         context = await self._enrich_with_active_patterns(context, uid, db)
         context = await self._enrich_with_recent_moments(context, uid, db)
         context = await self._determine_coach_mode(context, uid, db)
+
+        # Goal completion context — populates {goal_completion_context} in coach prompt.
+        # Empty string for normal users. Instruction text when approaching_completion is flagged.
+        context = await self._enrich_with_goal_completion_context(context, uid, db)
 
         # Cache for 5 minutes
         await cache_user_context(uid, context)
@@ -123,7 +130,7 @@ class ContextBuilder:
         return context
 
     # =========================================================================
-    # NEW: Enhanced Coach Memory Methods (V2)
+    # Enhanced Coach Memory Methods (V2)
     # =========================================================================
 
     async def _enrich_with_session_memory(
@@ -135,7 +142,7 @@ class ContextBuilder:
         """
         result = await db.execute(
             text("""
-                SELECT 
+                SELECT
                     id,
                     session_start,
                     session_end,
@@ -155,32 +162,30 @@ class ContextBuilder:
             {"user_id": user_id},
         )
         row = result.fetchone()
-        
+
         if row:
             context["last_session"] = {
                 "session_id": str(row[0]),
                 "session_start": str(row[1]) if row[1] else None,
                 "session_end": str(row[2]) if row[2] else None,
-                "opening_context": row[3],  # What was top of mind when they arrived
-                "closing_insight": row[4],  # Key takeaway when they left
-                "session_goal": row[5],     # What they wanted to work on
-                "emotional_arc": row[6],    # How their state shifted
-                "coach_mode_used": row[7],  # Which mode dominated
-                "next_session_hook": row[8], # What to follow up on
+                "opening_context": row[3],
+                "closing_insight": row[4],
+                "session_goal": row[5],
+                "emotional_arc": row[6],
+                "coach_mode_used": row[7],
+                "next_session_hook": row[8],
                 "days_since": round(row[9], 1) if row[9] else None,
             }
-            
-            # Build session continuity object for easy prompt insertion
             context["session_continuity"] = {
-                "opening_hook": row[3] or row[8],  # Use opening context or pending hook
+                "opening_hook": row[3] or row[8],
                 "pending_follow_up": row[8],
-                "last_commitment": None,  # Will be populated from moments
+                "last_commitment": None,
                 "time_away": self._format_time_away(row[9]),
             }
         else:
             context["last_session"] = None
             context["session_continuity"] = None
-            
+
         return context
 
     async def _enrich_with_active_patterns(
@@ -192,7 +197,7 @@ class ContextBuilder:
         """
         result = await db.execute(
             text("""
-                SELECT 
+                SELECT
                     pattern_name,
                     pattern_type,
                     description,
@@ -209,7 +214,7 @@ class ContextBuilder:
             """),
             {"user_id": user_id},
         )
-        
+
         patterns = []
         for row in result.fetchall():
             patterns.append({
@@ -221,15 +226,12 @@ class ContextBuilder:
                 "last_seen": str(row[5]) if row[5] else None,
                 "evidence_count": row[6],
             })
-        
+
         context["active_patterns"] = patterns
-        
-        # Also update the legacy patterns field for backward compatibility
         context["patterns"] = [
             {"name": p["name"], "confidence": p["confidence"], "type": p["type"]}
             for p in patterns
         ]
-        
         return context
 
     async def _enrich_with_recent_moments(
@@ -241,7 +243,7 @@ class ContextBuilder:
         """
         result = await db.execute(
             text("""
-                SELECT 
+                SELECT
                     moment_type,
                     moment_content,
                     coach_observation,
@@ -257,10 +259,10 @@ class ContextBuilder:
             """),
             {"user_id": user_id},
         )
-        
+
         moments = []
         recent_commitments = []
-        
+
         for row in result.fetchall():
             moment = {
                 "type": row[0],
@@ -273,20 +275,16 @@ class ContextBuilder:
                 "days_ago": round(row[7], 1) if row[7] else None,
             }
             moments.append(moment)
-            
-            # Track commitments separately for follow-up
-            if row[0] == "commitment" and row[7] and row[7] < 7:  # Within last 7 days
+            if row[0] == "commitment" and row[7] and row[7] < 7:
                 recent_commitments.append({
                     "commitment": row[1],
                     "days_ago": round(row[7], 1),
                 })
-        
+
         context["recent_moments"] = moments
-        
-        # Update session continuity with last commitment if available
         if context.get("session_continuity") and recent_commitments:
             context["session_continuity"]["last_commitment"] = recent_commitments[0]
-            
+
         return context
 
     async def _determine_coach_mode(
@@ -299,8 +297,7 @@ class ContextBuilder:
         scores = context.get("scores", {})
         retention = context.get("retention", {})
         last_session = context.get("last_session", {})
-        
-        # Check for crisis first (safety flags)
+
         crisis_result = await db.execute(
             text("""
                 SELECT 1 FROM coach_safety_flags
@@ -314,17 +311,15 @@ class ContextBuilder:
         if crisis_result.fetchone():
             context["current_coach_mode"] = "crisis"
             return context
-        
-        # Check for intervention (absence/decline)
+
         days_since = last_session.get("days_since", 0) if last_session else 0
         needs_intervention = retention.get("needs_intervention", False)
         momentum_state = scores.get("momentum_state", "holding")
-        
+
         if needs_intervention or days_since > 3 or momentum_state == "critical":
             context["current_coach_mode"] = "intervention"
             return context
-        
-        # Check for celebration (recent win)
+
         recent_breakthrough = any(
             m.get("type") == "breakthrough" and m.get("days_ago", 999) < 2
             for m in context.get("recent_moments", [])
@@ -332,22 +327,101 @@ class ContextBuilder:
         if recent_breakthrough:
             context["current_coach_mode"] = "celebrate"
             return context
-        
-        # Check for support (struggling)
+
         if momentum_state == "declining" or any(
             m.get("type") == "resistance" and m.get("days_ago", 999) < 1
             for m in context.get("recent_moments", [])
         ):
             context["current_coach_mode"] = "support"
             return context
-        
-        # Check for challenge (ready to grow)
+
         if momentum_state == "rising" and scores.get("consistency", 0) > 70:
             context["current_coach_mode"] = "challenge"
             return context
-        
-        # Default: guide
+
         context["current_coach_mode"] = "guide"
+        return context
+
+    async def _enrich_with_goal_completion_context(
+        self, context: dict, user_id: str, db: AsyncSession
+    ) -> dict:
+        """
+        Check for goal completion interventions and populate {goal_completion_context}
+        for the coach system prompt.
+
+        When a user's goal is flagged as approaching_completion by the weekly scheduler,
+        two coach_interventions are created:
+          - 'goal_approaching_completion': shifts coach to reflective/consolidation mode
+          - 'reinterview_available' (Identity tier only): coach surfaces re-interview offer
+
+        This method reads those interventions and builds the instruction string that
+        gets injected into {goal_completion_context} in COACH_SYSTEM_V2.
+
+        For users with no completion flag: returns empty string — no prompt change.
+        The goal status check is done directly against the goals table, not just
+        interventions, so it stays accurate even if interventions are manually cleared.
+        """
+        # Check if user's goal is in approaching_completion state
+        goal_result = await db.execute(
+            text("""
+                SELECT
+                    g.status,
+                    g.approaching_completion_flagged_at,
+                    g.completion_check_score,
+                    EXTRACT(EPOCH FROM (NOW() - g.approaching_completion_flagged_at))/86400 AS days_since_flag,
+                    u.subscription_plan
+                FROM goals g
+                JOIN users u ON u.id = g.user_id
+                WHERE g.user_id = CAST(:user_id AS uuid)
+                  AND g.status = 'approaching_completion'
+                LIMIT 1
+            """),
+            {"user_id": user_id},
+        )
+        goal_row = goal_result.fetchone()
+
+        if not goal_row:
+            # Goal is not approaching completion — no change to coach prompt
+            context["goal_completion_context"] = ""
+            return context
+
+        subscription_plan = (goal_row.subscription_plan or "spark").lower()
+        days_since_flag = round(float(goal_row.days_since_flag or 0), 0)
+
+        # Pull the most recent completion intervention message for context
+        intervention_result = await db.execute(
+            text("""
+                SELECT intervention_type, message
+                FROM coach_interventions
+                WHERE user_id = CAST(:user_id AS uuid)
+                  AND intervention_type IN ('goal_approaching_completion', 'reinterview_available')
+                ORDER BY created_at DESC
+                LIMIT 2
+            """),
+            {"user_id": user_id},
+        )
+        interventions = {row[0]: row[1] for row in intervention_result.fetchall()}
+
+        # Build the completion context string for the prompt
+        completion_lines = []
+
+        if "goal_approaching_completion" in interventions:
+            completion_lines.append(interventions["goal_approaching_completion"])
+
+        # Add re-interview offer for Identity tier
+        if subscription_plan == "identity" and "reinterview_available" in interventions:
+            completion_lines.append("")
+            completion_lines.append(interventions["reinterview_available"])
+
+        context["goal_completion_context"] = "\n".join(completion_lines) if completion_lines else ""
+
+        logger.debug(
+            "goal_completion_context_set",
+            user_id=user_id,
+            days_since_flag=days_since_flag,
+            is_identity_tier=(subscription_plan == "identity"),
+        )
+
         return context
 
     def _format_time_away(self, days: float | None) -> str:
@@ -382,15 +456,13 @@ class ContextBuilder:
         reflections = context.get("recent_reflections") or []
         patterns = context.get("patterns") or []
         retention = context.get("retention", {})
-        
-        # NEW: Get enhanced coach memory
+
         last_session = context.get("last_session")
         active_patterns = context.get("active_patterns", [])
         recent_moments = context.get("recent_moments", [])
         session_continuity = context.get("session_continuity")
         current_mode = context.get("current_coach_mode", "guide")
 
-        # Format traits — only show top 3 with lowest progress
         trait_lines = []
         for t in (traits or [])[:3]:
             gap = t.get("gap", 0)
@@ -400,7 +472,6 @@ class ContextBuilder:
                 f"  - {t['name']}: {t['current_score']}/10 → target {t['target_score']}/10 ({trend})"
             )
 
-        # Format recent reflections
         reflection_lines = []
         for r in (reflections or [])[:3]:
             sentiment = r.get("sentiment", "neutral")
@@ -409,7 +480,6 @@ class ContextBuilder:
                 f"  - {r['date']}: {sentiment} | themes: {themes or 'none noted'}"
             )
 
-        # Format behavioral patterns (legacy)
         pattern_lines = []
         for p in (patterns or [])[:3]:
             pattern_lines.append(f"  - {p.get('name', '')} (confidence: {p.get('confidence', 0):.0%})")
@@ -451,41 +521,31 @@ class ContextBuilder:
             f"Consistency: {scores.get('consistency', 0):.1f} | Depth: {scores.get('depth', 0):.1f} | Alignment: {scores.get('alignment', 0):.1f}",
         ]
 
-        # NEW: Add enhanced coach memory section
         if last_session or active_patterns or recent_moments:
             lines += [
                 f"",
                 f"COACHING CONTEXT (Session Memory)",
             ]
-            
-            # Last session info
             if last_session:
                 lines += [
                     f"Last session: {self._format_time_away(last_session.get('days_since'))}",
                     f"Closing insight: {last_session.get('closing_insight', 'Not recorded')}",
                 ]
-                if last_session.get('next_session_hook'):
+                if last_session.get("next_session_hook"):
                     lines += [f"Follow-up: {last_session['next_session_hook']}"]
-            
-            # Session continuity
-            if session_continuity and session_continuity.get('opening_hook'):
-                lines += [
-                    f"Opening context: {session_continuity['opening_hook']}",
-                ]
-            
-            # Active patterns
+
+            if session_continuity and session_continuity.get("opening_hook"):
+                lines += [f"Opening context: {session_continuity['opening_hook']}"]
+
             if active_patterns:
                 lines += [f"", f"Recognized Patterns:"]
                 for p in active_patterns[:3]:
-                    lines += [
-                        f"  - {p['name']} ({p['type']}): {p['description'][:80]}..."
-                    ]
-            
-            # Recent significant moments
+                    lines += [f"  - {p['name']} ({p['type']}): {p['description'][:80]}..."]
+
             significant_moments = [
-                m for m in recent_moments 
-                if m.get('type') in ['breakthrough', 'commitment', 'vulnerability']
-                and m.get('days_ago', 999) < 7
+                m for m in recent_moments
+                if m.get("type") in ["breakthrough", "commitment", "vulnerability"]
+                and m.get("days_ago", 999) < 7
             ][:2]
             if significant_moments:
                 lines += [f"", f"Recent Significant Moments:"]
@@ -493,12 +553,8 @@ class ContextBuilder:
                     lines += [
                         f"  - {m['type'].upper()} ({int(m.get('days_ago', 0))} days ago): {m.get('user_language', m.get('content', ''))[:60]}..."
                     ]
-            
-            # Current mode
-            lines += [
-                f"",
-                f"Current Coaching Mode: {current_mode.upper()}",
-            ]
+
+            lines += [f"", f"Current Coaching Mode: {current_mode.upper()}"]
 
         if context.get("recent_coach_themes"):
             lines += [
