@@ -443,6 +443,7 @@ class WeeklyReviewEngine(BaseAIEngine):
             "avg_depth": float(row.avg_depth) if row.avg_depth else None,
             "consistency": float(row.consistency_pct) if row.consistency_pct else 0.0,
             "score_delta": float(row.score_delta) if row.score_delta else 0.0,
+        }
 
         themes_result = await db.execute(
             text("""
