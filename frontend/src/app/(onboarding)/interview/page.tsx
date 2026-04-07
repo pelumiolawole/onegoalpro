@@ -73,10 +73,24 @@ export default function InterviewPage() {
     setLoading(true)
     const newMessages: Message[] = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
+
     try {
       const res = await api.onboarding.sendInterviewMessage(text)
+
+      // Quality gate: completion phrase fired but data was too shallow.
+      // The backend replaces the AI response with a Coach PO-voiced depth prompt.
+      // We display it as a normal assistant message and keep the conversation open.
+      // No routing, no error — the user just gets one more question.
+      if (res.needs_more_depth) {
+        setMessages([...newMessages, { role: 'assistant', content: res.message }])
+        setPhase(res.phase)
+        setLoading(false)
+        return
+      }
+
       setMessages([...newMessages, { role: 'assistant', content: res.message }])
       setPhase(res.phase)
+
       if (res.is_complete) {
         trackEvent('interview_completed')
         await refreshUser()

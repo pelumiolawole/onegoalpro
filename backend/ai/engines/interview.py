@@ -14,7 +14,11 @@ Flow:
     4. Gets AI response
     5. Extracts any newly surfaced data points
     6. Updates onboarding_interview_state
-    7. If interview is complete, writes to identity_profile + advances onboarding status
+    7. If interview is complete AND data quality passes, writes to identity_profile
+       + advances onboarding status
+    8. If interview completion signal fires but data quality fails, returns
+       needs_more_depth=True — the frontend keeps the conversation open and
+       injects a Coach PO-voiced prompt to go deeper
 
 The extraction happens silently -- the user just has a conversation.
 
@@ -26,6 +30,16 @@ Interview phases (v2):
 
 Timezone is collected separately via the frontend (browser Intl API) -- not during
 the interview. Asking for it mid-conversation breaks the emotional flow.
+
+Quality gate:
+    Three signals must be present before the interview is treated as complete:
+    - personal_vision: the real goal beneath the stated one
+    - identity_anchor: who they said they'd become
+    - resistance_triggers: what has stopped them before
+
+    If any of these are missing when the completion phrase fires, the engine
+    returns needs_more_depth=True instead of is_complete=True. The AI
+    continues the conversation — no user-visible error, no broken experience.
 """
 
 import json
@@ -52,6 +66,29 @@ INTERVIEW_PHASES = [
     "summary",       # Wrap up, signal completion.
 ]
 
+# The three fields that must be present for a quality interview.
+# These map directly to the three phases of the funnel:
+#   tension -> resistance_triggers
+#   real_goal -> personal_vision
+#   crystallise -> identity_anchor
+REQUIRED_QUALITY_FIELDS = ["personal_vision", "identity_anchor", "resistance_triggers"]
+
+# Minimum string length for a field to count as meaningfully populated.
+# Guards against one-word extractions like {"identity_anchor": "leader"}.
+QUALITY_MIN_LENGTH = 10
+
+# Message injected by the engine when the completion phrase fires but quality
+# fails. Written in Coach PO's voice — not a system error message.
+# "needs_more_depth" in the response signals the frontend to display this
+# instead of routing away.
+DEPTH_PROMPT_MESSAGE = (
+    "We're getting close — but I want to make sure I have what I need to build "
+    "something that's actually yours. Let me ask you one more thing. "
+    "When you imagine the version of you who's already solved this — "
+    "what's different about how they show up in the world? Not what they've achieved. "
+    "Who they are."
+)
+
 
 class InterviewEngine(BaseAIEngine):
     """
@@ -73,10 +110,11 @@ class InterviewEngine(BaseAIEngine):
 
         Returns:
             {
-                message: str,         -- AI response to show user
-                phase: str,           -- current interview phase
-                is_complete: bool,    -- True when interview finishes
-                extracted: dict,      -- data extracted so far
+                message: str,           -- AI response to show user
+                phase: str,             -- current interview phase
+                is_complete: bool,      -- True when interview is complete AND quality passes
+                needs_more_depth: bool, -- True when completion fired but quality gate failed
+                extracted: dict,        -- data extracted so far
             }
         """
         uid = str(user_id)
@@ -98,6 +136,7 @@ class InterviewEngine(BaseAIEngine):
                 "message": safe_response,
                 "phase": "paused",
                 "is_complete": False,
+                "needs_more_depth": False,
                 "extracted": {},
             }
 
@@ -107,6 +146,7 @@ class InterviewEngine(BaseAIEngine):
                 "message": "Let's keep going. Tell me more about where you are right now.",
                 "phase": "error",
                 "is_complete": False,
+                "needs_more_depth": False,
                 "extracted": {},
             }
 
@@ -161,8 +201,25 @@ class InterviewEngine(BaseAIEngine):
         # Determine if phase should advance
         next_phase = self._determine_phase(current_phase, ai_response, extracted, messages)
 
-        # Check if interview is complete
-        is_complete = self._is_interview_complete(ai_response, extracted)
+        # Check completion signal and quality
+        completion_result = self._check_completion(ai_response, extracted)
+        is_complete = completion_result["is_complete"]
+        needs_more_depth = completion_result["needs_more_depth"]
+        missing_fields = completion_result["missing_fields"]
+
+        # If completion fired but quality failed, inject the depth prompt.
+        # The AI response is replaced with Coach PO's voice asking for more.
+        # We stay in crystallise phase and keep the conversation open.
+        if needs_more_depth:
+            logger.info(
+                "interview_quality_gate_failed",
+                user_id=uid,
+                missing_fields=missing_fields,
+                message_count=len(messages),
+            )
+            ai_response = DEPTH_PROMPT_MESSAGE
+            messages[-1] = {"role": "assistant", "content": ai_response}
+            next_phase = "crystallise"  # Don't advance past crystallise
 
         # Save state
         await self._save_state(
@@ -174,7 +231,7 @@ class InterviewEngine(BaseAIEngine):
             db=db,
         )
 
-        # If complete, write to identity profile
+        # If complete and quality passed, write to identity profile
         if is_complete:
             await self._finalize_profile(uid, extracted, db)
 
@@ -182,6 +239,7 @@ class InterviewEngine(BaseAIEngine):
             "message": ai_response,
             "phase": next_phase,
             "is_complete": is_complete,
+            "needs_more_depth": needs_more_depth,
             "extracted": extracted,
         }
 
@@ -281,20 +339,62 @@ Focus especially on: resistance_triggers, identity_anchor, personal_vision -- th
 
         return current_phase
 
-    def _is_interview_complete(self, ai_response: str, extracted: dict) -> bool:
+    def _check_completion(self, ai_response: str, extracted: dict) -> dict:
         """
-        Interview is complete when the AI says the completion phrase
-        AND we have the core data needed to build a goal strategy.
+        Check whether the interview is genuinely complete.
+
+        Two conditions must both be true for is_complete=True:
+        1. The AI has produced the completion phrase
+        2. The three phase-specific quality fields are present and substantive
+
+        If (1) is true but (2) fails, returns needs_more_depth=True so the
+        frontend keeps the conversation open with a Coach PO-voiced prompt.
+
+        A field is considered substantive if it is:
+        - A non-empty string longer than QUALITY_MIN_LENGTH characters, OR
+        - A non-empty list with at least one element
+
+        This guards against one-word extractions being treated as valid data.
         """
         completion_signal = "let's define your one goal" in ai_response.lower()
 
-        # Minimum viable data: we know what they want and who they want to become
-        has_core_data = (
-            bool(extracted.get("personal_vision") or extracted.get("life_direction")) and
-            bool(extracted.get("identity_anchor") or extracted.get("self_reported_weaknesses"))
-        )
+        if not completion_signal:
+            return {
+                "is_complete": False,
+                "needs_more_depth": False,
+                "missing_fields": [],
+            }
 
-        return completion_signal and has_core_data
+        # Completion phrase fired — now check data quality
+        missing_fields = []
+        for field in REQUIRED_QUALITY_FIELDS:
+            value = extracted.get(field)
+            if value is None:
+                missing_fields.append(field)
+            elif isinstance(value, str) and len(value.strip()) < QUALITY_MIN_LENGTH:
+                missing_fields.append(field)
+            elif isinstance(value, list) and len(value) == 0:
+                missing_fields.append(field)
+
+        if missing_fields:
+            # Completion signalled but quality insufficient
+            return {
+                "is_complete": False,
+                "needs_more_depth": True,
+                "missing_fields": missing_fields,
+            }
+
+        # All good
+        return {
+            "is_complete": True,
+            "needs_more_depth": False,
+            "missing_fields": [],
+        }
+
+    # Keep the old method name as a thin wrapper for any callers that reference it directly
+    def _is_interview_complete(self, ai_response: str, extracted: dict) -> bool:
+        """Legacy wrapper — use _check_completion for full quality gate result."""
+        return self._check_completion(ai_response, extracted)["is_complete"]
 
     async def _load_state(self, user_id: str, db: AsyncSession) -> dict:
         """Load interview state from database."""
@@ -362,7 +462,7 @@ Focus especially on: resistance_triggers, identity_anchor, personal_vision -- th
     ) -> None:
         """
         Write extracted data to identity_profile and advance onboarding status.
-        Called once when interview is complete.
+        Called once when interview is complete AND quality gate has passed.
         """
         await db.execute(
             text("""
