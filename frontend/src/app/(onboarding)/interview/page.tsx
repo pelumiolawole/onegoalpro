@@ -81,7 +81,7 @@ export default function InterviewPage() {
       // The backend replaces the AI response with a Coach PO-voiced depth prompt.
       // We display it as a normal assistant message and keep the conversation open.
       // No routing, no error — the user just gets one more question.
-      if (res.needs_more_depth) {
+      if ((res as any).needs_more_depth) {
         setMessages([...newMessages, { role: 'assistant', content: res.message }])
         setPhase(res.phase)
         setLoading(false)
