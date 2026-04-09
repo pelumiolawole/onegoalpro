@@ -64,7 +64,7 @@ export default function SettingsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [billingError, setBillingError] = useState('')
 
-  // Profile state (from old page)
+  // Profile state
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -161,7 +161,6 @@ export default function SettingsPage() {
 
   const handleCancel = async () => {
     if (!confirm('Are you sure? You\'ll keep access until the end of your billing period.')) return
-    
     setActionLoading(true)
     try {
       await api.billing.cancelSubscription()
@@ -185,8 +184,9 @@ export default function SettingsPage() {
     }
   }
 
-  const handleUpgrade = (plan: 'forge' | 'identity') => {
-    router.push(`/settings/upgrade?plan=${plan}`)
+  // CHANGED: no plan argument — upgrade page shows both plans
+  const handleUpgrade = () => {
+    router.push('/settings/upgrade')
   }
 
   function handleLogout() {
@@ -218,10 +218,8 @@ export default function SettingsPage() {
     }
   }
 
-  // Get status badge styles - only 'active' or 'ended'
   const getStatusBadge = (status: string | null, cancelAtPeriodEnd: boolean) => {
     const isActive = status === 'active' && !cancelAtPeriodEnd
-    
     return {
       className: isActive
         ? 'bg-green-950/30 text-green-400 border-green-900/30'
@@ -271,7 +269,7 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
 
-          {/* ── Profile Section (RESTORED FROM OLD) ───────────────── */}
+          {/* ── Profile Section ───────────────────────────────────── */}
           <section className="bg-[#141210] border border-white/5 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-5 h-5 text-[#F59E0B]">
@@ -281,7 +279,6 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex items-center gap-4 mb-6">
-              {/* Avatar */}
               <div className="relative w-16 h-16 rounded-2xl cursor-pointer group shrink-0" onClick={() => fileInputRef.current?.click()}>
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar" className="w-full h-full rounded-2xl object-cover" />
@@ -303,7 +300,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Bio / Identity Statement */}
             <div className="border-t border-white/5 pt-5 mb-5">
               <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono mb-3">Who you're becoming</p>
               {profile?.bio
@@ -312,7 +308,6 @@ export default function SettingsPage() {
               }
             </div>
 
-            {/* Stats */}
             {!profileLoading && profile && (
               <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-5">
                 <div className="bg-[#0A0908] rounded-xl p-3">
@@ -351,8 +346,6 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </div>
-                  
-                  {/* Status Badge - Only Active or Ended */}
                   {(() => {
                     const badge = getStatusBadge(subscription.status, subscription.cancel_at_period_end)
                     return (
@@ -373,17 +366,17 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                {/* Action Buttons */}
+                {/* CHANGED — Spot 1: single Upgrade button, no tier-specific label */}
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
                   {subscription.status === 'active' && !subscription.cancel_at_period_end && (
                     <>
                       {subscription.plan !== 'identity' && (
                         <button
-                          onClick={() => handleUpgrade('identity')}
-                          className="flex items-center gap-2 px-4 py-2 bg-[#d0ff59] text-black font-medium rounded-lg hover:bg-[#d0ff59]/90 transition-colors text-sm"
+                          onClick={handleUpgrade}
+                          className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[#F59E0B] font-medium rounded-lg hover:bg-[#F59E0B]/20 transition-colors text-sm"
                         >
-                          <Shield className="w-4 h-4" />
-                          Upgrade to Identity
+                          <Sparkles className="w-4 h-4" />
+                          Upgrade
                         </button>
                       )}
                       <button
@@ -410,15 +403,15 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-              /* No Active Subscription */
+              // CHANGED — Spot 2: single Upgrade button, no plan name in label
               <div className="text-center py-8">
                 <p className="text-[#7A6E65] mb-4">You're on The Spark (Free)</p>
                 <button
-                  onClick={() => handleUpgrade('forge')}
+                  onClick={handleUpgrade}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-[#F59E0B] text-black font-medium rounded-xl hover:bg-[#F59E0B]/90 transition-colors"
                 >
                   <Sparkles className="w-5 h-5" />
-                  Upgrade to Forge
+                  Upgrade
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -462,7 +455,7 @@ export default function SettingsPage() {
                         {formatCurrency(invoice.amount_paid || invoice.amount_due)}
                       </span>
                       {invoice.invoice_pdf && (
-                        <a
+                        
                           href={invoice.invoice_pdf}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -479,7 +472,7 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ── Invite Section (RESTORED FROM OLD) ──────────────── */}
+          {/* ── Invite Section ───────────────────────────────────── */}
           <section className="bg-[#141210] border border-white/5 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-5 h-5 text-[#F59E0B]">
@@ -549,7 +542,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* ── Session / Sign Out (FIXED) ──────────────────────── */}
+          {/* ── Session / Sign Out ──────────────────────────────── */}
           <section className="bg-[#141210] border border-white/5 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-5 h-5 text-red-400">
