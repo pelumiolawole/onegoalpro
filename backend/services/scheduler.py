@@ -24,6 +24,8 @@ async def _nudge_24h() -> None:
 async def _nudge_72h() -> None:
     await run_interview_nudge(hours_since_signup=72)
 
+async def _weekly_digest_wrapper() -> None:
+    await run_weekly_digest_emails()
 
 # ─── Scheduler startup ────────────────────────────────────────────────────────
 
@@ -45,6 +47,10 @@ async def start_scheduler() -> AsyncIOScheduler:
     scheduler.add_job(func=run_weekly_review_generation, trigger=CronTrigger(day_of_week="mon", hour=2, minute=0),
         id="weekly_review", name="Generate weekly evolution reviews",
         replace_existing=True, max_instances=1, misfire_grace_time=7200)
+    
+    scheduler.add_job(func=_weekly_digest_wrapper, trigger=CronTrigger(day_of_week="mon", hour=6, minute=0),
+        id="weekly_digest_emails", name="Send weekly digest emails to active users",
+        replace_existing=True, max_instances=1, misfire_grace_time=3600)
 
     # Goal completion check — Monday 3am UTC, after score updates (2am) and weekly review (2am)
     # so transformation scores are fresh when the check runs.
@@ -847,3 +853,115 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
                 logger.info("interview_nudge_push_sent", user_id=str(user.id), attempt=attempt)
             except Exception as e:
                 logger.warning("interview_nudge_push_failed", user_id=str(user.id), error=str(e))
+
+async def run_weekly_digest_emails() -> None:
+    """
+    Runs every Monday at 6am UTC — after weekly review generation (2am).
+    Reads the stored weekly_reviews letter for each user and sends it by email.
+    Uses notification_queue to prevent duplicate sends within the same week.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("weekly_digest_emails", ttl_seconds=3600)
+    if not lock_acquired:
+        logger.warning("weekly_digest_lock_not_acquired")
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+            result = await db.execute(text("""
+                SELECT
+                    u.id,
+                    u.email,
+                    u.display_name,
+                    wr.review_letter,
+                    wr.week_start_date,
+                    ip.current_streak,
+                    ip.transformation_score,
+                    COALESCE(
+                        (SELECT COUNT(*) FROM daily_tasks dt
+                         WHERE dt.user_id = u.id
+                           AND dt.status = 'completed'
+                           AND dt.scheduled_date >= wr.week_start_date
+                           AND dt.scheduled_date < wr.week_start_date + INTERVAL '7 days'),
+                        0
+                    ) AS tasks_completed_this_week
+                FROM users u
+                JOIN weekly_reviews wr ON wr.user_id = u.id
+                JOIN identity_profiles ip ON ip.user_id = u.id
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND wr.week_start_date = date_trunc('week', CURRENT_DATE - INTERVAL '7 days')::DATE
+                  AND wr.review_letter IS NOT NULL
+                  AND LENGTH(TRIM(wr.review_letter)) > 50
+                  AND NOT EXISTS (
+                    SELECT 1 FROM notification_queue nq
+                    WHERE nq.user_id = u.id
+                      AND nq.type = 'weekly_digest'
+                      AND nq.sent_at >= NOW() - INTERVAL '6 days'
+                  )
+            """))
+            users = result.fetchall()
+
+        if not users:
+            logger.info("weekly_digest_no_users_to_send")
+            return
+
+        logger.info("weekly_digest_started", user_count=len(users))
+        sent_count = 0
+        error_count = 0
+
+        for row in users:
+            user_id = str(row[0])
+            email = row[1]
+            display_name = row[2]
+            review_letter = row[3]
+            week_start = row[4]
+            streak = int(row[5] or 0)
+            transformation_score = float(row[6] or 0)
+            tasks_completed = int(row[7] or 0)
+
+            # Format week label e.g. "Week of 7 April"
+            week_label = week_start.strftime("Week of %-d %B") if week_start else "This week"
+
+            try:
+                sent = await email_service.send_weekly_digest_email(
+                    to_email=email,
+                    display_name=display_name,
+                    week_label=week_label,
+                    review_letter=review_letter,
+                    streak=streak,
+                    tasks_completed=tasks_completed,
+                    transformation_score=transformation_score,
+                    app_url=settings.frontend_url,
+                )
+                if sent:
+                    async with get_db_context() as db2:
+                        from sqlalchemy import text as t
+                        await db2.execute(t("""
+                            INSERT INTO notification_queue
+                                (user_id, type, title, body, channel, scheduled_at, sent_at)
+                            VALUES (
+                                CAST(:user_id AS uuid),
+                                'weekly_digest',
+                                'Weekly review sent',
+                                :week_label,
+                                'email',
+                                NOW(),
+                                NOW()
+                            )
+                        """), {"user_id": user_id, "week_label": week_label})
+                        await db2.commit()
+                    sent_count += 1
+                    logger.info("weekly_digest_sent", user_id=user_id, week=week_label)
+            except Exception as e:
+                error_count += 1
+                logger.error("weekly_digest_failed", user_id=user_id, error=str(e))
+
+        logger.info("weekly_digest_complete", sent=sent_count, errors=error_count, total=len(users))
+
+    finally:
+        await release_lock("weekly_digest_emails")

@@ -330,6 +330,130 @@ class EmailService:
             logger.error("reengagement_email_failed", email=to_email, error=str(e))
             return False
 
+# ─── Weekly Digest Email ─────────────────────────────────────────────────
+
+    async def send_weekly_digest_email(
+        self,
+        to_email: str,
+        display_name: Optional[str],
+        week_label: str,
+        review_letter: str,
+        streak: int,
+        tasks_completed: int,
+        transformation_score: float,
+        app_url: str,
+    ) -> bool:
+        """
+        Send weekly evolution digest every Monday.
+        review_letter is the AI-generated letter from weekly_reviews table.
+        """
+        if not self.enabled:
+            logger.warning("weekly_digest_email_disabled", email=to_email)
+            return False
+
+        name = display_name or "there"
+        dashboard_url = f"{app_url}/dashboard"
+
+        # Convert newlines in the letter to HTML paragraphs
+        letter_paragraphs = "".join(
+            f'<p style="margin: 0 0 16px 0; font-size: 15px; color: #A09690; line-height: 1.7;">{line}</p>'
+            for line in review_letter.split("\n")
+            if line.strip()
+        )
+
+        try:
+            response = resend.Emails.send({
+                "from": self.from_header,
+                "to": to_email,
+                "subject": f"Your week in review — {week_label}",
+                "html": f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Your week in review</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0908;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0A0908; padding: 40px 0;">
+                        <tr>
+                            <td align="center">
+                                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #141210; border-radius: 12px; overflow: hidden; max-width: 600px; width: 100%; border: 1px solid #2A2520;">
+                                    <tr>
+                                        <td style="padding: 8px 40px; background-color: #F59E0B;">
+                                            <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0A0908; letter-spacing: 0.1em; text-transform: uppercase;">OneGoal Pro &mdash; Weekly Review</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 32px 40px 0 40px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 12px; color: #5C524A; letter-spacing: 0.08em; text-transform: uppercase;">{week_label}</p>
+                                            <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #F5F1ED; font-weight: 600;">Your week, {name}.</h1>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 0 40px 24px 40px;">
+                                            <table width="100%" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="padding: 16px; background-color: #1E1B18; border-radius: 10px; text-align: center;">
+                                                        <table width="100%" cellpadding="0" cellspacing="0">
+                                                            <tr>
+                                                                <td style="text-align: center; padding: 0 12px;">
+                                                                    <p style="margin: 0; font-size: 24px; color: #F59E0B; font-weight: 700;">{tasks_completed}</p>
+                                                                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #5C524A; text-transform: uppercase; letter-spacing: 0.06em;">Tasks done</p>
+                                                                </td>
+                                                                <td style="text-align: center; padding: 0 12px; border-left: 1px solid #2A2520; border-right: 1px solid #2A2520;">
+                                                                    <p style="margin: 0; font-size: 24px; color: #F59E0B; font-weight: 700;">{streak}</p>
+                                                                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #5C524A; text-transform: uppercase; letter-spacing: 0.06em;">Day streak</p>
+                                                                </td>
+                                                                <td style="text-align: center; padding: 0 12px;">
+                                                                    <p style="margin: 0; font-size: 24px; color: #F59E0B; font-weight: 700;">{transformation_score:.0f}</p>
+                                                                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #5C524A; text-transform: uppercase; letter-spacing: 0.06em;">Score</p>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 0 40px 32px 40px;">
+                                            <div style="border-left: 3px solid #F59E0B; padding-left: 20px;">
+                                                {letter_paragraphs}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 0 40px 32px 40px; text-align: center;">
+                                            <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #F59E0B; color: #0A0908; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600;">
+                                                Open dashboard →
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 20px 40px; border-top: 1px solid #2A2520;">
+                                            <p style="margin: 0; font-size: 12px; color: #3D3630;">
+                                                One goal. Full commitment. No excuses. &mdash;
+                                                <a href="{dashboard_url}" style="color: #5C524A; text-decoration: none;">onegoalpro.app</a>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """,
+            })
+
+            logger.info("weekly_digest_email_sent", email=to_email, week=week_label, message_id=response.get("id"))
+            return True
+
+        except Exception as e:
+            logger.error("weekly_digest_email_failed", email=to_email, error=str(e))
+            return False
+        
     # ─── Welcome Email ───────────────────────────────────────────────────────
 
     async def send_welcome_email(self, to_email: str, display_name: Optional[str]) -> bool:
