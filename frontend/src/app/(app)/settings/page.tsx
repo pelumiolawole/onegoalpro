@@ -138,7 +138,7 @@ export default function SettingsPage() {
       setShareUrl(data.share_url)
     } catch {
       setShareMessage("I'm using OneGoal Pro to commit to one goal — no excuses. Join me.")
-      setShareUrl('https://onegoalpro.vercel.app ')
+      setShareUrl('https://onegoalpro.vercel.app')
     } finally {
       setShareLoading(false)
     }
@@ -184,7 +184,6 @@ export default function SettingsPage() {
     }
   }
 
-  // CHANGED: no plan argument — upgrade page shows both plans
   const handleUpgrade = () => {
     router.push('/settings/upgrade')
   }
@@ -331,7 +330,6 @@ export default function SettingsPage() {
 
             {subscription?.plan && subscription.plan !== 'spark' ? (
               <div className="space-y-6">
-                {/* Current Plan Badge */}
                 <div className="flex items-center justify-between p-4 bg-[#0A0908] rounded-xl border border-white/5">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl ${planInfo.bg} flex items-center justify-center`}>
@@ -356,7 +354,6 @@ export default function SettingsPage() {
                   })()}
                 </div>
 
-                {/* Renewal Info */}
                 <div className="flex items-center gap-3 text-sm text-[#7A6E65]">
                   <Calendar className="w-4 h-4" />
                   {subscription.status === 'active' && !subscription.cancel_at_period_end ? (
@@ -366,7 +363,6 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                {/* CHANGED — Spot 1: single Upgrade button, no tier-specific label */}
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
                   {subscription.status === 'active' && !subscription.cancel_at_period_end && (
                     <>
@@ -403,7 +399,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-              // CHANGED — Spot 2: single Upgrade button, no plan name in label
               <div className="text-center py-8">
                 <p className="text-[#7A6E65] mb-4">You're on The Spark (Free)</p>
                 <button

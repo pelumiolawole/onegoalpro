@@ -19,6 +19,9 @@ Onboarding stages and their endpoints:
         GET  /onboarding/strategy              — get full generated strategy
         POST /onboarding/activate              — activate account, generate first tasks
 
+    Re-interview (Identity tier):
+        POST /onboarding/reinterview/start     — reset interview state for a second pass
+
     Utility:
         GET  /onboarding/status                — get current onboarding step
 """
@@ -85,6 +88,11 @@ class GoalDecompositionResponse(BaseModel):
     needs_clarification: bool
     clarifying_questions: list[str]
     strategy: dict | None
+
+
+class ReinterviewStartResponse(BaseModel):
+    status: str
+    message: str
 
 
 # ─── Status ───────────────────────────────────────────────────────────────────
@@ -163,7 +171,6 @@ async def send_interview_message(
             },
         )
 
-    # Enforce per-user interview message limit to prevent OpenAI cost drain
     allowed, count = await check_and_increment_ai_rate(
         user_id=str(current_user.id),
         engine="interview",
@@ -271,6 +278,98 @@ async def restart_interview(
     await invalidate_user_context(str(current_user.id))
 
 
+# ─── Re-interview (Identity tier) ─────────────────────────────────────────────
+
+@router.post(
+    "/reinterview/start",
+    response_model=ReinterviewStartResponse,
+    summary="Start a re-interview for Identity tier users with an approaching_completion goal",
+)
+async def start_reinterview(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReinterviewStartResponse:
+    """
+    Allows Identity tier users whose goal is approaching_completion to begin
+    a fresh Discovery Interview without losing their existing goal.
+
+    The existing goal stays as 'approaching_completion' until the new goal
+    activates — at that point activate_account archives it as 'completed'.
+
+    Eligibility:
+    - onboarding_status = 'active'
+    - subscription_plan = 'identity'
+    - at least one goal with status = 'approaching_completion'
+    """
+    uid = str(current_user.id)
+
+    if (current_user.subscription_plan or "spark").lower() != "identity":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "identity_tier_required",
+                "message": "Re-interview is available on The Identity plan.",
+            },
+        )
+
+    if current_user.onboarding_status != OnboardingStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "must_be_active",
+                "message": "Re-interview is only available for active accounts.",
+            },
+        )
+
+    result = await db.execute(
+        text("""
+            SELECT id FROM goals
+            WHERE user_id = CAST(:user_id AS uuid)
+              AND status = 'approaching_completion'
+            LIMIT 1
+        """),
+        {"user_id": uid},
+    )
+    if not result.fetchone():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "goal_not_approaching_completion",
+                "message": "Re-interview is available when your current goal is approaching completion.",
+            },
+        )
+
+    await db.execute(
+        text("""
+            INSERT INTO onboarding_interview_state
+                (user_id, current_phase, messages, extracted_data, is_complete)
+            VALUES
+                (CAST(:user_id AS uuid), 'tension', '[]'::jsonb, '{}'::jsonb, FALSE)
+            ON CONFLICT (user_id) DO UPDATE SET
+                current_phase = 'tension',
+                messages = '[]'::jsonb,
+                extracted_data = '{}'::jsonb,
+                is_complete = FALSE,
+                completed_at = NULL
+        """),
+        {"user_id": uid},
+    )
+
+    await db.execute(
+        text("UPDATE users SET onboarding_status = 'interview_started' WHERE id = CAST(:user_id AS uuid)"),
+        {"user_id": uid},
+    )
+
+    await invalidate_user_context(uid)
+
+    logger.info("reinterview_started", user_id=uid)
+
+    return ReinterviewStartResponse(
+        status="started",
+        message="Your next Discovery Interview has begun.",
+    )
+
+
 # ─── Stage 2: Goal Definition ─────────────────────────────────────────────────
 
 @router.post(
@@ -294,7 +393,6 @@ async def submit_goal(
     directly (e.g. skipped or refreshed) are silently advanced to interview_complete
     so they are never blocked.
     """
-    # Only block users who are already fully active
     if current_user.onboarding_status == OnboardingStatus.ACTIVE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -305,8 +403,6 @@ async def submit_goal(
             },
         )
 
-    # Silently advance users who haven't finished the interview
-    # so they are never blocked by a status gate
     if current_user.onboarding_status in (
         OnboardingStatus.CREATED,
         OnboardingStatus.INTERVIEW_STARTED,
@@ -421,7 +517,7 @@ async def preview_goal_strategy(
             "category": r.category,
             "current_score": float(r.current_score),
             "target_score": float(r.target_score),
-            "gap": float(r.target_score - r.current_score),
+            "gap": float(r.target_score - r.current_score),  # fixed: was r.target_date
         }
         for r in trait_result.fetchall()
     ]
@@ -505,6 +601,21 @@ async def activate_account(
                 ORDER BY o.sequence_order ASC
                 LIMIT 1
             )
+        """),
+        {"user_id": str(current_user.id)},
+    )
+
+    # Archive any approaching_completion goals now that a new goal is activating.
+    # Only reached during re-interview — normal first activation has no
+    # approaching_completion goals to archive.
+    await db.execute(
+        text("""
+            UPDATE goals
+            SET status = 'completed',
+                completed_at = NOW(),
+                updated_at = NOW()
+            WHERE user_id = CAST(:user_id AS uuid)
+              AND status = 'approaching_completion'
         """),
         {"user_id": str(current_user.id)},
     )

@@ -150,19 +150,13 @@ class ApiClient {
       if (res.status === 401 && requiresAuth) {
         const refreshed = await this.tryRefreshToken()
         if (refreshed) {
-          // Retry original request with new token
           return this.request<T>(path, options, requiresAuth)
         }
-        // Refresh failed — redirect to login
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
         }
       }
 
-      // Redirect mid-onboarding users back into the interview flow.
-      // Users who signed up but haven't completed onboarding have a valid
-      // token but hit 403 on protected routes. Rather than showing a broken
-      // state, send them back to where they need to be.
       if (res.status === 403 && requiresAuth) {
         const code = typeof errorData.detail === 'object'
           ? errorData.detail?.code
@@ -305,6 +299,10 @@ class ApiClient {
 
     activate: () =>
       this.request<{ status: string; message: string; tasks_generated: number }>('/onboarding/activate', { method: 'POST' }),
+
+    // Re-interview: Identity tier only, goal must be approaching_completion
+    startReinterview: () =>
+      this.request<{ status: string; message: string }>('/onboarding/reinterview/start', { method: 'POST' }),
   }
 
   // ── Goals ────────────────────────────────────────────────────
