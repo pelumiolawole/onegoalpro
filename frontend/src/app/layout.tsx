@@ -28,6 +28,14 @@ export const metadata: Metadata = {
   title: 'One Goal. One Identity. | OneGoal Pro',
   description: "You don't have a focus problem. You have an identity problem. OneGoal Pro finds your one goal, then coaches you toward the person who achieves it.",
   keywords: ['goal setting', 'personal development', 'AI coaching', 'habit building', 'identity-based goals'],
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
   openGraph: {
     title: 'One Goal. One Identity. | OneGoal Pro',
     description: 'One goal. Full commitment. No excuses.',
@@ -52,7 +60,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0A0908',
+  themeColor: '#F59E0B',
 }
 
 export default function RootLayout({
@@ -65,6 +73,12 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="antialiased overflow-x-hidden">
         <PostHogInit />
         {children}
