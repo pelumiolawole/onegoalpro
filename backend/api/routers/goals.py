@@ -78,17 +78,28 @@ async def get_active_goal(
     """
     uid = str(current_user.id)
 
-    # Get goal
+    # Get goal — progress calculated live from task completions
     goal_result = await db.execute(
         text("""
             SELECT
                 g.id, g.refined_statement, g.raw_input, g.why_statement,
                 g.success_definition, g.required_identity, g.key_shifts,
                 g.estimated_timeline, g.difficulty_level,
-                g.progress_percentage, g.started_at, g.target_date,
-                g.objectives_count, g.objectives_completed
+                g.started_at, g.target_date,
+                g.objectives_count, g.objectives_completed,
+                ROUND(
+                    COUNT(CASE WHEN dt.status = 'completed' THEN 1 END)::numeric /
+                    NULLIF(COUNT(dt.id), 0) * 100, 1
+                ) AS progress_percentage
             FROM goals g
+            LEFT JOIN daily_tasks dt ON dt.user_id = g.user_id
+                AND dt.scheduled_date >= g.started_at
             WHERE g.user_id = :user_id AND g.status = 'active'
+            GROUP BY g.id, g.refined_statement, g.raw_input, g.why_statement,
+                g.success_definition, g.required_identity, g.key_shifts,
+                g.estimated_timeline, g.difficulty_level,
+                g.started_at, g.target_date,
+                g.objectives_count, g.objectives_completed
             LIMIT 1
         """),
         {"user_id": uid},
@@ -153,6 +164,7 @@ async def get_active_goal(
             "velocity": float(r.velocity),
             "progress_pct": round(float(r.current_score) / float(r.target_score) * 100, 1),
             "gap": round(float(r.target_score) - float(r.current_score), 1),
+            "trend": "growing" if float(r.velocity) > 0 else ("declining" if float(r.velocity) < 0 else "stable"),
         }
         for r in trait_result.fetchall()
     ]
