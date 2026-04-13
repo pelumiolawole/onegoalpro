@@ -595,22 +595,20 @@ async def skip_task(
         {"id": task_id, "user_id": uid, "reason": payload.reason},
     )
 
-    # FIXED: Insert progress_metrics with proper columns including skip tracking
     await db.execute(
         text("""
             INSERT INTO progress_metrics (
                 user_id, metric_date, task_completed,
-                task_id, skipped, skip_reason, updated_at
+                task_id, updated_at
             )
-            VALUES (:user_id, CURRENT_DATE, FALSE, :task_id, TRUE, :reason, NOW())
+            VALUES (:user_id, CURRENT_DATE, FALSE, :task_id, NOW())
             ON CONFLICT (user_id, metric_date)
             DO UPDATE SET
                 task_completed = FALSE,
-                skipped = TRUE,
-                skip_reason = EXCLUDED.skip_reason,
+                task_id = EXCLUDED.task_id,
                 updated_at = NOW()
         """),
-        {"user_id": uid, "task_id": task_id, "reason": payload.reason},
+        {"user_id": uid, "task_id": task_id},
     )
 
     # FIXED: Trigger score recalculation after skip (scores should reflect missed day)
