@@ -350,24 +350,27 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            className="flex flex-col items-center justify-center gap-4"
           >
-            <Link
-              href="/signup"
-              className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#F59E0B] text-[#0A0908] font-semibold text-base hover:bg-[#D97706] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              Start the interview
-              <motion.span
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >→</motion.span>
-            </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-[#A09690] text-base hover:border-white/25 hover:text-[#F5F1ED] transition-all"
-            >
-              Sign in
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+              <Link
+                href="/signup"
+                className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#F59E0B] text-[#0A0908] font-semibold text-base hover:bg-[#D97706] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                Start the interview
+                <motion.span
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >→</motion.span>
+              </Link>
+              <Link
+                href="/login"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-[#A09690] text-base hover:border-white/25 hover:text-[#F5F1ED] transition-all"
+              >
+                Sign in
+              </Link>
+            </div>
+            <p className="text-[#5C524A] text-xs">Free to begin. No card required.</p>
           </motion.div>
         </motion.div>
 
@@ -549,7 +552,7 @@ export default function LandingPage() {
               transition={{ duration: 0.3 }}
               className="p-10 rounded-2xl border border-white/8 bg-[#141210]"
             >
-              <div className="text-5xl font-display text-[#F59E0B] mb-6">11</div>
+              <div className="text-5xl font-display text-[#F59E0B] mb-6">90+</div>
               <p className="text-[#C4BBB5] text-lg leading-relaxed mb-6">
                 people have committed to one goal.
               </p>
