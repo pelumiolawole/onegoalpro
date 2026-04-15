@@ -4,8 +4,8 @@
   "description": "Identity-based goal transformation. One goal. Full commitment. No excuses.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0908",
-  "theme_color": "#F59E0B",
+  "background_color": "#FFFFFF",
+  "theme_color": "#009e97",
   "icons": [
     {
       "src": "/icon-192.png",

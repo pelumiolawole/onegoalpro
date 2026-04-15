@@ -64,7 +64,7 @@ function Typewriter({ words }: { words: string[] }) {
   }, [displayed, deleting, paused, wordIndex, words])
 
   return (
-    <span className="text-[#F59E0B] italic">
+    <span className="text-[#009e97] italic">
       {displayed}
       <span className="animate-pulse">|</span>
     </span>
@@ -82,7 +82,7 @@ function FloatingOrb({
       className="absolute rounded-full pointer-events-none"
       style={{
         width: size, height: size, top, left, opacity,
-        background: 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(0,158,151,0.4) 0%, transparent 70%)',
       }}
       animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }}
       transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
@@ -118,20 +118,20 @@ function DemoPreview() {
   return (
     <div
       ref={ref}
-      className="relative rounded-2xl border border-white/8 bg-[#0D0B09] overflow-hidden"
-      style={{ boxShadow: '0 0 60px rgba(245,158,11,0.06)' }}
+      className="relative rounded-2xl border border-black/8 bg-[#FFFFFF] overflow-hidden"
+      style={{ boxShadow: '0 0 60px rgba(0,158,151,0.06)' }}
     >
       {/* Mock header */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5 bg-[#141210]">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-black/5 bg-[#F8F8F7]">
         <div className="flex gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
         </div>
-        <span className="text-[#3D3630] text-xs ml-2 font-mono">The Discovery Interview</span>
+        <span className="text-[#C8C7C5] text-xs ml-2 font-mono">The Discovery Interview</span>
         <div className="ml-auto flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
-          <span className="text-[#3D3630] text-xs">Live AI</span>
+          <span className="text-[#C8C7C5] text-xs">Live AI</span>
         </div>
       </div>
 
@@ -149,8 +149,8 @@ function DemoPreview() {
               <div
                 className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   msg.role === 'ai'
-                    ? 'bg-[#1E1B18] text-[#C4BBB5] rounded-tl-sm'
-                    : 'bg-[#F59E0B]/15 border border-[#F59E0B]/20 text-[#F5F1ED] rounded-tr-sm'
+                    ? 'bg-[#F0EFED] text-[#5C5B57] rounded-tl-sm'
+                    : 'bg-[#009e97]/15 border border-[#009e97]/20 text-[#1A1A1A] rounded-tr-sm'
                 }`}
               >
                 {msg.text}
@@ -164,12 +164,12 @@ function DemoPreview() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex gap-1 px-4 py-3 bg-[#1E1B18] rounded-2xl rounded-tl-sm w-fit"
+            className="flex gap-1 px-4 py-3 bg-[#F0EFED] rounded-2xl rounded-tl-sm w-fit"
           >
             {[0, 1, 2].map(i => (
               <motion.div
                 key={i}
-                className="w-1.5 h-1.5 rounded-full bg-[#5C524A]"
+                className="w-1.5 h-1.5 rounded-full bg-[#C8C7C5]"
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 0.6, delay: i * 0.15, repeat: Infinity }}
               />
@@ -179,7 +179,7 @@ function DemoPreview() {
       </div>
 
       {/* Overlay fade at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0D0B09] to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#FFFFFF] to-transparent pointer-events-none" />
     </div>
   )
 }
@@ -314,23 +314,23 @@ export function StaticLanding() {
   const activePlans = PLANS[billing]
 
   return (
-    <div className="min-h-screen bg-[#0A0908] text-[#F5F1ED] overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] overflow-x-hidden">
 
       {/* ── Nav ───────────────────────────────────────────── */}
       <motion.nav
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0A0908]/80 backdrop-blur-md"
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-black/5 bg-[#FFFFFF]/80 backdrop-blur-md"
       >
         <OneGoalLogo size={26} textSize="text-lg" />
         <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm text-[#7A6E65] hover:text-[#F5F1ED] transition-colors">
+          <Link href="/login" className="text-sm text-[#9E9D9B] hover:text-[#1A1A1A] transition-colors">
             Sign in
           </Link>
           <Link
             href="/signup"
-            className="text-sm px-4 py-2 rounded-xl bg-[#F59E0B] text-[#0A0908] font-medium hover:bg-[#D97706] transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="text-sm px-4 py-2 rounded-xl bg-[#009e97] text-[#FFFFFF] font-medium hover:bg-[#00827c] transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             Get started
           </Link>
@@ -348,7 +348,7 @@ export function StaticLanding() {
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
-            backgroundImage: 'linear-gradient(rgba(245,158,11,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245,158,11,0.5) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(0,158,151,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,158,151,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -361,9 +361,9 @@ export function StaticLanding() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#F59E0B]/20 bg-[#F59E0B]/5 text-[#F59E0B] text-xs tracking-widest uppercase mb-8"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#009e97]/20 bg-[#009e97]/5 text-[#009e97] text-xs tracking-widest uppercase mb-8"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#009e97] animate-pulse" />
             Identity-Based Goal System
           </motion.div>
 
@@ -371,7 +371,7 @@ export function StaticLanding() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="font-display text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#F5F1ED] mb-4"
+            className="font-display text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#1A1A1A] mb-4"
           >
             One Goal.{' '}
             <br className="hidden md:block" />
@@ -382,7 +382,7 @@ export function StaticLanding() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="text-[#7A6E65] text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-[#9E9D9B] text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             Most apps track what you do. OneGoal works on who you are.
             It starts with a real interview, builds a goal around your actual life,
@@ -397,7 +397,7 @@ export function StaticLanding() {
           >
             <Link
               href="/signup"
-              className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#F59E0B] text-[#0A0908] font-semibold text-base hover:bg-[#D97706] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center gap-2"
+              className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#009e97] text-[#FFFFFF] font-semibold text-base hover:bg-[#00827c] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center gap-2"
             >
               Start the interview
               <motion.span
@@ -407,7 +407,7 @@ export function StaticLanding() {
             </Link>
             <Link
               href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-[#A09690] text-base hover:border-white/25 hover:text-[#F5F1ED] transition-all"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-black/10 text-[#7A7974] text-base hover:border-black/25 hover:text-[#1A1A1A] transition-all"
             >
               Sign in
             </Link>
@@ -427,8 +427,8 @@ export function StaticLanding() {
             { value: 'Most people', label: 'Never commit to one thing fully' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="font-display text-base md:text-lg text-[#F59E0B] mb-1">{stat.value}</div>
-              <div className="text-xs text-[#5C524A] uppercase tracking-wider">{stat.label}</div>
+              <div className="font-display text-base md:text-lg text-[#009e97] mb-1">{stat.value}</div>
+              <div className="text-xs text-[#C8C7C5] uppercase tracking-wider">{stat.label}</div>
             </div>
           ))}
         </motion.div>
@@ -440,11 +440,11 @@ export function StaticLanding() {
           transition={{ delay: 1.2 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         >
-          <span className="text-[#3D3630] text-xs tracking-widest uppercase">Scroll</span>
+          <span className="text-[#C8C7C5] text-xs tracking-widest uppercase">Scroll</span>
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-px h-8 bg-gradient-to-b from-[#F59E0B]/30 to-transparent"
+            className="w-px h-8 bg-gradient-to-b from-[#009e97]/30 to-transparent"
           />
         </motion.div>
       </section>
@@ -453,19 +453,19 @@ export function StaticLanding() {
       <section className="px-6 py-24 max-w-5xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <Reveal>
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">See It In Action</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED] mb-6">
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">See It In Action</p>
+            <h2 className="font-display text-4xl md:text-5xl text-[#1A1A1A] mb-6">
               This is not<br />
-              <span className="italic text-[#7A6E65]">an onboarding form.</span>
+              <span className="italic text-[#9E9D9B]">an onboarding form.</span>
             </h2>
-            <p className="text-[#5C524A] leading-relaxed mb-6">
+            <p className="text-[#C8C7C5] leading-relaxed mb-6">
               The Discovery Interview is a real conversation. The AI asks hard questions,
               pushes back on vague answers, and builds a picture of who you actually are —
               not who you think you want to be. Everything else runs on that.
             </p>
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 text-[#F59E0B] text-sm hover:gap-3 transition-all"
+              className="inline-flex items-center gap-2 text-[#009e97] text-sm hover:gap-3 transition-all"
             >
               Start your interview <span>→</span>
             </Link>
@@ -478,11 +478,11 @@ export function StaticLanding() {
       </section>
 
       {/* ── How It Works ──────────────────────────────────── */}
-      <section className="px-6 py-24 bg-[#0D0B09]">
+      <section className="px-6 py-24 bg-[#FFFFFF]">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">The Process</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED]">
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">The Process</p>
+            <h2 className="font-display text-4xl md:text-5xl text-[#1A1A1A]">
               Built around{' '}
               <span className="italic">who you're becoming</span>
             </h2>
@@ -514,16 +514,16 @@ export function StaticLanding() {
             ].map((item) => (
               <Reveal key={item.step} delay={item.delay}>
                 <motion.div
-                  whileHover={{ y: -4, borderColor: 'rgba(245,158,11,0.3)' }}
+                  whileHover={{ y: -4, borderColor: 'rgba(0,158,151,0.3)' }}
                   transition={{ duration: 0.2 }}
-                  className="relative p-6 rounded-2xl border border-white/5 bg-[#141210] cursor-default h-full"
+                  className="relative p-6 rounded-2xl border border-black/5 bg-[#F8F8F7] cursor-default h-full"
                 >
-                  <div className="text-[#F59E0B]/15 font-display text-6xl absolute top-4 right-5 select-none">
+                  <div className="text-[#009e97]/15 font-display text-6xl absolute top-4 right-5 select-none">
                     {item.step}
                   </div>
-                  <div className="text-[#F59E0B] text-2xl mb-4">{item.icon}</div>
-                  <h3 className="font-display text-xl text-[#F5F1ED] mb-3">{item.title}</h3>
-                  <p className="text-[#5C524A] text-sm leading-relaxed">{item.description}</p>
+                  <div className="text-[#009e97] text-2xl mb-4">{item.icon}</div>
+                  <h3 className="font-display text-xl text-[#1A1A1A] mb-3">{item.title}</h3>
+                  <p className="text-[#C8C7C5] text-sm leading-relaxed">{item.description}</p>
                 </motion.div>
               </Reveal>
             ))}
@@ -535,10 +535,10 @@ export function StaticLanding() {
       <section className="px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">Features</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED]">
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">Features</p>
+            <h2 className="font-display text-4xl md:text-5xl text-[#1A1A1A]">
               Everything you need.{' '}
-              <span className="italic text-[#7A6E65]">Nothing you don't.</span>
+              <span className="italic text-[#9E9D9B]">Nothing you don't.</span>
             </h2>
           </Reveal>
 
@@ -553,14 +553,14 @@ export function StaticLanding() {
             ].map((feature) => (
               <Reveal key={feature.title} delay={feature.delay}>
                 <motion.div
-                  whileHover={{ x: 4, borderColor: 'rgba(245,158,11,0.2)' }}
+                  whileHover={{ x: 4, borderColor: 'rgba(0,158,151,0.2)' }}
                   transition={{ duration: 0.2 }}
-                  className="flex gap-4 p-5 rounded-2xl border border-white/5 bg-[#141210] cursor-default"
+                  className="flex gap-4 p-5 rounded-2xl border border-black/5 bg-[#F8F8F7] cursor-default"
                 >
                   <span className="text-2xl shrink-0 mt-0.5">{feature.icon}</span>
                   <div>
-                    <h3 className="text-[#F5F1ED] font-medium mb-1">{feature.title}</h3>
-                    <p className="text-[#5C524A] text-sm leading-relaxed">{feature.description}</p>
+                    <h3 className="text-[#1A1A1A] font-medium mb-1">{feature.title}</h3>
+                    <p className="text-[#C8C7C5] text-sm leading-relaxed">{feature.description}</p>
                   </div>
                 </motion.div>
               </Reveal>
@@ -570,11 +570,11 @@ export function StaticLanding() {
       </section>
 
       {/* ── Testimonials ──────────────────────────────────── */}
-      <section className="px-6 py-24 bg-[#0D0B09]">
+      <section className="px-6 py-24 bg-[#FFFFFF]">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-16">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">Early Users</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED]">
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">Early Users</p>
+            <h2 className="font-display text-4xl md:text-5xl text-[#1A1A1A]">
               What happened when they{' '}
               <span className="italic">committed to one thing.</span>
             </h2>
@@ -590,21 +590,21 @@ export function StaticLanding() {
                 <motion.div
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.2 }}
-                  className="p-6 rounded-2xl border border-white/5 bg-[#141210] h-full flex flex-col"
+                  className="p-6 rounded-2xl border border-black/5 bg-[#F8F8F7] h-full flex flex-col"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B]/20 flex items-center justify-center shrink-0">
-                      <span className="text-[#F59E0B] text-xs font-semibold">{t.initials}</span>
+                    <div className="w-9 h-9 rounded-full bg-[#009e97]/20 border border-[#009e97]/20 flex items-center justify-center shrink-0">
+                      <span className="text-[#009e97] text-xs font-semibold">{t.initials}</span>
                     </div>
                     <div>
-                      <p className="text-[#C4BBB5] text-sm font-medium">{t.name}</p>
-                      <p className="text-[#3D3630] text-xs">{t.role}</p>
+                      <p className="text-[#5C5B57] text-sm font-medium">{t.name}</p>
+                      <p className="text-[#C8C7C5] text-xs">{t.role}</p>
                     </div>
                   </div>
-                  <p className="text-[#7A6E65] text-sm leading-relaxed italic flex-1">"{t.quote}"</p>
+                  <p className="text-[#9E9D9B] text-sm leading-relaxed italic flex-1">"{t.quote}"</p>
                   <div className="flex gap-0.5 mt-4">
                     {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-[#F59E0B] text-xs">★</span>
+                      <span key={i} className="text-[#009e97] text-xs">★</span>
                     ))}
                   </div>
                 </motion.div>
@@ -618,20 +618,20 @@ export function StaticLanding() {
       <section className="px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-12">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">Pricing</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED] mb-6">
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">Pricing</p>
+            <h2 className="font-display text-4xl md:text-5xl text-[#1A1A1A] mb-6">
               Choose your level of{' '}
-              <span className="italic text-[#F59E0B]">commitment</span>
+              <span className="italic text-[#009e97]">commitment</span>
             </h2>
 
             {/* Billing toggle */}
-            <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-[#141210]">
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-black/10 bg-[#F8F8F7]">
               <button
                 onClick={() => setBilling('monthly')}
                 className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
                   billing === 'monthly'
-                    ? 'bg-[#F59E0B] text-[#0A0908]'
-                    : 'text-[#5C524A] hover:text-[#A09690]'
+                    ? 'bg-[#009e97] text-[#FFFFFF]'
+                    : 'text-[#C8C7C5] hover:text-[#7A7974]'
                 }`}
               >
                 Monthly
@@ -640,12 +640,12 @@ export function StaticLanding() {
                 onClick={() => setBilling('annual')}
                 className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                   billing === 'annual'
-                    ? 'bg-[#F59E0B] text-[#0A0908]'
-                    : 'text-[#5C524A] hover:text-[#A09690]'
+                    ? 'bg-[#009e97] text-[#FFFFFF]'
+                    : 'text-[#C8C7C5] hover:text-[#7A7974]'
                 }`}
               >
                 Annual
-                <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#0A0908]/20' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#FFFFFF]/20' : 'bg-[#009e97]/10 text-[#009e97]'}`}>
                   Save up to 20%
                 </span>
               </button>
@@ -663,12 +663,12 @@ export function StaticLanding() {
                   transition={{ duration: 0.35, delay: i * 0.07 }}
                   className={`relative p-6 rounded-2xl border flex flex-col ${
                     plan.highlight
-                      ? 'border-[#F59E0B]/35 bg-[#141210]'
-                      : 'border-white/5 bg-[#141210]'
+                      ? 'border-[#009e97]/35 bg-[#F8F8F7]'
+                      : 'border-black/5 bg-[#F8F8F7]'
                   }`}
                 >
                   {plan.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#F59E0B] text-[#0A0908] text-xs font-semibold whitespace-nowrap">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#009e97] text-[#FFFFFF] text-xs font-semibold whitespace-nowrap">
                       Most Popular
                     </div>
                   )}
@@ -679,18 +679,18 @@ export function StaticLanding() {
                   )}
 
                   <div className="mb-6">
-                    <h3 className="font-display text-xl text-[#F5F1ED] mb-1">{plan.name}</h3>
-                    <p className="text-[#5C524A] text-sm mb-4">{plan.tagline}</p>
+                    <h3 className="font-display text-xl text-[#1A1A1A] mb-1">{plan.name}</h3>
+                    <p className="text-[#C8C7C5] text-sm mb-4">{plan.tagline}</p>
                     
                     {/* Price display */}
                     <div className="flex items-baseline gap-1">
-                      <span className="font-display text-4xl text-[#F5F1ED]">{plan.price}</span>
-                      <span className="text-[#5C524A] text-sm">{plan.period}</span>
+                      <span className="font-display text-4xl text-[#1A1A1A]">{plan.price}</span>
+                      <span className="text-[#C8C7C5] text-sm">{plan.period}</span>
                     </div>
                     
                     {/* Annual billing info */}
                     {'annualPrice' in plan && plan.annualPrice && (
-                      <p className="mt-2 text-sm text-[#7A6E65]">
+                      <p className="mt-2 text-sm text-[#9E9D9B]">
                         Billed as {plan.annualPrice}/year
                       </p>
                     )}
@@ -699,8 +699,8 @@ export function StaticLanding() {
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm">
-                        <span className="text-[#F59E0B] mt-0.5 shrink-0">✓</span>
-                        <span className="text-[#7A6E65]">{f}</span>
+                        <span className="text-[#009e97] mt-0.5 shrink-0">✓</span>
+                        <span className="text-[#9E9D9B]">{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -709,8 +709,8 @@ export function StaticLanding() {
                     href="/signup"
                     className={`w-full py-3 rounded-xl text-sm font-medium text-center transition-all hover:scale-[1.02] active:scale-[0.98] ${
                       plan.highlight
-                        ? 'bg-[#F59E0B] text-[#0A0908] hover:bg-[#D97706]'
-                        : 'border border-white/10 text-[#A09690] hover:border-white/25 hover:text-[#F5F1ED]'
+                        ? 'bg-[#009e97] text-[#FFFFFF] hover:bg-[#00827c]'
+                        : 'border border-black/10 text-[#7A7974] hover:border-black/25 hover:text-[#1A1A1A]'
                     }`}
                   >
                     {plan.cta}
@@ -719,18 +719,18 @@ export function StaticLanding() {
               ))}
             </AnimatePresence>
           </div>
-          <p className="text-center text-[#3D3630] text-xs mt-8">
+          <p className="text-center text-[#C8C7C5] text-xs mt-8">
             All plans include a 14-day money-back guarantee. No questions asked.
           </p>
         </div>
       </section>
 
       {/* ── FAQ ───────────────────────────────────────────── */}
-      <section className="px-6 py-24 bg-[#0D0B09]">
+      <section className="px-6 py-24 bg-[#FFFFFF]">
         <div className="max-w-3xl mx-auto">
           <Reveal className="text-center mb-16">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">FAQ</p>
-            <h2 className="font-display text-4xl text-[#F5F1ED]">Common questions.</h2>
+            <p className="text-[#009e97] text-xs tracking-widest uppercase mb-4">FAQ</p>
+            <h2 className="font-display text-4xl text-[#1A1A1A]">Common questions.</h2>
           </Reveal>
           <FAQList />
         </div>
@@ -743,18 +743,18 @@ export function StaticLanding() {
             animate={{ scale: [1, 1.1, 1], opacity: [0.04, 0.07, 0.04] }}
             transition={{ duration: 6, repeat: Infinity }}
             className="w-[700px] h-[700px] rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(245,158,11,1) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(0,158,151,1) 0%, transparent 70%)' }}
           />
         </div>
         <Reveal className="relative z-10 max-w-2xl mx-auto">
-          <h2 className="font-display text-4xl md:text-6xl text-[#F5F1ED] mb-6">
+          <h2 className="font-display text-4xl md:text-6xl text-[#1A1A1A] mb-6">
             The person you want to be{' '}
-            <span className="italic text-[#F59E0B]">is one goal away.</span>
+            <span className="italic text-[#009e97]">is one goal away.</span>
           </h2>
-          <p className="text-[#5C524A] mb-10 text-lg">Stop managing tasks. Start becoming.</p>
+          <p className="text-[#C8C7C5] mb-10 text-lg">Stop managing tasks. Start becoming.</p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#F59E0B] text-[#0A0908] font-semibold text-base hover:bg-[#D97706] transition-all hover:scale-[1.03] active:scale-[0.98]"
+            className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#009e97] text-[#FFFFFF] font-semibold text-base hover:bg-[#00827c] transition-all hover:scale-[1.03] active:scale-[0.98]"
           >
             Start the interview
             <motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
@@ -765,13 +765,13 @@ export function StaticLanding() {
       </section>
 
       {/* ── Footer ────────────────────────────────────────── */}
-      <footer className="px-6 py-10 border-t border-white/5">
+      <footer className="px-6 py-10 border-t border-black/5">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <OneGoalLogo size={22} textSize="text-lg" />
-          <p className="text-[#3D3630] text-xs text-center">One Goal. One Identity. One Day at a Time.</p>
-          <div className="flex gap-6 text-xs text-[#3D3630]">
-            <Link href="/login" className="hover:text-[#7A6E65] transition-colors">Sign in</Link>
-            <Link href="/signup" className="hover:text-[#7A6E65] transition-colors">Sign up</Link>
+          <p className="text-[#C8C7C5] text-xs text-center">One Goal. One Identity. One Day at a Time.</p>
+          <div className="flex gap-6 text-xs text-[#C8C7C5]">
+            <Link href="/login" className="hover:text-[#9E9D9B] transition-colors">Sign in</Link>
+            <Link href="/signup" className="hover:text-[#9E9D9B] transition-colors">Sign up</Link>
           </div>
         </div>
       </footer>
@@ -794,16 +794,16 @@ function FAQList() {
     <div className="space-y-3">
       {FAQS.map((faq, i) => (
         <Reveal key={i} delay={i * 0.05}>
-          <div className="border border-white/5 rounded-2xl bg-[#141210] overflow-hidden">
+          <div className="border border-black/5 rounded-2xl bg-[#F8F8F7] overflow-hidden">
             <button
               onClick={() => setOpen(open === i ? null : i)}
-              className="w-full flex items-center justify-between px-6 py-4 text-left text-[#C4BBB5] hover:text-[#F5F1ED] transition-colors text-sm font-medium"
+              className="w-full flex items-center justify-between px-6 py-4 text-left text-[#5C5B57] hover:text-[#1A1A1A] transition-colors text-sm font-medium"
             >
               {faq.q}
               <motion.span
                 animate={{ rotate: open === i ? 45 : 0 }}
                 transition={{ duration: 0.2 }}
-                className="text-[#F59E0B] shrink-0 ml-4 text-lg leading-none"
+                className="text-[#009e97] shrink-0 ml-4 text-lg leading-none"
               >
                 +
               </motion.span>
@@ -817,7 +817,7 @@ function FAQList() {
                   transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="px-6 pb-5 text-[#5C524A] text-sm leading-relaxed border-t border-white/5 pt-4">
+                  <div className="px-6 pb-5 text-[#C8C7C5] text-sm leading-relaxed border-t border-black/5 pt-4">
                     {faq.a}
                   </div>
                 </motion.div>

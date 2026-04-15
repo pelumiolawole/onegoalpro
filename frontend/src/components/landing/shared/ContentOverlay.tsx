@@ -65,7 +65,7 @@ export function ContentOverlay() {
       >
         <a 
           href="/signup"
-          className="pointer-events-auto inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-gold-600 to-gold-500 text-void-dark font-medium rounded-full hover:from-gold-500 hover:to-gold-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-gold-500/25"
+          className="pointer-events-auto inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-600 to-teal-500 text-white font-medium rounded-full hover:from-teal-500 hover:to-teal-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-teal-500/25"
         >
           Start the Interview
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,10 +81,10 @@ export function ContentOverlay() {
           transition: 'opacity 1s ease',
         }}
       >
-        <span className="text-xs uppercase tracking-widest text-gold-400/60">
+        <span className="text-xs uppercase tracking-widest text-teal-400/60">
           {COPY.scrollHint}
         </span>
-        <div className="w-px h-16 bg-gradient-to-b from-transparent via-gold-400/40 to-transparent animate-breathe" />
+        <div className="w-px h-16 bg-gradient-to-b from-transparent via-teal-400/40 to-transparent animate-breathe" />
       </div>
       
       <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-2">
@@ -94,7 +94,7 @@ export function ContentOverlay() {
             className={cn(
               "w-1 h-8 rounded-full transition-all duration-300",
               Math.abs(progress - phase) < 0.15 
-                ? "bg-gold-400" 
+                ? "bg-teal-400" 
                 : "bg-white/10"
             )}
           />

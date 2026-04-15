@@ -22,10 +22,10 @@ const plans = {
       'Reflection insights',
       'Goal history and archive',
     ],
-    color: 'text-[#F59E0B]',
-    border: 'border-[#F59E0B]/20',
-    activeBorder: 'border-[#F59E0B]',
-    bg: 'bg-[#F59E0B]/8',
+    color: 'text-[#009e97]',
+    border: 'border-[#009e97]/20',
+    activeBorder: 'border-[#009e97]',
+    bg: 'bg-[#009e97]/8',
     saveBadge: 'Save 20%',
     icon: Sparkles,
   },
@@ -44,10 +44,10 @@ const plans = {
       'Early feature access',
       'Priority support',
     ],
-    color: 'text-[#F59E0B]',
-    border: 'border-[#F59E0B]/20',
-    activeBorder: 'border-[#F59E0B]',
-    bg: 'bg-[#F59E0B]/8',
+    color: 'text-[#009e97]',
+    border: 'border-[#009e97]/20',
+    activeBorder: 'border-[#009e97]',
+    bg: 'bg-[#009e97]/8',
     saveBadge: 'Save 18%',
     icon: Shield,
   },
@@ -76,20 +76,20 @@ function UpgradeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0908]">
+    <div className="min-h-screen bg-[#FFFFFF]">
       <div className="max-w-3xl mx-auto px-6 py-12">
 
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#5C524A] hover:text-[#C4BBB5] mb-10 transition-colors"
+          className="flex items-center gap-2 text-[#C8C7C5] hover:text-[#5C5B57] mb-10 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Settings
         </button>
 
         <div className="mb-10">
-          <h1 className="font-display text-3xl text-[#F5F1ED] mb-2">Upgrade your plan</h1>
-          <p className="text-[#7A6E65]">Choose the level of commitment that matches where you are.</p>
+          <h1 className="font-display text-3xl text-[#1A1A1A] mb-2">Upgrade your plan</h1>
+          <p className="text-[#9E9D9B]">Choose the level of commitment that matches where you are.</p>
         </div>
 
         {error && (
@@ -99,13 +99,13 @@ function UpgradeContent() {
         )}
 
         {/* Billing toggle */}
-        <div className="flex items-center gap-1 p-1 bg-[#141210] border border-white/5 rounded-xl w-fit mb-8">
+        <div className="flex items-center gap-1 p-1 bg-[#F8F8F7] border border-black/5 rounded-xl w-fit mb-8">
           <button
             onClick={() => setBillingCycle('monthly')}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
               billingCycle === 'monthly'
-                ? 'bg-[#F59E0B] text-[#0A0908]'
-                : 'text-[#5C524A] hover:text-[#C4BBB5]'
+                ? 'bg-[#009e97] text-[#FFFFFF]'
+                : 'text-[#C8C7C5] hover:text-[#5C5B57]'
             }`}
           >
             Monthly
@@ -114,15 +114,15 @@ function UpgradeContent() {
             onClick={() => setBillingCycle('annual')}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
               billingCycle === 'annual'
-                ? 'bg-[#F59E0B] text-[#0A0908]'
-                : 'text-[#5C524A] hover:text-[#C4BBB5]'
+                ? 'bg-[#009e97] text-[#FFFFFF]'
+                : 'text-[#C8C7C5] hover:text-[#5C5B57]'
             }`}
           >
             Annual
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
               billingCycle === 'annual'
-                ? 'bg-[#0A0908]/20 text-[#0A0908]'
-                : 'bg-[#F59E0B]/15 text-[#F59E0B]'
+                ? 'bg-[#FFFFFF]/20 text-[#FFFFFF]'
+                : 'bg-[#009e97]/15 text-[#009e97]'
             }`}>
               Save up to 20%
             </span>
@@ -142,20 +142,20 @@ function UpgradeContent() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: key === 'forge' ? 0 : 0.08 }}
-                className="bg-[#141210] border border-white/5 rounded-2xl p-6 flex flex-col"
+                className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-6 flex flex-col"
               >
                 <div className="flex items-start justify-between mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-[#F59E0B]" />
+                    <div className="w-10 h-10 rounded-xl bg-[#009e97]/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-[#009e97]" />
                     </div>
                     <div>
-                      <h2 className="text-[#F5F1ED] font-display text-lg">{plan.name}</h2>
-                      <p className="text-[#5C524A] text-xs">{plan.tagline}</p>
+                      <h2 className="text-[#1A1A1A] font-display text-lg">{plan.name}</h2>
+                      <p className="text-[#C8C7C5] text-xs">{plan.tagline}</p>
                     </div>
                   </div>
                   {billingCycle === 'annual' && (
-                    <span className="text-xs px-2 py-0.5 bg-[#F59E0B]/15 text-[#F59E0B] rounded-full shrink-0">
+                    <span className="text-xs px-2 py-0.5 bg-[#009e97]/15 text-[#009e97] rounded-full shrink-0">
                       {plan.saveBadge}
                     </span>
                   )}
@@ -164,11 +164,11 @@ function UpgradeContent() {
                 {/* Price */}
                 <div className="mb-6">
                   <div className="flex items-end gap-1">
-                    <span className="text-3xl font-display text-[#F5F1ED]">${price}</span>
-                    <span className="text-[#5C524A] text-sm mb-1">/mo</span>
+                    <span className="text-3xl font-display text-[#1A1A1A]">${price}</span>
+                    <span className="text-[#C8C7C5] text-sm mb-1">/mo</span>
                   </div>
                   {billingCycle === 'annual' && (
-                    <p className="text-[#3D3630] text-xs mt-1">{plan.annualNote}</p>
+                    <p className="text-[#C8C7C5] text-xs mt-1">{plan.annualNote}</p>
                   )}
                 </div>
 
@@ -179,7 +179,7 @@ function UpgradeContent() {
                       <div className="w-4 h-4 rounded-full bg-green-950/40 flex items-center justify-center shrink-0 mt-0.5">
                         <Check className="w-2.5 h-2.5 text-green-400" />
                       </div>
-                      <span className="text-[#A09690] text-sm leading-snug">{feature}</span>
+                      <span className="text-[#7A7974] text-sm leading-snug">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -188,7 +188,7 @@ function UpgradeContent() {
                 <button
                   onClick={() => handleCheckout(key)}
                   disabled={loadingPlan !== null}
-                  className="w-full py-3 bg-[#F59E0B] text-[#0A0908] font-medium rounded-xl hover:bg-[#FCD34D] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                  className="w-full py-3 bg-[#009e97] text-[#FFFFFF] font-medium rounded-xl hover:bg-[#33c4be] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                 >
                   {isLoading ? (
                     <>
@@ -204,7 +204,7 @@ function UpgradeContent() {
           })}
         </div>
 
-        <p className="text-center text-[#3D3630] text-xs mt-6">
+        <p className="text-center text-[#C8C7C5] text-xs mt-6">
           14-day money-back guarantee. No questions asked.
         </p>
       </div>
@@ -214,8 +214,8 @@ function UpgradeContent() {
 
 function UpgradeLoading() {
   return (
-    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-[#F59E0B] animate-spin" />
+    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#009e97] animate-spin" />
     </div>
   )
 }

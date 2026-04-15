@@ -125,15 +125,15 @@ export default function InterviewPage() {
     return (
       <div className="text-center max-w-lg mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div className="w-16 h-16 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center mx-auto mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-[#009e97]/10 border border-[#009e97]/20 flex items-center justify-center mx-auto mb-8">
             <span className="text-2xl">&#10022;</span>
           </div>
-          <h1 className="font-display text-4xl text-[#F59E0B] mb-4">The Discovery Interview</h1>
-          <p className="text-[#A09690] text-lg leading-relaxed mb-4">
+          <h1 className="font-display text-4xl text-[#009e97] mb-4">The Discovery Interview</h1>
+          <p className="text-[#7A7974] text-lg leading-relaxed mb-4">
             Before we build your strategy, we need to understand what you actually want — not the goal you think you should have, but the real one.
           </p>
-          <p className="text-[#7A6E65] mb-6">This is a conversation. Answer honestly. Take your time.</p>
-          <p className="text-[#3D3630] text-xs mb-10">
+          <p className="text-[#9E9D9B] mb-6">This is a conversation. Answer honestly. Take your time.</p>
+          <p className="text-[#C8C7C5] text-xs mb-10">
             Coach PO is an AI, not a human coach. Your responses are processed by AI to build your goal profile.
           </p>
           <button onClick={startInterview} className="btn btn-primary px-10 h-13 text-base">
@@ -152,14 +152,14 @@ export default function InterviewPage() {
             <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-3 mt-0.5 shrink-0">
-                  <span className="text-[#F59E0B] text-xs">&#10022;</span>
+                <div className="w-8 h-8 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center mr-3 mt-0.5 shrink-0">
+                  <span className="text-[#009e97] text-xs">&#10022;</span>
                 </div>
               )}
               <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[0.9375rem] leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
-                  : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
+                  ? 'bg-[#009e97]/10 border border-[#009e97]/15 text-[#28271F] rounded-tr-sm'
+                  : 'bg-[#F0EFED] border border-black/5 text-[#5C5B57] rounded-tl-sm'
               }`}>
                 {msg.content}
               </div>
@@ -167,10 +167,10 @@ export default function InterviewPage() {
           ))}
           {loading && (
             <motion.div key="loading" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-              <div className="w-8 h-8 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-3 shrink-0">
-                <span className="text-[#F59E0B] text-xs">&#10022;</span>
+              <div className="w-8 h-8 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center mr-3 shrink-0">
+                <span className="text-[#009e97] text-xs">&#10022;</span>
               </div>
-              <div className="bg-[#1E1B18] border border-white/5 px-4 py-3 rounded-2xl rounded-tl-sm">
+              <div className="bg-[#F0EFED] border border-black/5 px-4 py-3 rounded-2xl rounded-tl-sm">
                 <TypingDots />
               </div>
             </motion.div>
@@ -178,17 +178,17 @@ export default function InterviewPage() {
         </AnimatePresence>
         <div ref={bottomRef} />
       </div>
-      <div className="border-t border-white/5 pt-4">
-        <div className="flex items-end gap-3 bg-[#141210] border border-white/7 rounded-2xl px-4 py-3 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all">
+      <div className="border-t border-black/5 pt-4">
+        <div className="flex items-end gap-3 bg-[#F8F8F7] border border-black/7 rounded-2xl px-4 py-3 focus-within:border-[#009e97]/30 focus-within:shadow-[0_0_0_3px_rgba(0,158,151,0.08)] transition-all">
           <TextareaAutosize value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
             placeholder="Type your response..." minRows={1} maxRows={5} disabled={loading}
-            className="flex-1 bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-[0.9375rem] leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans" />
+            className="flex-1 bg-transparent text-[#28271F] placeholder:text-[#C8C7C5] text-[0.9375rem] leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans" />
           <button onClick={sendMessage} disabled={!input.trim() || loading}
-            className="shrink-0 w-9 h-9 rounded-xl bg-[#F59E0B] disabled:bg-[#2A2520] disabled:text-[#5C524A] text-[#0A0908] flex items-center justify-center transition-all hover:bg-[#FCD34D] disabled:cursor-not-allowed">
+            className="shrink-0 w-9 h-9 rounded-xl bg-[#009e97] disabled:bg-[#E5E4E2] disabled:text-[#C8C7C5] text-[#FFFFFF] flex items-center justify-center transition-all hover:bg-[#33c4be] disabled:cursor-not-allowed">
             <SendIcon />
           </button>
         </div>
-        <p className="text-[#3D3630] text-xs text-center mt-2">Press Enter to send · Shift+Enter for new line</p>
+        <p className="text-[#C8C7C5] text-xs text-center mt-2">Press Enter to send · Shift+Enter for new line</p>
       </div>
     </div>
   )
@@ -198,7 +198,7 @@ function TypingDots() {
   return (
     <div className="flex gap-1 items-center h-5">
       {[0, 1, 2].map(i => (
-        <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#5C524A]"
+        <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#C8C7C5]"
           animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }} />
       ))}
     </div>

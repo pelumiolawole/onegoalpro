@@ -1,15 +1,15 @@
 export const COLORS = {
-  gold: {
-    primary: '#c99a2e',
-    bright: '#e8c97a',
-    dark: '#8a6420',
-    glow: 'rgba(201, 154, 46, 0.5)',
+  teal: {
+    primary: '#009e97',
+    bright: '#33c4be',
+    dark: '#006b66',
+    glow: 'rgba(0, 158, 151, 0.5)',
   },
-  void: {
-    bg: '#0a0908',
-    light: '#0d0b08',
-    dark: '#050403',
-    center: '#1a150f',
+  surface: {
+    bg: '#FFFFFF',
+    light: '#F8F8F7',
+    dark: '#F0EFED',
+    center: '#e6f8f7',
   }
 } as const
 

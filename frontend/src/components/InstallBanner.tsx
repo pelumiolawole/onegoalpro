@@ -151,22 +151,22 @@ export default function InstallBanner() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="mx-4 mb-5 rounded-2xl border border-[#F59E0B]/20 bg-[#1A1714] overflow-hidden"
-          style={{ boxShadow: '0 0 0 1px rgba(245,158,11,0.08), 0 4px 24px rgba(0,0,0,0.4)' }}
+          className="mx-4 mb-5 rounded-2xl border border-[#009e97]/20 bg-[#F8F8F7] overflow-hidden"
+          style={{ boxShadow: '0 0 0 1px rgba(0,158,151,0.08), 0 4px 24px rgba(0,0,0,0.4)' }}
         >
           {/* Top bar */}
           <div className="flex items-start justify-between px-4 pt-4 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center shrink-0">
-                <span className="text-[#F59E0B] text-xs">⌂</span>
+              <div className="w-7 h-7 rounded-lg bg-[#009e97]/10 border border-[#009e97]/20 flex items-center justify-center shrink-0">
+                <span className="text-[#009e97] text-xs">⌂</span>
               </div>
-              <p className="text-[#E8E2DC] text-sm font-medium leading-snug">
+              <p className="text-[#28271F] text-sm font-medium leading-snug">
                 Add OneGoal Pro to your home screen
               </p>
             </div>
             <button
               onClick={dismiss}
-              className="text-[#5C524A] hover:text-[#A09690] transition-colors ml-3 mt-0.5 shrink-0"
+              className="text-[#C8C7C5] hover:text-[#7A7974] transition-colors ml-3 mt-0.5 shrink-0"
               aria-label="Dismiss"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -176,7 +176,7 @@ export default function InstallBanner() {
           </div>
 
           {/* Subtitle */}
-          <p className="px-4 text-[#7A6E65] text-xs leading-relaxed pb-3">
+          <p className="px-4 text-[#9E9D9B] text-xs leading-relaxed pb-3">
             Works like a native app — no App Store needed. One tap from your home screen and you're in.
           </p>
 
@@ -188,8 +188,8 @@ export default function InstallBanner() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeTab === tab
-                    ? 'bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/25'
-                    : 'text-[#5C524A] border border-white/5 hover:text-[#A09690]'
+                    ? 'bg-[#009e97]/15 text-[#009e97] border border-[#009e97]/25'
+                    : 'text-[#C8C7C5] border border-black/5 hover:text-[#7A7974]'
                 }`}
               >
                 {tab === 'android' ? 'Android' : 'iPhone / iPad'}
@@ -204,23 +204,23 @@ export default function InstallBanner() {
           <div className="px-4 pb-3 space-y-2">
             {steps.map(step => (
               <div key={step.n} className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-[#2A2520] border border-white/8 flex items-center justify-center text-[10px] text-[#F59E0B] shrink-0 mt-0.5">
+                <span className="w-5 h-5 rounded-full bg-[#E5E4E2] border border-black/8 flex items-center justify-center text-[10px] text-[#009e97] shrink-0 mt-0.5">
                   {step.n}
                 </span>
-                <p className="text-[#C4BBB5] text-xs leading-relaxed">{step.text}</p>
+                <p className="text-[#5C5B57] text-xs leading-relaxed">{step.text}</p>
               </div>
             ))}
           </div>
 
           {/* Push notification nudge */}
           {!pushGranted && (
-            <div className="mx-4 mb-4 px-3 py-2.5 rounded-xl bg-[#0F0D0B] border border-white/5 flex items-center justify-between gap-3">
-              <p className="text-[#7A6E65] text-xs leading-relaxed">
+            <div className="mx-4 mb-4 px-3 py-2.5 rounded-xl bg-[#FFFFFF] border border-black/5 flex items-center justify-between gap-3">
+              <p className="text-[#9E9D9B] text-xs leading-relaxed">
                 Allow notifications so you don't miss your daily task.
               </p>
               <button
                 onClick={handlePushRequest}
-                className="shrink-0 text-xs text-[#F59E0B] font-medium hover:text-[#FCD34D] transition-colors"
+                className="shrink-0 text-xs text-[#009e97] font-medium hover:text-[#33c4be] transition-colors"
               >
                 Allow
               </button>
@@ -228,9 +228,9 @@ export default function InstallBanner() {
           )}
 
           {pushGranted && (
-            <div className="mx-4 mb-4 px-3 py-2 rounded-xl bg-[#0F0D0B] border border-white/5 flex items-center gap-2">
+            <div className="mx-4 mb-4 px-3 py-2 rounded-xl bg-[#FFFFFF] border border-black/5 flex items-center gap-2">
               <span className="text-[#22C55E] text-xs">✓</span>
-              <p className="text-[#5C524A] text-xs">Notifications on</p>
+              <p className="text-[#C8C7C5] text-xs">Notifications on</p>
             </div>
           )}
 
@@ -238,7 +238,7 @@ export default function InstallBanner() {
           <div className="px-4 pb-4 text-center">
             <button
               onClick={dismiss}
-              className="text-[#3D3630] text-xs hover:text-[#5C524A] transition-colors"
+              className="text-[#C8C7C5] text-xs hover:text-[#C8C7C5] transition-colors"
             >
               Dismiss — don't show this again for a week
             </button>

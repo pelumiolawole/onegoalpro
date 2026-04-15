@@ -85,7 +85,7 @@ function DateSeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <div className="flex-1 h-px bg-white/5" />
-      <span className="text-[10px] uppercase tracking-widest text-[#3D3630] font-medium px-2">
+      <span className="text-[10px] uppercase tracking-widest text-[#C8C7C5] font-medium px-2">
         {label}
       </span>
       <div className="flex-1 h-px bg-white/5" />
@@ -248,14 +248,14 @@ export default function CoachPage() {
     <div className="flex flex-col h-screen max-h-screen pb-16 md:pb-0">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center">
-          <span className="text-[#F59E0B] text-sm">✦</span>
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-black/5 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center">
+          <span className="text-[#009e97] text-sm">✦</span>
         </div>
         <div>
-          <p className="text-[#E8E2DC] text-sm font-medium">Your Coach</p>
-          <p className="text-[#3D3630] text-xs">Knows your goal, your history, and where you are</p>
-          <p className="text-[#2A2520] text-[10px] mt-0.5">AI coach — not a human</p>
+          <p className="text-[#28271F] text-sm font-medium">Your Coach</p>
+          <p className="text-[#C8C7C5] text-xs">Knows your goal, your history, and where you are</p>
+          <p className="text-[#E5E4E2] text-[10px] mt-0.5">AI coach — not a human</p>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ export default function CoachPage() {
 
         {loading && (
           <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-[#F59E0B]/20 border-t-[#F59E0B] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#009e97]/20 border-t-[#009e97] rounded-full animate-spin" />
           </div>
         )}
 
@@ -275,13 +275,13 @@ export default function CoachPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16 max-w-sm mx-auto"
           >
-            <div className="w-14 h-14 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/15 flex items-center justify-center mx-auto mb-5">
-              <span className="text-[#F59E0B] text-2xl">✦</span>
+            <div className="w-14 h-14 rounded-2xl bg-[#009e97]/10 border border-[#009e97]/15 flex items-center justify-center mx-auto mb-5">
+              <span className="text-[#009e97] text-2xl">✦</span>
             </div>
-            <h2 className="font-display text-xl text-[#E8E2DC] mb-3">
+            <h2 className="font-display text-xl text-[#28271F] mb-3">
               Your coach is here
             </h2>
-            <p className="text-[#5C524A] text-sm leading-relaxed mb-6">
+            <p className="text-[#C8C7C5] text-sm leading-relaxed mb-6">
               Ask about your goal, your week, or what's getting in the way.
               It knows your full history — use that.
             </p>
@@ -290,7 +290,7 @@ export default function CoachPage() {
                 <button
                   key={s}
                   onClick={() => setInput(s)}
-                  className="w-full text-left text-sm px-4 py-2.5 rounded-xl bg-[#141210] border border-white/5 text-[#7A6E65] hover:text-[#A09690] hover:border-white/10 transition-all"
+                  className="w-full text-left text-sm px-4 py-2.5 rounded-xl bg-[#F8F8F7] border border-black/5 text-[#9E9D9B] hover:text-[#7A7974] hover:border-black/10 transition-all"
                 >
                   {s}
                 </button>
@@ -389,15 +389,15 @@ export default function CoachPage() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
-                  <span className="text-[#F59E0B] text-[10px]">✦</span>
+                <div className="w-7 h-7 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
+                  <span className="text-[#009e97] text-[10px]">✦</span>
                 </div>
               )}
               <div
                 className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
-                    : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
+                    ? 'bg-[#009e97]/10 border border-[#009e97]/15 text-[#28271F] rounded-tr-sm'
+                    : 'bg-[#F0EFED] border border-black/5 text-[#5C5B57] rounded-tl-sm'
                 }`}
               >
                 {msg.content || (msg.streaming ? <TypingDots /> : '')}
@@ -405,7 +405,7 @@ export default function CoachPage() {
                   <motion.span
                     animate={{ opacity: [1, 0] }}
                     transition={{ duration: 0.5, repeat: Infinity }}
-                    className="inline-block w-0.5 h-3.5 bg-[#F59E0B] ml-0.5 align-middle"
+                    className="inline-block w-0.5 h-3.5 bg-[#009e97] ml-0.5 align-middle"
                   />
                 )}
               </div>
@@ -419,8 +419,8 @@ export default function CoachPage() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/5 p-4 shrink-0">
-        <div className="flex items-end gap-3 bg-[#141210] border border-white/7 rounded-2xl px-4 py-3 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all max-w-3xl mx-auto">
+      <div className="border-t border-black/5 p-4 shrink-0">
+        <div className="flex items-end gap-3 bg-[#F8F8F7] border border-black/7 rounded-2xl px-4 py-3 focus-within:border-[#009e97]/30 focus-within:shadow-[0_0_0_3px_rgba(0,158,151,0.08)] transition-all max-w-3xl mx-auto">
           <TextareaAutosize
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -429,15 +429,15 @@ export default function CoachPage() {
             minRows={1}
             maxRows={6}
             disabled={streaming || !sessionId}
-            className="flex-1 bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-base leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
+            className="flex-1 bg-transparent text-[#28271F] placeholder:text-[#C8C7C5] text-base leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || streaming || !sessionId}
-            className="shrink-0 w-8 h-8 rounded-xl bg-[#F59E0B] disabled:bg-[#2A2520] disabled:text-[#5C524A] text-[#0A0908] flex items-center justify-center transition-all hover:bg-[#FCD34D] disabled:cursor-not-allowed"
+            className="shrink-0 w-8 h-8 rounded-xl bg-[#009e97] disabled:bg-[#E5E4E2] disabled:text-[#C8C7C5] text-[#FFFFFF] flex items-center justify-center transition-all hover:bg-[#33c4be] disabled:cursor-not-allowed"
           >
             {streaming ? (
-              <span className="w-3 h-3 border border-[#0A0908]/30 border-t-[#0A0908] rounded-full animate-spin" />
+              <span className="w-3 h-3 border border-[#FFFFFF]/30 border-t-[#FFFFFF] rounded-full animate-spin" />
             ) : (
               <SendIcon />
             )}
@@ -454,7 +454,7 @@ function TypingDots() {
       {[0, 1, 2].map(i => (
         <motion.span
           key={i}
-          className="w-1 h-1 rounded-full bg-[#5C524A] inline-block"
+          className="w-1 h-1 rounded-full bg-[#C8C7C5] inline-block"
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
         />

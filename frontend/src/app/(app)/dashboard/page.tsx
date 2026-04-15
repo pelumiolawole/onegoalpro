@@ -68,8 +68,8 @@ export default function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <p className="text-[#5C524A] text-sm mb-1">{greeting}</p>
-        <h1 className="font-display text-3xl text-[#F5F1ED]">
+        <p className="text-[#C8C7C5] text-sm mb-1">{greeting}</p>
+        <h1 className="font-display text-3xl text-[#1A1A1A]">
           {name}
           {scores?.momentum_state === 'rising' && (
             <span className="ml-2 text-[#4ADE80] text-lg">
@@ -127,9 +127,9 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+              className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
             >
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-4 font-mono">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest mb-4 font-mono">
                 This week
               </p>
               <WeekGrid days={data.week_activity} />
@@ -142,27 +142,27 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+              className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
             >
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-4 font-mono">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest mb-4 font-mono">
                 Identity traits
               </p>
               <div className="space-y-3">
                 {data.top_traits.map((trait) => (
                   <div key={trait.name}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-[#C4BBB5] text-sm capitalize">{trait.name}</span>
+                      <span className="text-[#5C5B57] text-sm capitalize">{trait.name}</span>
                       <span className={`text-xs font-mono flex items-center gap-1 ${
                         trait.trend === 'growing' ? 'text-[#4ADE80]' :
-                        trait.trend === 'declining' ? 'text-[#F87171]' : 'text-[#5C524A]'
+                        trait.trend === 'declining' ? 'text-[#F87171]' : 'text-[#C8C7C5]'
                       }`}>
                         <TrendArrowSmall trend={trait.trend} />
                         {trait.progress_pct.toFixed(0)}%
                       </span>
                     </div>
-                    <div className="h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-[#F0EFED] rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-[#F59E0B] rounded-full"
+                        className="h-full bg-[#009e97] rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${trait.progress_pct}%` }}
                         transition={{ duration: 0.8, delay: 0.3 }}
@@ -180,24 +180,24 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+              className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
             >
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-3 font-mono">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest mb-3 font-mono">
                 Your goal
               </p>
-              <p className="text-[#C4BBB5] text-sm mb-3 leading-relaxed">
+              <p className="text-[#5C5B57] text-sm mb-3 leading-relaxed">
                 {data.goal.statement}
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-[#F0EFED] rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-[#F59E0B]/60 rounded-full"
+                    className="h-full bg-[#009e97]/60 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${data.goal.progress}%` }}
                     transition={{ duration: 1, delay: 0.4 }}
                   />
                 </div>
-                <span className="text-[#5C524A] text-xs font-mono whitespace-nowrap">
+                <span className="text-[#C8C7C5] text-xs font-mono whitespace-nowrap">
                   {data.goal.objectives_done}/{data.goal.objectives_total} objectives
                 </span>
               </div>
@@ -210,12 +210,12 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-[#F59E0B]/5 border border-[#F59E0B]/15 rounded-2xl p-5"
+              className="bg-[#009e97]/5 border border-[#009e97]/15 rounded-2xl p-5"
             >
-              <p className="text-[#F59E0B] text-xs uppercase tracking-widest mb-2 font-mono">
+              <p className="text-[#009e97] text-xs uppercase tracking-widest mb-2 font-mono">
                 Weekly review
               </p>
-              <p className="text-[#C4BBB5] text-sm">
+              <p className="text-[#5C5B57] text-sm">
                 Week of {data.latest_review.week_start} —{' '}
                 {data.latest_review.tasks_completed}/{data.latest_review.tasks_total} tasks,{' '}
                 {data.latest_review.consistency_pct.toFixed(0)}% consistency
@@ -228,16 +228,16 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className="bg-[#141210] border border-white/5 rounded-2xl overflow-hidden"
+            className="bg-[#F8F8F7] border border-black/5 rounded-2xl overflow-hidden"
           >
             <button
               onClick={() => setHistoryOpen(v => !v)}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#1E1B18] transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F0EFED] transition-colors"
             >
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">
                 Past tasks
               </p>
-              <div className={`text-[#5C524A] transition-transform duration-200 ${historyOpen ? 'rotate-180' : ''}`}>
+              <div className={`text-[#C8C7C5] transition-transform duration-200 ${historyOpen ? 'rotate-180' : ''}`}>
                 <ChevronIcon />
               </div>
             </button>
@@ -251,29 +251,29 @@ export default function DashboardPage() {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden"
                 >
-                  <div className="border-t border-white/5">
+                  <div className="border-t border-black/5">
                     {historyLoading ? (
                       <div className="px-5 py-6 space-y-3">
                         {[...Array(4)].map((_, i) => (
-                          <div key={i} className="h-12 bg-[#1E1B18] rounded-xl animate-pulse" />
+                          <div key={i} className="h-12 bg-[#F0EFED] rounded-xl animate-pulse" />
                         ))}
                       </div>
                     ) : !historyData || historyData.tasks.length === 0 ? (
-                      <p className="px-5 py-6 text-[#3D3630] text-sm">
+                      <p className="px-5 py-6 text-[#C8C7C5] text-sm">
                         No past tasks yet. Complete your first task to start building history.
                       </p>
                     ) : (
                       <div className="divide-y divide-white/5">
                         {/* Stats row */}
                         <div className="px-5 py-3 flex gap-5">
-                          <span className="text-[#5C524A] text-xs font-mono">
+                          <span className="text-[#C8C7C5] text-xs font-mono">
                             <span className="text-[#4ADE80]">{historyData.stats.completed}</span> completed
                           </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
+                          <span className="text-[#C8C7C5] text-xs font-mono">
                             <span className="text-[#F87171]">{historyData.stats.missed + historyData.stats.skipped}</span> missed
                           </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#F59E0B]">{historyData.stats.completion_rate}%</span> rate
+                          <span className="text-[#C8C7C5] text-xs font-mono">
+                            <span className="text-[#009e97]">{historyData.stats.completion_rate}%</span> rate
                           </span>
                         </div>
 
@@ -283,33 +283,33 @@ export default function DashboardPage() {
                             {/* Summary row — always visible */}
                             <button
                               onClick={() => toggleTask(t.id)}
-                              className="w-full px-5 py-3.5 flex items-start gap-3 hover:bg-[#1E1B18] transition-colors text-left"
+                              className="w-full px-5 py-3.5 flex items-start gap-3 hover:bg-[#F0EFED] transition-colors text-left"
                             >
                               <div className="mt-0.5 shrink-0">
                                 <StatusDot status={t.status} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm leading-snug ${
-                                  t.status === 'completed' ? 'text-[#C4BBB5]' : 'text-[#5C524A]'
+                                  t.status === 'completed' ? 'text-[#5C5B57]' : 'text-[#C8C7C5]'
                                 }`}>
                                   {t.title}
                                 </p>
                                 {t.identity_focus && (
-                                  <p className="text-[#3D3630] text-xs mt-0.5 truncate">
+                                  <p className="text-[#C8C7C5] text-xs mt-0.5 truncate">
                                     {t.identity_focus}
                                   </p>
                                 )}
                               </div>
                               <div className="shrink-0 text-right flex flex-col items-end gap-1">
-                                <p className="text-[#3D3630] text-xs font-mono">
+                                <p className="text-[#C8C7C5] text-xs font-mono">
                                   {formatDate(t.date)}
                                 </p>
                                 {t.reflection_qa?.length > 0 && (
-                                  <p className="text-[#F59E0B] text-[10px] font-mono">reflected</p>
+                                  <p className="text-[#009e97] text-[10px] font-mono">reflected</p>
                                 )}
                               </div>
                               {/* Expand indicator */}
-                              <div className={`text-[#3D3630] shrink-0 mt-0.5 transition-transform duration-200 ${expandedTask === t.id ? 'rotate-180' : ''}`}>
+                              <div className={`text-[#C8C7C5] shrink-0 mt-0.5 transition-transform duration-200 ${expandedTask === t.id ? 'rotate-180' : ''}`}>
                                 <ChevronIcon />
                               </div>
                             </button>
@@ -324,15 +324,15 @@ export default function DashboardPage() {
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="px-5 pb-5 pt-1 bg-[#0F0D0B] border-t border-white/5 space-y-4">
+                                  <div className="px-5 pb-5 pt-1 bg-[#FFFFFF] border-t border-black/5 space-y-4">
 
                                     {/* Task description */}
                                     {t.description && (
                                       <div>
-                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                        <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-1.5">
                                           Task
                                         </p>
-                                        <p className="text-[#7A6E65] text-sm leading-relaxed">
+                                        <p className="text-[#9E9D9B] text-sm leading-relaxed">
                                           {t.description}
                                         </p>
                                       </div>
@@ -341,10 +341,10 @@ export default function DashboardPage() {
                                     {/* Identity anchor */}
                                     {t.identity_focus && (
                                       <div>
-                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                        <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-1.5">
                                           Identity
                                         </p>
-                                        <p className="text-[#F59E0B]/70 text-sm italic">
+                                        <p className="text-[#009e97]/70 text-sm italic">
                                           {t.identity_focus}
                                         </p>
                                       </div>
@@ -353,16 +353,16 @@ export default function DashboardPage() {
                                     {/* Reflection Q&A */}
                                     {t.reflection_qa?.length > 0 ? (
                                       <div>
-                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-3">
+                                        <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-3">
                                           Reflection
                                         </p>
                                         <div className="space-y-3">
                                           {t.reflection_qa.map((qa: any, i: number) => (
                                             <div key={i}>
-                                              <p className="text-[#5C524A] text-xs mb-1 leading-relaxed">
+                                              <p className="text-[#C8C7C5] text-xs mb-1 leading-relaxed">
                                                 {qa.question}
                                               </p>
-                                              <p className="text-[#C4BBB5] text-sm leading-relaxed pl-3 border-l border-[#F59E0B]/20">
+                                              <p className="text-[#5C5B57] text-sm leading-relaxed pl-3 border-l border-[#009e97]/20">
                                                 {qa.answer}
                                               </p>
                                             </div>
@@ -371,10 +371,10 @@ export default function DashboardPage() {
                                       </div>
                                     ) : (
                                       <div>
-                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                        <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-1.5">
                                           Reflection
                                         </p>
-                                        <p className="text-[#3D3630] text-sm italic">
+                                        <p className="text-[#C8C7C5] text-sm italic">
                                           No reflection recorded.
                                         </p>
                                       </div>
@@ -382,11 +382,11 @@ export default function DashboardPage() {
 
                                     {/* AI insight */}
                                     {t.reflection_insight && (
-                                      <div className="bg-[#F59E0B]/5 border border-[#F59E0B]/10 rounded-xl p-3">
-                                        <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+                                      <div className="bg-[#009e97]/5 border border-[#009e97]/10 rounded-xl p-3">
+                                        <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-1.5">
                                           Coach insight
                                         </p>
-                                        <p className="text-[#A09690] text-sm leading-relaxed italic">
+                                        <p className="text-[#7A7974] text-sm leading-relaxed italic">
                                           {t.reflection_insight}
                                         </p>
                                       </div>
@@ -438,7 +438,7 @@ function SentimentBadge({ sentiment }: { sentiment: string }) {
     positive:  { label: 'Positive',  color: 'text-[#4ADE80] bg-[#4ADE80]/10 border-[#4ADE80]/20' },
     neutral:   { label: 'Neutral',   color: 'text-[#94A3B8] bg-[#94A3B8]/10 border-[#94A3B8]/20' },
     negative:  { label: 'Negative',  color: 'text-[#F87171] bg-[#F87171]/10 border-[#F87171]/20' },
-    mixed:     { label: 'Mixed',     color: 'text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20' },
+    mixed:     { label: 'Mixed',     color: 'text-[#009e97] bg-[#009e97]/10 border-[#009e97]/20' },
     resistant: { label: 'Resistant', color: 'text-[#F87171] bg-[#F87171]/10 border-[#F87171]/20' },
   }
   const c = config[sentiment] || config.neutral
@@ -476,8 +476,8 @@ function StatusDot({ status }: { status: string }) {
     </div>
   )
   if (status === 'skipped') return (
-    <div className="w-5 h-5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
-      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round">
+    <div className="w-5 h-5 rounded-full bg-[#009e97]/10 border border-[#009e97]/20 flex items-center justify-center">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#009e97" strokeWidth="3" strokeLinecap="round">
         <line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </div>
@@ -512,24 +512,24 @@ function ScoreTile({ label, value, unit, sub, colored }: {
     declining:'text-[#F87171]',
     critical: 'text-[#F87171]',
   }
-  const textColor = colored && sub ? (colorMap[sub] || 'text-[#C4BBB5]') : 'text-[#C4BBB5]'
+  const textColor = colored && sub ? (colorMap[sub] || 'text-[#5C5B57]') : 'text-[#5C5B57]'
 
   return (
-    <div className="bg-[#141210] border border-white/5 rounded-2xl p-4">
-      <p className="text-[#3D3630] text-xs uppercase tracking-wider mb-1 font-mono">{label}</p>
+    <div className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-4">
+      <p className="text-[#C8C7C5] text-xs uppercase tracking-wider mb-1 font-mono">{label}</p>
       <p className={`font-mono text-2xl ${textColor}`}>
         {value}{unit && <span className="text-lg">{unit}</span>}
       </p>
-      {sub && <p className="text-[#3D3630] text-xs mt-0.5 capitalize">{sub}</p>}
+      {sub && <p className="text-[#C8C7C5] text-xs mt-0.5 capitalize">{sub}</p>}
     </div>
   )
 }
 
 function NoTaskCard() {
   return (
-    <div className="bg-[#141210] border border-dashed border-white/10 rounded-2xl p-8 text-center">
-      <p className="text-[#5C524A] mb-2">No task for today yet.</p>
-      <p className="text-[#3D3630] text-sm">Your task will be generated tonight for tomorrow.</p>
+    <div className="bg-[#F8F8F7] border border-dashed border-black/10 rounded-2xl p-8 text-center">
+      <p className="text-[#C8C7C5] mb-2">No task for today yet.</p>
+      <p className="text-[#C8C7C5] text-sm">Your task will be generated tonight for tomorrow.</p>
     </div>
   )
 }
@@ -537,11 +537,11 @@ function NoTaskCard() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-5 animate-pulse">
-      <div className="h-48 bg-[#141210] rounded-2xl" />
+      <div className="h-48 bg-[#F8F8F7] rounded-2xl" />
       <div className="grid grid-cols-4 gap-3">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-[#141210] rounded-2xl" />)}
+        {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-[#F8F8F7] rounded-2xl" />)}
       </div>
-      <div className="h-32 bg-[#141210] rounded-2xl" />
+      <div className="h-32 bg-[#F8F8F7] rounded-2xl" />
     </div>
   )
 }

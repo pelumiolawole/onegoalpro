@@ -67,10 +67,10 @@ export default function GoalPage() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="font-display text-4xl text-[#F5F1ED] mb-3">
+            <h1 className="font-display text-4xl text-[#1A1A1A] mb-3">
               Define your One Goal
             </h1>
-            <p className="text-[#7A6E65] mb-8 leading-relaxed">
+            <p className="text-[#9E9D9B] mb-8 leading-relaxed">
               The single outcome that matters most to you right now. Write it in
               plain language — rough is fine. The AI will work with what you give it.
             </p>
@@ -81,13 +81,13 @@ export default function GoalPage() {
               </div>
             )}
 
-            <div className="bg-[#141210] border border-white/7 rounded-2xl p-1 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all mb-6">
+            <div className="bg-[#F8F8F7] border border-black/7 rounded-2xl p-1 focus-within:border-[#009e97]/30 focus-within:shadow-[0_0_0_3px_rgba(0,158,151,0.08)] transition-all mb-6">
               <TextareaAutosize
                 value={rawGoal}
                 onChange={e => setRawGoal(e.target.value)}
                 placeholder="e.g. Build a product that generates $10k MRR, Get to a place where I feel strong and energetic every day, Write and publish a book about my experience..."
                 minRows={4}
-                className="w-full bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-base leading-relaxed resize-none focus:outline-none px-4 py-3 font-sans"
+                className="w-full bg-transparent text-[#28271F] placeholder:text-[#C8C7C5] text-base leading-relaxed resize-none focus:outline-none px-4 py-3 font-sans"
               />
             </div>
 
@@ -99,19 +99,19 @@ export default function GoalPage() {
               >
                 {stage === 'processing' ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-[#0A0908]/30 border-t-[#0A0908] rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-[#FFFFFF]/30 border-t-[#FFFFFF] rounded-full animate-spin" />
                     Analyzing...
                   </span>
                 ) : (
                   'Build my strategy'
                 )}
               </button>
-              <p className="text-[#5C524A] text-sm">Takes about 20 seconds</p>
+              <p className="text-[#C8C7C5] text-sm">Takes about 20 seconds</p>
             </div>
 
             {/* Examples */}
-            <div className="mt-10 border-t border-white/5 pt-8">
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-4">
+            <div className="mt-10 border-t border-black/5 pt-8">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest mb-4">
                 Real examples from past users
               </p>
               <div className="space-y-3">
@@ -119,7 +119,7 @@ export default function GoalPage() {
                   <button
                     key={ex}
                     onClick={() => setRawGoal(ex)}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-[#141210] border border-white/5 text-[#7A6E65] text-sm hover:border-white/10 hover:text-[#A09690] transition-all"
+                    className="w-full text-left px-4 py-3 rounded-xl bg-[#F8F8F7] border border-black/5 text-[#9E9D9B] text-sm hover:border-black/10 hover:text-[#7A7974] transition-all"
                   >
                     &ldquo;{ex}&rdquo;
                   </button>
@@ -138,10 +138,10 @@ export default function GoalPage() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className="font-display text-3xl text-[#F5F1ED] mb-3">
+            <h1 className="font-display text-3xl text-[#1A1A1A] mb-3">
               A few quick questions
             </h1>
-            <p className="text-[#7A6E65] mb-8">
+            <p className="text-[#9E9D9B] mb-8">
               The AI needs more to go on before it can build your strategy.
             </p>
 
@@ -149,21 +149,21 @@ export default function GoalPage() {
               {clarifyingQs.map((q, i) => (
                 <div
                   key={i}
-                  className="px-4 py-3 rounded-xl bg-[#1E1B18] border border-white/5 text-[#C4BBB5] text-sm"
+                  className="px-4 py-3 rounded-xl bg-[#F0EFED] border border-black/5 text-[#5C5B57] text-sm"
                 >
-                  <span className="text-[#F59E0B] font-mono text-xs mr-2">{i + 1}.</span>
+                  <span className="text-[#009e97] font-mono text-xs mr-2">{i + 1}.</span>
                   {q}
                 </div>
               ))}
             </div>
 
-            <div className="bg-[#141210] border border-white/7 rounded-2xl p-1 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all mb-6">
+            <div className="bg-[#F8F8F7] border border-black/7 rounded-2xl p-1 focus-within:border-[#009e97]/30 focus-within:shadow-[0_0_0_3px_rgba(0,158,151,0.08)] transition-all mb-6">
               <TextareaAutosize
                 value={clarifyAnswers}
                 onChange={e => setClarifyAnswers(e.target.value)}
                 placeholder="Answer the questions above — one at a time or all together..."
                 minRows={4}
-                className="w-full bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-base leading-relaxed resize-none focus:outline-none px-4 py-3 font-sans"
+                className="w-full bg-transparent text-[#28271F] placeholder:text-[#C8C7C5] text-base leading-relaxed resize-none focus:outline-none px-4 py-3 font-sans"
               />
             </div>
 
@@ -188,11 +188,11 @@ export default function GoalPage() {
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.6 }}
-              className="w-16 h-16 rounded-2xl bg-[#F59E0B]/20 flex items-center justify-center mx-auto mb-6"
+              className="w-16 h-16 rounded-2xl bg-[#009e97]/20 flex items-center justify-center mx-auto mb-6"
             >
               <span className="text-3xl">&#10022;</span>
             </motion.div>
-            <h2 className="font-display text-2xl text-[#F5F1ED]">
+            <h2 className="font-display text-2xl text-[#1A1A1A]">
               Strategy built. Reviewing now...
             </h2>
           </motion.div>

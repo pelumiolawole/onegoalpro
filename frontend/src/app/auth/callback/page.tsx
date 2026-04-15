@@ -59,12 +59,12 @@ export default function AuthCallbackPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-8">
+      <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-8">
         <div className="text-center max-w-sm">
           <p className="text-[#F87171] mb-4">{error}</p>
           <button
             onClick={() => window.location.href = '/login'}
-            className="text-[#F59E0B] hover:text-[#FCD34D] text-sm"
+            className="text-[#009e97] hover:text-[#33c4be] text-sm"
           >
             Back to login
           </button>
@@ -74,10 +74,10 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
+    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center">
       <div className="text-center">
-        <div className="w-10 h-10 border-2 border-[#F59E0B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-[#7A6E65] text-sm">Completing sign in...</p>
+        <div className="w-10 h-10 border-2 border-[#009e97] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[#9E9D9B] text-sm">Completing sign in...</p>
       </div>
     </div>
   )

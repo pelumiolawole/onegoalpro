@@ -10,14 +10,14 @@ import { trackEvent } from '@/lib/posthog'
 
 function SuccessLoading() {
   return (
-    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
+    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center">
       <div className="text-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full mx-auto mb-4"
+          className="w-8 h-8 border-2 border-[#009e97] border-t-transparent rounded-full mx-auto mb-4"
         />
-        <p className="text-[#5C524A] text-sm">Confirming your subscription...</p>
+        <p className="text-[#C8C7C5] text-sm">Confirming your subscription...</p>
       </div>
     </div>
   )
@@ -55,14 +55,14 @@ function SuccessContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-8 h-8 border-2 border-[#F59E0B] border-t-transparent rounded-full mx-auto mb-4"
+            className="w-8 h-8 border-2 border-[#009e97] border-t-transparent rounded-full mx-auto mb-4"
           />
-          <p className="text-[#5C524A] text-sm">Confirming your subscription...</p>
+          <p className="text-[#C8C7C5] text-sm">Confirming your subscription...</p>
         </div>
       </div>
     )
@@ -70,16 +70,16 @@ function SuccessContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center">
           <div className="w-14 h-14 rounded-full border border-red-500/30 bg-red-500/10 flex items-center justify-center mx-auto mb-6">
             <span className="text-red-400 text-xl">✕</span>
           </div>
-          <h1 className="text-xl font-semibold text-[#F5F1ED] mb-3">Something went wrong</h1>
-          <p className="text-[#5C524A] text-sm mb-8">{error}</p>
+          <h1 className="text-xl font-semibold text-[#1A1A1A] mb-3">Something went wrong</h1>
+          <p className="text-[#C8C7C5] text-sm mb-8">{error}</p>
           <Link
             href="/settings"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#F59E0B] text-[#0A0908] font-semibold text-sm hover:bg-[#D97706] transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#009e97] text-[#FFFFFF] font-semibold text-sm hover:bg-[#00827c] transition-all"
           >
             Go to settings →
           </Link>
@@ -99,7 +99,7 @@ function SuccessContent() {
     : ['Everything in The Forge', 'Re-interview anytime', 'Behavioral fingerprinting', 'Priority task generation', 'Priority support']
 
   return (
-    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -112,22 +112,22 @@ function SuccessContent() {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="w-16 h-16 rounded-full border border-[#F59E0B]/30 bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-6"
+            className="w-16 h-16 rounded-full border border-[#009e97]/30 bg-[#009e97]/10 flex items-center justify-center mx-auto mb-6"
           >
-            <span className="text-[#F59E0B] text-2xl">✓</span>
+            <span className="text-[#009e97] text-2xl">✓</span>
           </motion.div>
 
-          <h1 className="text-2xl font-semibold text-[#F5F1ED] mb-2">
+          <h1 className="text-2xl font-semibold text-[#1A1A1A] mb-2">
             Welcome to {planName}
           </h1>
-          <p className="text-[#5C524A] text-sm leading-relaxed">{planDesc}</p>
+          <p className="text-[#C8C7C5] text-sm leading-relaxed">{planDesc}</p>
         </div>
 
         {/* Plan card */}
-        <div className="border border-[#F59E0B]/20 bg-[#141210] rounded-2xl p-6 mb-6">
+        <div className="border border-[#009e97]/20 bg-[#F8F8F7] rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-[#5C524A] uppercase tracking-widest">Your plan</p>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[#F59E0B] font-medium">
+            <p className="text-xs text-[#C8C7C5] uppercase tracking-widest">Your plan</p>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-[#009e97]/10 border border-[#009e97]/20 text-[#009e97] font-medium">
               Active
             </span>
           </div>
@@ -135,21 +135,21 @@ function SuccessContent() {
           <ul className="space-y-3">
             {features.map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
-                <span className="text-[#F59E0B] mt-0.5 shrink-0">✓</span>
-                <span className="text-[#7A6E65]">{f}</span>
+                <span className="text-[#009e97] mt-0.5 shrink-0">✓</span>
+                <span className="text-[#9E9D9B]">{f}</span>
               </li>
             ))}
           </ul>
 
           {subscription?.current_period_end && (
-            <p className="mt-5 pt-4 border-t border-white/5 text-xs text-[#3D3630]">
+            <p className="mt-5 pt-4 border-t border-black/5 text-xs text-[#C8C7C5]">
               Renews {new Date(subscription.current_period_end * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
         </div>
 
         {/* Identity framing */}
-        <p className="text-center text-[#3D3630] text-xs italic mb-6">
+        <p className="text-center text-[#C8C7C5] text-xs italic mb-6">
           The version of you that finishes this just made a decision.
         </p>
 
@@ -157,13 +157,13 @@ function SuccessContent() {
         <div className="flex flex-col gap-3">
           <Link
             href="/dashboard"
-            className="w-full py-3.5 rounded-xl bg-[#F59E0B] text-[#0A0908] font-semibold text-sm text-center hover:bg-[#D97706] transition-all hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full py-3.5 rounded-xl bg-[#009e97] text-[#FFFFFF] font-semibold text-sm text-center hover:bg-[#00827c] transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
             Go to dashboard →
           </Link>
           <Link
             href="/settings/subscription"
-            className="w-full py-3.5 rounded-xl border border-white/8 text-[#7A6E65] text-sm text-center hover:border-white/20 hover:text-[#A09690] transition-all"
+            className="w-full py-3.5 rounded-xl border border-black/8 text-[#9E9D9B] text-sm text-center hover:border-black/20 hover:text-[#7A7974] transition-all"
           >
             Manage subscription
           </Link>

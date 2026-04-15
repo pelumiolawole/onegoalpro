@@ -71,17 +71,17 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="bg-[#141210] border border-white/7 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-[#F8F8F7] border border-black/7 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-black/5">
           <div>
-            <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">Reflect</p>
-            <p className="text-[#E8E2DC] text-sm mt-0.5 line-clamp-1">{taskTitle}</p>
+            <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">Reflect</p>
+            <p className="text-[#28271F] text-sm mt-0.5 line-clamp-1">{taskTitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-[#1E1B18] flex items-center justify-center text-[#5C524A] hover:text-[#A09690] transition-colors"
+            className="w-8 h-8 rounded-xl bg-[#F0EFED] flex items-center justify-center text-[#C8C7C5] hover:text-[#7A7974] transition-colors"
           >
             ✕
           </button>
@@ -92,8 +92,8 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
           {/* Loading */}
           {stage === 'loading' && (
             <div className="py-12 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[#F59E0B]/20 border-t-[#F59E0B] rounded-full animate-spin" />
-              <p className="text-[#5C524A] text-sm">Preparing your reflection questions…</p>
+              <div className="w-8 h-8 border-2 border-[#009e97]/20 border-t-[#009e97] rounded-full animate-spin" />
+              <p className="text-[#C8C7C5] text-sm">Preparing your reflection questions…</p>
             </div>
           )}
 
@@ -107,7 +107,7 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <label className="block text-[#C4BBB5] text-sm mb-2 leading-relaxed">
+                  <label className="block text-[#5C5B57] text-sm mb-2 leading-relaxed">
                     {q.question}
                   </label>
                   <TextareaAutosize
@@ -137,8 +137,8 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
           {/* Submitting */}
           {stage === 'submitting' && (
             <div className="py-12 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[#F59E0B]/20 border-t-[#F59E0B] rounded-full animate-spin" />
-              <p className="text-[#5C524A] text-sm">Analyzing your reflection…</p>
+              <div className="w-8 h-8 border-2 border-[#009e97]/20 border-t-[#009e97] rounded-full animate-spin" />
+              <p className="text-[#C8C7C5] text-sm">Analyzing your reflection…</p>
             </div>
           )}
 
@@ -150,15 +150,15 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
               className="space-y-5"
             >
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center">
-                  <span className="text-[#F59E0B] text-xs">✦</span>
+                <div className="w-7 h-7 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center">
+                  <span className="text-[#009e97] text-xs">✦</span>
                 </div>
-                <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+                <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">
                   From your coach
                 </p>
               </div>
 
-              <p className="text-[#C4BBB5] leading-relaxed text-[0.9375rem]">
+              <p className="text-[#5C5B57] leading-relaxed text-[0.9375rem]">
                 {feedback}
               </p>
 
@@ -185,7 +185,7 @@ export default function ReflectionModal({ taskId, taskTitle, onClose, onDone }: 
 function sentimentStyle(s: string) {
   const map: Record<string, string> = {
     positive:    'bg-green-950/30 border-green-900/30 text-green-400',
-    breakthrough:'bg-amber-950/30 border-amber-900/30 text-amber-400',
+    breakthrough:'bg-teal-950/30 border-teal-900/30 text-teal-400',
     neutral:     'bg-slate-900/30 border-slate-800/30 text-slate-400',
     resistant:   'bg-orange-950/30 border-orange-900/30 text-orange-400',
     struggling:  'bg-red-950/30 border-red-900/30 text-red-400',

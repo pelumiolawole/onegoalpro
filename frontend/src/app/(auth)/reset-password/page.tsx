@@ -58,11 +58,11 @@ function ResetPasswordForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="font-display text-2xl text-[#F5F1ED] mb-4">Password reset!</h1>
-        <p className="text-[#A09690] mb-4">
+        <h1 className="font-display text-2xl text-[#1A1A1A] mb-4">Password reset!</h1>
+        <p className="text-[#7A7974] mb-4">
           Your password has been updated successfully.
         </p>
-        <p className="text-[#7A6E65] text-sm">
+        <p className="text-[#9E9D9B] text-sm">
           Redirecting to login...
         </p>
       </div>
@@ -71,10 +71,10 @@ function ResetPasswordForm() {
 
   return (
     <>
-      <h1 className="font-display text-3xl text-[#F5F1ED] mb-2">
+      <h1 className="font-display text-3xl text-[#1A1A1A] mb-2">
         Create new password
       </h1>
-      <p className="text-[#7A6E65] mb-8">
+      <p className="text-[#9E9D9B] mb-8">
         Enter a new password for your account.
       </p>
 
@@ -86,7 +86,7 @@ function ResetPasswordForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-[#A09690] text-sm mb-1.5">New password</label>
+          <label className="block text-[#7A7974] text-sm mb-1.5">New password</label>
           <input
             type="password"
             value={password}
@@ -96,11 +96,11 @@ function ResetPasswordForm() {
             minLength={8}
             className="input-base"
           />
-          <p className="mt-1 text-[#5C524A] text-xs">At least 8 characters</p>
+          <p className="mt-1 text-[#C8C7C5] text-xs">At least 8 characters</p>
         </div>
 
         <div>
-          <label className="block text-[#A09690] text-sm mb-1.5">Confirm password</label>
+          <label className="block text-[#7A7974] text-sm mb-1.5">Confirm password</label>
           <input
             type="password"
             value={confirmPassword}
@@ -125,12 +125,12 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-[#0A0908] flex">
+    <div className="min-h-screen bg-[#FFFFFF] flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1208] via-[#0A0908] to-[#0A0908]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#e6f8f7] via-[#FFFFFF] to-[#FFFFFF]" />
         <div className="relative z-10 flex flex-col justify-center p-16 w-full">
           <OneGoalLogo size={30} textSize="text-2xl" />
-          <blockquote className="mt-12 font-display text-2xl text-[#E8E2DC] italic">
+          <blockquote className="mt-12 font-display text-2xl text-[#28271F] italic">
             "Your future self is built one decision at a time."
           </blockquote>
         </div>
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
           
           <Suspense fallback={
             <div className="text-center py-12">
-              <div className="animate-spin h-8 w-8 border-2 border-[#F59E0B] border-t-transparent rounded-full mx-auto" />
+              <div className="animate-spin h-8 w-8 border-2 border-[#009e97] border-t-transparent rounded-full mx-auto" />
             </div>
           }>
             <ResetPasswordForm />
