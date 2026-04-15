@@ -24,7 +24,7 @@ export default function OneGoalLogo({
         priority
       />
       {showText && (
-        <span className={`font-display ${textSize} text-[#F5F1ED] leading-none`}>
+        <span className={`font-display ${textSize} text-[#1A1A1A] leading-none`}>
           One Goal
         </span>
       )}

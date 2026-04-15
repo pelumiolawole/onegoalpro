@@ -97,10 +97,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const bio = (user as any)?.bio || null
 
   return (
-    <div className="h-screen bg-[#0A0908] flex overflow-hidden">
+    <div className="h-screen bg-[#FFFFFF] flex overflow-hidden">
 
       {/* Sidebar (desktop) — sticky to viewport height */}
-      <aside className="hidden md:flex flex-col w-60 border-r border-white/5 p-5 shrink-0">
+      <aside className="hidden md:flex flex-col w-60 border-r border-black/5 p-5 shrink-0">
 
         {/* Logo + avatar row */}
         <div className="flex items-center justify-between mb-10 px-2">
@@ -109,14 +109,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <Link
               href="/settings"
-              className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-[#F59E0B]/20 hover:border-[#F59E0B]/50 transition-all"
+              className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-[#009e97]/20 hover:border-[#009e97]/50 transition-all"
               title="Profile & Settings"
             >
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-[#F59E0B]/20 flex items-center justify-center">
-                  <span className="text-[#F59E0B] text-xs font-medium">{initials}</span>
+                <div className="w-full h-full bg-[#009e97]/20 flex items-center justify-center">
+                  <span className="text-[#009e97] text-xs font-medium">{initials}</span>
                 </div>
               )}
             </Link>
@@ -133,8 +133,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                   active
-                    ? 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/15'
-                    : 'text-[#5C524A] hover:text-[#A09690] hover:bg-[#141210]'
+                    ? 'bg-[#009e97]/10 text-[#009e97] border border-[#009e97]/15'
+                    : 'text-[#C8C7C5] hover:text-[#7A7974] hover:bg-[#F8F8F7]'
                 }`}
               >
                 <item.icon size={16} />
@@ -146,11 +146,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Bio strip at bottom of sidebar */}
         {bio && (
-          <div className="border-t border-white/5 pt-4 px-2">
-            <p className="text-[#3D3630] text-[10px] uppercase tracking-widest font-mono mb-1.5">
+          <div className="border-t border-black/5 pt-4 px-2">
+            <p className="text-[#C8C7C5] text-[10px] uppercase tracking-widest font-mono mb-1.5">
               Becoming
             </p>
-            <p className="text-[#5C524A] text-xs leading-relaxed italic">
+            <p className="text-[#C8C7C5] text-xs leading-relaxed italic">
               {bio}
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Mobile bottom nav — fixed to bottom of viewport */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-white/5 px-2 py-2 flex justify-around bg-[#0A0908] z-50">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-black/5 px-2 py-2 flex justify-around bg-[#FFFFFF] z-50">
           {NAV.map(item => {
             const active = pathname === item.href
 
@@ -182,17 +182,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                    active ? 'text-[#F59E0B]' : 'text-[#3D3630]'
+                    active ? 'text-[#009e97]' : 'text-[#C8C7C5]'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full overflow-hidden border ${
-                    active ? 'border-[#F59E0B]' : 'border-[#3D3630]'
+                    active ? 'border-[#009e97]' : 'border-[#C8C7C5]'
                   }`}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#F59E0B]/10">
-                        <span className="text-[9px] font-medium leading-none text-[#F59E0B]">{initials[0]}</span>
+                      <div className="w-full h-full flex items-center justify-center bg-[#009e97]/10">
+                        <span className="text-[9px] font-medium leading-none text-[#009e97]">{initials[0]}</span>
                       </div>
                     )}
                   </div>
@@ -206,7 +206,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                  active ? 'text-[#F59E0B]' : 'text-[#3D3630]'
+                  active ? 'text-[#009e97]' : 'text-[#C8C7C5]'
                 }`}
               >
                 <item.icon size={20} />

@@ -29,9 +29,9 @@ export default function OnboardingLayout({
   const currentStep = Math.max(0, (user?.onboarding_step ?? 1) - 1)
 
   return (
-    <div className="min-h-screen bg-[#0A0908] flex flex-col">
+    <div className="min-h-screen bg-[#FFFFFF] flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-6 border-b border-white/5">
+      <header className="flex items-center justify-between px-8 py-6 border-b border-black/5">
         <OneGoalLogo size={26} textSize="text-lg" />
 
         {/* Step indicators */}
@@ -42,31 +42,31 @@ export default function OnboardingLayout({
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono transition-all duration-300 ${
                     i < currentStep
-                      ? 'bg-[#F59E0B] text-[#0A0908]'
+                      ? 'bg-[#009e97] text-[#FFFFFF]'
                       : i === currentStep
-                      ? 'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40'
-                      : 'bg-[#1E1B18] text-[#3D3630] border border-white/5'
+                      ? 'bg-[#009e97]/20 text-[#009e97] border border-[#009e97]/40'
+                      : 'bg-[#F0EFED] text-[#C8C7C5] border border-black/5'
                   }`}
                 >
                   {i < currentStep ? '✓' : i + 1}
                 </div>
                 <span
                   className={`text-xs transition-colors ${
-                    i <= currentStep ? 'text-[#A09690]' : 'text-[#3D3630]'
+                    i <= currentStep ? 'text-[#7A7974]' : 'text-[#C8C7C5]'
                   }`}
                 >
                   {step.label}
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`w-8 h-px ${i < currentStep ? 'bg-[#F59E0B]/40' : 'bg-white/5'}`} />
+                <div className={`w-8 h-px ${i < currentStep ? 'bg-[#009e97]/40' : 'bg-white/5'}`} />
               )}
             </div>
           ))}
         </div>
 
         {/* Mobile: step X of Y */}
-        <span className="sm:hidden text-[#5C524A] text-sm">
+        <span className="sm:hidden text-[#C8C7C5] text-sm">
           Step {currentStep + 1} of {STEPS.length}
         </span>
       </header>

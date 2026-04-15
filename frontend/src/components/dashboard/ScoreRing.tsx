@@ -16,10 +16,10 @@ export default function ScoreRing({ label, value, primary }: ScoreRingProps) {
   const dash = (value / 100) * circ
 
   return (
-    <div className={`bg-[#141210] border rounded-2xl p-4 flex flex-col items-center gap-2 ${
-      primary ? 'border-[#F59E0B]/20' : 'border-white/5'
+    <div className={`bg-[#F8F8F7] border rounded-2xl p-4 flex flex-col items-center gap-2 ${
+      primary ? 'border-[#009e97]/20' : 'border-black/5'
     }`}>
-      <p className="text-[#3D3630] text-xs uppercase tracking-wider font-mono text-center">
+      <p className="text-[#C8C7C5] text-xs uppercase tracking-wider font-mono text-center">
         {label}
       </p>
       <div className="relative w-16 h-16">
@@ -28,14 +28,14 @@ export default function ScoreRing({ label, value, primary }: ScoreRingProps) {
           <circle
             cx="36" cy="36" r={r}
             fill="none"
-            stroke="#1E1B18"
+            stroke="#F0EFED"
             strokeWidth="4"
           />
           {/* Progress */}
           <motion.circle
             cx="36" cy="36" r={r}
             fill="none"
-            stroke={primary ? '#F59E0B' : '#5C524A'}
+            stroke={primary ? '#009e97' : '#C8C7C5'}
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray={circ}
@@ -45,7 +45,7 @@ export default function ScoreRing({ label, value, primary }: ScoreRingProps) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`font-mono text-sm font-medium ${primary ? 'text-[#F59E0B]' : 'text-[#C4BBB5]'}`}>
+          <span className={`font-mono text-sm font-medium ${primary ? 'text-[#009e97]' : 'text-[#5C5B57]'}`}>
             {value.toFixed(0)}
           </span>
         </div>
@@ -85,27 +85,27 @@ export function WeekGrid({ days }: { days: DayData[] }) {
     <div className="grid grid-cols-7 gap-1.5">
       {grid.map((day, i) => (
         <div key={day.dateStr} className="flex flex-col items-center gap-1.5">
-          <span className="text-[#3D3630] text-[10px] font-mono">{day.label}</span>
+          <span className="text-[#C8C7C5] text-[10px] font-mono">{day.label}</span>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04 }}
             className={`w-8 h-8 rounded-lg flex items-center justify-center relative ${
               day.completed
-                ? 'bg-[#F59E0B]/20 border border-[#F59E0B]/30'
+                ? 'bg-[#009e97]/20 border border-[#009e97]/30'
                 : day.isToday
-                ? 'bg-[#1E1B18] border border-white/10 border-dashed'
-                : 'bg-[#0A0908] border border-white/5'
+                ? 'bg-[#F0EFED] border border-black/10 border-dashed'
+                : 'bg-[#FFFFFF] border border-black/5'
             }`}
           >
             {day.completed && (
-              <span className="text-[#F59E0B] text-xs">✓</span>
+              <span className="text-[#009e97] text-xs">✓</span>
             )}
             {day.reflected && day.completed && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#F59E0B]" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#009e97]" />
             )}
             {day.isToday && !day.completed && (
-              <div className="w-1.5 h-1.5 rounded-full bg-[#3D3630]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-[#C8C7C5]" />
             )}
           </motion.div>
         </div>

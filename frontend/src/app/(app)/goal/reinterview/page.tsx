@@ -107,16 +107,16 @@ export default function ReinterviewPage() {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#009e97]/10 border border-[#009e97]/20 flex items-center justify-center mx-auto mb-4">
             <motion.span
-              className="text-[#F59E0B] text-xl"
+              className="text-[#009e97] text-xl"
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 1.6, repeat: Infinity }}
             >
               &#10022;
             </motion.span>
           </div>
-          <p className="text-[#5C524A] text-sm">Preparing your next interview...</p>
+          <p className="text-[#C8C7C5] text-sm">Preparing your next interview...</p>
         </div>
       </div>
     )
@@ -128,13 +128,13 @@ export default function ReinterviewPage() {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center max-w-md px-6">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
-            <span className="text-[#5C524A] text-xl">&#10022;</span>
+          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-black/10 flex items-center justify-center mx-auto mb-4">
+            <span className="text-[#C8C7C5] text-xl">&#10022;</span>
           </div>
-          <p className="text-[#A09690] text-sm leading-relaxed mb-6">{error}</p>
+          <p className="text-[#7A7974] text-sm leading-relaxed mb-6">{error}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-[#F59E0B] text-sm hover:underline"
+            className="text-[#009e97] text-sm hover:underline"
           >
             Back to dashboard
           </button>
@@ -151,16 +151,16 @@ export default function ReinterviewPage() {
       {/* Header context strip */}
       <div className="mb-4 px-1 flex items-center justify-between">
         <div>
-          <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+          <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">
             &#10022; Next Discovery Interview
           </p>
-          <p className="text-[#3D3630] text-xs mt-0.5">
+          <p className="text-[#C8C7C5] text-xs mt-0.5">
             You've grown. Let's find out who you're becoming next.
           </p>
         </div>
         <button
           onClick={() => router.push('/dashboard')}
-          className="text-[#3D3630] hover:text-[#5C524A] text-xs transition-colors"
+          className="text-[#C8C7C5] hover:text-[#C8C7C5] text-xs transition-colors"
         >
           Exit
         </button>
@@ -178,14 +178,14 @@ export default function ReinterviewPage() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-3 mt-0.5 shrink-0">
-                  <span className="text-[#F59E0B] text-xs">&#10022;</span>
+                <div className="w-8 h-8 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center mr-3 mt-0.5 shrink-0">
+                  <span className="text-[#009e97] text-xs">&#10022;</span>
                 </div>
               )}
               <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[0.9375rem] leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
-                  : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
+                  ? 'bg-[#009e97]/10 border border-[#009e97]/15 text-[#28271F] rounded-tr-sm'
+                  : 'bg-[#F0EFED] border border-black/5 text-[#5C5B57] rounded-tl-sm'
               }`}>
                 {msg.content}
               </div>
@@ -199,10 +199,10 @@ export default function ReinterviewPage() {
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="w-8 h-8 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-3 shrink-0">
-                <span className="text-[#F59E0B] text-xs">&#10022;</span>
+              <div className="w-8 h-8 rounded-full bg-[#009e97]/15 border border-[#009e97]/20 flex items-center justify-center mr-3 shrink-0">
+                <span className="text-[#009e97] text-xs">&#10022;</span>
               </div>
-              <div className="bg-[#1E1B18] border border-white/5 px-4 py-3 rounded-2xl rounded-tl-sm">
+              <div className="bg-[#F0EFED] border border-black/5 px-4 py-3 rounded-2xl rounded-tl-sm">
                 <TypingDots />
               </div>
             </motion.div>
@@ -212,8 +212,8 @@ export default function ReinterviewPage() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/5 pt-4">
-        <div className="flex items-end gap-3 bg-[#141210] border border-white/7 rounded-2xl px-4 py-3 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all">
+      <div className="border-t border-black/5 pt-4">
+        <div className="flex items-end gap-3 bg-[#F8F8F7] border border-black/7 rounded-2xl px-4 py-3 focus-within:border-[#009e97]/30 focus-within:shadow-[0_0_0_3px_rgba(0,158,151,0.08)] transition-all">
           <TextareaAutosize
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -222,17 +222,17 @@ export default function ReinterviewPage() {
             minRows={1}
             maxRows={5}
             disabled={loading}
-            className="flex-1 bg-transparent text-[#E8E2DC] placeholder:text-[#3D3630] text-[0.9375rem] leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
+            className="flex-1 bg-transparent text-[#28271F] placeholder:text-[#C8C7C5] text-[0.9375rem] leading-relaxed resize-none focus:outline-none disabled:opacity-50 font-sans"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="shrink-0 w-9 h-9 rounded-xl bg-[#F59E0B] disabled:bg-[#2A2520] disabled:text-[#5C524A] text-[#0A0908] flex items-center justify-center transition-all hover:bg-[#FCD34D] disabled:cursor-not-allowed"
+            className="shrink-0 w-9 h-9 rounded-xl bg-[#009e97] disabled:bg-[#E5E4E2] disabled:text-[#C8C7C5] text-[#FFFFFF] flex items-center justify-center transition-all hover:bg-[#33c4be] disabled:cursor-not-allowed"
           >
             <SendIcon />
           </button>
         </div>
-        <p className="text-[#3D3630] text-xs text-center mt-2">
+        <p className="text-[#C8C7C5] text-xs text-center mt-2">
           Press Enter to send · Shift+Enter for new line
         </p>
       </div>
@@ -246,7 +246,7 @@ function TypingDots() {
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-[#5C524A]"
+          className="w-1.5 h-1.5 rounded-full bg-[#C8C7C5]"
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
         />

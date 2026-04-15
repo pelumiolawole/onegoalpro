@@ -26,7 +26,7 @@ export default function ProgressPage() {
       <motion.h1
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="font-display text-3xl text-[#F5F1ED]"
+        className="font-display text-3xl text-[#1A1A1A]"
       >
         Your progress
       </motion.h1>
@@ -37,18 +37,18 @@ export default function ProgressPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+          className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
         >
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono mb-1">
+              <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono mb-1">
                 Transformation Score
               </p>
               <div className="flex items-end gap-3">
-                <span className="font-display text-5xl text-[#F59E0B]">
+                <span className="font-display text-5xl text-[#009e97]">
                   {scores.transformation_score.toFixed(1)}
                 </span>
-                <span className="text-[#5C524A] text-sm mb-1.5">/ 100</span>
+                <span className="text-[#C8C7C5] text-sm mb-1.5">/ 100</span>
                 {hasStarted && (
                   <span className={`mb-1.5 text-sm font-mono px-2 py-0.5 rounded-lg ${gradeStyle(scores.grade)}`}>
                     {scores.grade}
@@ -65,22 +65,22 @@ export default function ProgressPage() {
           {hasStarted ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {Object.entries(scores.breakdown || {}).map(([key, val]: any) => (
-                <div key={key} className="bg-[#1E1B18] rounded-xl p-3">
-                  <p className="text-[#3D3630] text-[10px] uppercase tracking-wider font-mono mb-1">
+                <div key={key} className="bg-[#F0EFED] rounded-xl p-3">
+                  <p className="text-[#C8C7C5] text-[10px] uppercase tracking-wider font-mono mb-1">
                     {val.label}
                   </p>
-                  <p className="text-[#C4BBB5] text-lg font-mono">{val.score.toFixed(0)}</p>
+                  <p className="text-[#5C5B57] text-lg font-mono">{val.score.toFixed(0)}</p>
                   <div className="flex items-center justify-between mt-1">
                     <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${gradeStyle(val.grade)}`}>
                       {val.grade}
                     </span>
-                    <span className="text-[#3D3630] text-[10px]">{val.weight}</span>
+                    <span className="text-[#C8C7C5] text-[10px]">{val.weight}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[#3D3630] text-sm border-t border-white/5 pt-4">
+            <p className="text-[#C8C7C5] text-sm border-t border-black/5 pt-4">
               Complete your first task to start building your score.
             </p>
           )}
@@ -94,52 +94,52 @@ export default function ProgressPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+        className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
       >
-        <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono mb-5">
+        <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono mb-5">
           30-day trajectory
         </p>
         {hasTimeline ? (
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={timeline.timeline}>
-              <CartesianGrid stroke="#1E1B18" strokeDasharray="0" vertical={false} />
+              <CartesianGrid stroke="#F0EFED" strokeDasharray="0" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#3D3630', fontSize: 10, fontFamily: 'DM Mono' }}
+                tick={{ fill: '#C8C7C5', fontSize: 10, fontFamily: 'DM Mono' }}
                 tickFormatter={d => d.slice(5)}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: '#3D3630', fontSize: 10, fontFamily: 'DM Mono' }}
+                tick={{ fill: '#C8C7C5', fontSize: 10, fontFamily: 'DM Mono' }}
                 axisLine={false}
                 tickLine={false}
                 width={28}
               />
               <Tooltip
                 contentStyle={{
-                  background: '#1E1B18',
+                  background: '#F0EFED',
                   border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: '12px',
-                  color: '#C4BBB5',
+                  color: '#5C5B57',
                   fontSize: '12px',
                 }}
-                cursor={{ stroke: '#F59E0B', strokeWidth: 1, strokeOpacity: 0.3 }}
+                cursor={{ stroke: '#009e97', strokeWidth: 1, strokeOpacity: 0.3 }}
               />
               <Line
                 type="monotone"
                 dataKey="transformation_score"
-                stroke="#F59E0B"
+                stroke="#009e97"
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, fill: '#F59E0B' }}
+                activeDot={{ r: 4, fill: '#009e97' }}
                 name="Score"
               />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-[#3D3630] text-sm">
+          <p className="text-[#C8C7C5] text-sm">
             Your trajectory will appear here after your first completed task.
           </p>
         )}
@@ -150,9 +150,9 @@ export default function ProgressPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+        className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
       >
-        <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono mb-4">
+        <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono mb-4">
           Identity traits
         </p>
         {hasTraits ? (
@@ -166,23 +166,23 @@ export default function ProgressPage() {
               >
                 <div className="flex justify-between items-center mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#C4BBB5] text-sm capitalize">{trait.name}</span>
-                    <span className="text-[#3D3630] text-xs">{trait.category}</span>
+                    <span className="text-[#5C5B57] text-sm capitalize">{trait.name}</span>
+                    <span className="text-[#C8C7C5] text-xs">{trait.category}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <TrendArrow trend={trait.trend} />
-                    <span className="text-[#5C524A] text-xs font-mono">
+                    <span className="text-[#C8C7C5] text-xs font-mono">
                       {trait.current.toFixed(1)} / {trait.target.toFixed(1)}
                     </span>
                   </div>
                 </div>
-                <div className="h-2 bg-[#1E1B18] rounded-full overflow-hidden">
+                <div className="h-2 bg-[#F0EFED] rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
                     style={{
                       background: trait.trend === 'declining'
                         ? '#F87171'
-                        : 'linear-gradient(90deg, #D97706, #F59E0B)',
+                        : 'linear-gradient(90deg, #00827c, #009e97)',
                     }}
                     initial={{ width: 0 }}
                     animate={{ width: `${trait.progress_pct}%` }}
@@ -193,7 +193,7 @@ export default function ProgressPage() {
             ))}
           </div>
         ) : (
-          <p className="text-[#3D3630] text-sm">
+          <p className="text-[#C8C7C5] text-sm">
             Your identity traits will appear here as you complete tasks.
           </p>
         )}
@@ -204,21 +204,21 @@ export default function ProgressPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+        className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
       >
         <div className="flex items-center justify-between mb-5">
-          <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+          <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">
             30-day activity
           </p>
           {streak && (
             <div className="flex items-center gap-4">
-              <span className="text-[#C4BBB5] text-sm">
-                <span className="font-mono text-[#F59E0B]">{streak.current_streak}</span>
-                <span className="text-[#5C524A] ml-1 text-xs">current</span>
+              <span className="text-[#5C5B57] text-sm">
+                <span className="font-mono text-[#009e97]">{streak.current_streak}</span>
+                <span className="text-[#C8C7C5] ml-1 text-xs">current</span>
               </span>
-              <span className="text-[#C4BBB5] text-sm">
+              <span className="text-[#5C5B57] text-sm">
                 <span className="font-mono">{streak.longest_streak}</span>
-                <span className="text-[#5C524A] ml-1 text-xs">best</span>
+                <span className="text-[#C8C7C5] ml-1 text-xs">best</span>
               </span>
             </div>
           )}
@@ -231,13 +231,13 @@ export default function ProgressPage() {
                 key={d}
                 title={d}
                 className={`aspect-square rounded-sm ${
-                  data.completed ? 'bg-[#F59E0B]' : 'bg-[#1E1B18]'
+                  data.completed ? 'bg-[#009e97]' : 'bg-[#F0EFED]'
                 }`}
               />
             ))}
           </div>
         ) : (
-          <p className="text-[#3D3630] text-sm">
+          <p className="text-[#C8C7C5] text-sm">
             Your activity calendar will fill in as you show up each day.
           </p>
         )}
@@ -248,14 +248,14 @@ export default function ProgressPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="bg-[#141210] border border-white/5 rounded-2xl p-5"
+        className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5"
       >
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[#5C524A] text-xs uppercase tracking-widest font-mono">
+          <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono">
             What the system knows about you
           </p>
           {patterns && !patterns.locked && (
-            <span className="text-[#008e97] text-xs font-mono px-2 py-0.5 border border-[#008e97]/30 rounded-full">
+            <span className="text-[#009e97] text-xs font-mono px-2 py-0.5 border border-[#009e97]/30 rounded-full">
               Identity
             </span>
           )}
@@ -265,25 +265,25 @@ export default function ProgressPage() {
           <PatternsSkeleton />
         ) : patterns.locked ? (
           <div className="text-center py-6">
-            <div className="w-10 h-10 rounded-full bg-[#1E1B18] flex items-center justify-center mx-auto mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D3630" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-10 h-10 rounded-full bg-[#F0EFED] flex items-center justify-center mx-auto mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C7C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </div>
-            <p className="text-[#5C524A] text-sm mb-1">Available on The Identity plan</p>
-            <p className="text-[#3D3630] text-xs mb-4">
+            <p className="text-[#C8C7C5] text-sm mb-1">Available on The Identity plan</p>
+            <p className="text-[#C8C7C5] text-xs mb-4">
               The system is already learning your patterns. Upgrade to see what it knows.
             </p>
             <a
               href="/settings/upgrade?plan=identity"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#008e97]/10 border border-[#008e97]/20 rounded-xl text-[#008e97] text-sm hover:bg-[#008e97]/20 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#009e97]/10 border border-[#009e97]/20 rounded-xl text-[#009e97] text-sm hover:bg-[#009e97]/20 transition-all"
             >
               Commit fully
             </a>
           </div>
         ) : patterns.patterns?.length === 0 && !patterns.snapshot ? (
-          <p className="text-[#3D3630] text-sm">
+          <p className="text-[#C8C7C5] text-sm">
             Patterns will emerge as you engage with the product over time.
           </p>
         ) : (
@@ -291,12 +291,12 @@ export default function ProgressPage() {
 
             {/* Behaviour summary from latest snapshot */}
             {patterns.snapshot?.behavior_summary && (
-              <div className="bg-[#0A0908] rounded-xl p-4 border border-white/5">
-                <p className="text-[#C4BBB5] text-sm leading-relaxed italic">
+              <div className="bg-[#FFFFFF] rounded-xl p-4 border border-black/5">
+                <p className="text-[#5C5B57] text-sm leading-relaxed italic">
                   "{patterns.snapshot.behavior_summary}"
                 </p>
                 {patterns.snapshot.dominant_pattern && (
-                  <p className="text-[#3D3630] text-xs font-mono mt-2">
+                  <p className="text-[#C8C7C5] text-xs font-mono mt-2">
                     Dominant pattern: {patterns.snapshot.dominant_pattern}
                   </p>
                 )}
@@ -306,20 +306,20 @@ export default function ProgressPage() {
             {/* How you work */}
             {patterns.snapshot && (
               <div>
-                <p className="text-[#3D3630] text-xs uppercase tracking-widest font-mono mb-3">
+                <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono mb-3">
                   How you work
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {patterns.snapshot.most_active_day && (
-                    <div className="bg-[#1E1B18] rounded-xl p-3">
-                      <p className="text-[#3D3630] text-[10px] uppercase tracking-wider font-mono mb-1">Most active</p>
-                      <p className="text-[#C4BBB5] text-sm capitalize">{patterns.snapshot.most_active_day}</p>
+                    <div className="bg-[#F0EFED] rounded-xl p-3">
+                      <p className="text-[#C8C7C5] text-[10px] uppercase tracking-wider font-mono mb-1">Most active</p>
+                      <p className="text-[#5C5B57] text-sm capitalize">{patterns.snapshot.most_active_day}</p>
                     </div>
                   )}
                   {patterns.snapshot.morning_person_score !== undefined && (
-                    <div className="bg-[#1E1B18] rounded-xl p-3">
-                      <p className="text-[#3D3630] text-[10px] uppercase tracking-wider font-mono mb-1">Morning person</p>
-                      <p className="text-[#C4BBB5] text-sm">
+                    <div className="bg-[#F0EFED] rounded-xl p-3">
+                      <p className="text-[#C8C7C5] text-[10px] uppercase tracking-wider font-mono mb-1">Morning person</p>
+                      <p className="text-[#5C5B57] text-sm">
                         {patterns.snapshot.morning_person_score >= 0.6
                           ? 'Yes'
                           : patterns.snapshot.morning_person_score <= 0.4
@@ -329,14 +329,14 @@ export default function ProgressPage() {
                     </div>
                   )}
                   {patterns.snapshot.breakthrough_episodes !== undefined && (
-                    <div className="bg-[#1E1B18] rounded-xl p-3">
-                      <p className="text-[#3D3630] text-[10px] uppercase tracking-wider font-mono mb-1">Breakthroughs</p>
+                    <div className="bg-[#F0EFED] rounded-xl p-3">
+                      <p className="text-[#C8C7C5] text-[10px] uppercase tracking-wider font-mono mb-1">Breakthroughs</p>
                       <p className="text-[#4ADE80] text-sm font-mono">{patterns.snapshot.breakthrough_episodes}</p>
                     </div>
                   )}
                   {patterns.snapshot.resistance_episodes !== undefined && (
-                    <div className="bg-[#1E1B18] rounded-xl p-3">
-                      <p className="text-[#3D3630] text-[10px] uppercase tracking-wider font-mono mb-1">Resistance</p>
+                    <div className="bg-[#F0EFED] rounded-xl p-3">
+                      <p className="text-[#C8C7C5] text-[10px] uppercase tracking-wider font-mono mb-1">Resistance</p>
                       <p className="text-[#F87171] text-sm font-mono">{patterns.snapshot.resistance_episodes}</p>
                     </div>
                   )}
@@ -347,7 +347,7 @@ export default function ProgressPage() {
             {/* Named patterns */}
             {patterns.patterns?.length > 0 && (
               <div>
-                <p className="text-[#3D3630] text-xs uppercase tracking-widest font-mono mb-3">
+                <p className="text-[#C8C7C5] text-xs uppercase tracking-widest font-mono mb-3">
                   Detected patterns
                 </p>
                 <div className="space-y-2">
@@ -362,27 +362,27 @@ export default function ProgressPage() {
                           ? 'bg-green-950/10 border-green-900/20'
                           : p.type === 'resistance'
                           ? 'bg-red-950/10 border-red-900/20'
-                          : 'bg-[#1E1B18] border-white/5'
+                          : 'bg-[#F0EFED] border-black/5'
                       }`}
                     >
                       <div className={`w-1.5 rounded-full shrink-0 mt-1 ${
                         p.type === 'breakthrough' ? 'bg-[#4ADE80]' :
-                        p.type === 'resistance' ? 'bg-[#F87171]' : 'bg-[#5C524A]'
+                        p.type === 'resistance' ? 'bg-[#F87171]' : 'bg-[#C8C7C5]'
                       }`} style={{ minHeight: '16px' }} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
                           <p className={`text-sm font-medium capitalize truncate ${
                             p.type === 'breakthrough' ? 'text-[#4ADE80]' :
-                            p.type === 'resistance' ? 'text-[#F87171]' : 'text-[#C4BBB5]'
+                            p.type === 'resistance' ? 'text-[#F87171]' : 'text-[#5C5B57]'
                           }`}>
                             {p.name}
                           </p>
-                          <span className="text-[#3D3630] text-[10px] font-mono shrink-0">
+                          <span className="text-[#C8C7C5] text-[10px] font-mono shrink-0">
                             {Math.round(p.confidence * 100)}% confidence
                           </span>
                         </div>
-                        <p className="text-[#5C524A] text-xs leading-relaxed">{p.description}</p>
-                        <p className="text-[#3D3630] text-[10px] font-mono mt-1">
+                        <p className="text-[#C8C7C5] text-xs leading-relaxed">{p.description}</p>
+                        <p className="text-[#C8C7C5] text-[10px] font-mono mt-1">
                           {p.evidence_count} {p.evidence_count === 1 ? 'instance' : 'instances'} · first seen {p.first_detected}
                         </p>
                       </div>
@@ -420,7 +420,7 @@ function TrendArrow({ trend }: { trend: string }) {
     )
   }
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C524A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C8C7C5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   )
@@ -428,12 +428,12 @@ function TrendArrow({ trend }: { trend: string }) {
 
 function ScoreSkeleton() {
   return (
-    <div className="bg-[#141210] border border-white/5 rounded-2xl p-5 animate-pulse">
-      <div className="h-4 w-32 bg-[#1E1B18] rounded mb-4" />
-      <div className="h-12 w-24 bg-[#1E1B18] rounded mb-5" />
+    <div className="bg-[#F8F8F7] border border-black/5 rounded-2xl p-5 animate-pulse">
+      <div className="h-4 w-32 bg-[#F0EFED] rounded mb-4" />
+      <div className="h-12 w-24 bg-[#F0EFED] rounded mb-5" />
       <div className="grid grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-20 bg-[#1E1B18] rounded-xl" />
+          <div key={i} className="h-20 bg-[#F0EFED] rounded-xl" />
         ))}
       </div>
     </div>
@@ -443,9 +443,9 @@ function ScoreSkeleton() {
 function PatternsSkeleton() {
   return (
     <div className="animate-pulse space-y-3">
-      <div className="h-16 bg-[#1E1B18] rounded-xl" />
+      <div className="h-16 bg-[#F0EFED] rounded-xl" />
       <div className="grid grid-cols-2 gap-2">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-[#1E1B18] rounded-xl" />)}
+        {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-[#F0EFED] rounded-xl" />)}
       </div>
     </div>
   )
@@ -454,7 +454,7 @@ function PatternsSkeleton() {
 function gradeStyle(grade: string) {
   const map: Record<string, string> = {
     'A': 'bg-green-950/40 text-green-400',
-    'B': 'bg-[#F59E0B]/15 text-[#F59E0B]',
+    'B': 'bg-[#009e97]/15 text-[#009e97]',
     'C': 'bg-slate-900/40 text-slate-400',
     'D': 'bg-orange-950/40 text-orange-400',
     'F': 'bg-red-950/40 text-red-400',

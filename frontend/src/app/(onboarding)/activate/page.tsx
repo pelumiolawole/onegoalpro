@@ -36,15 +36,15 @@ export default function ActivatePage() {
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-          className="w-20 h-20 rounded-3xl bg-[#F59E0B] flex items-center justify-center mx-auto mb-8"
+          className="w-20 h-20 rounded-3xl bg-[#009e97] flex items-center justify-center mx-auto mb-8"
         >
-          <span className="text-4xl text-[#0A0908]">✦</span>
+          <span className="text-4xl text-[#FFFFFF]">✦</span>
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="font-display text-4xl text-[#F5F1ED] mb-4"
+          className="font-display text-4xl text-[#1A1A1A] mb-4"
         >
           Your transformation begins today.
         </motion.h1>
@@ -52,7 +52,7 @@ export default function ActivatePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-[#7A6E65]"
+          className="text-[#9E9D9B]"
         >
           Taking you to your dashboard…
         </motion.p>
@@ -71,19 +71,19 @@ export default function ActivatePage() {
         <motion.div
           animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="w-16 h-16 rounded-2xl bg-[#F59E0B]/15 border border-[#F59E0B]/30 flex items-center justify-center mx-auto mb-10"
+          className="w-16 h-16 rounded-2xl bg-[#009e97]/15 border border-[#009e97]/30 flex items-center justify-center mx-auto mb-10"
         >
-          <span className="text-[#F59E0B] text-3xl">✦</span>
+          <span className="text-[#009e97] text-3xl">✦</span>
         </motion.div>
 
-        <h1 className="font-display text-5xl text-[#F5F1ED] mb-6 leading-tight">
+        <h1 className="font-display text-5xl text-[#1A1A1A] mb-6 leading-tight">
           Ready to begin?
         </h1>
 
-        <p className="text-[#A09690] text-lg leading-relaxed mb-4">
+        <p className="text-[#7A7974] text-lg leading-relaxed mb-4">
           Your strategy is set. Your first task will be ready tomorrow morning.
         </p>
-        <p className="text-[#7A6E65] leading-relaxed mb-12">
+        <p className="text-[#9E9D9B] leading-relaxed mb-12">
           Every day: one task, one reflection, and your coach. That's the whole system.
           Small and consistent beats big and occasional every time.
         </p>
@@ -96,10 +96,10 @@ export default function ActivatePage() {
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="flex items-start gap-3 px-4 py-3 bg-[#141210] border border-white/5 rounded-xl"
+              className="flex items-start gap-3 px-4 py-3 bg-[#F8F8F7] border border-black/5 rounded-xl"
             >
-              <span className="text-[#F59E0B] mt-0.5">✓</span>
-              <span className="text-[#C4BBB5] text-sm">{c}</span>
+              <span className="text-[#009e97] mt-0.5">✓</span>
+              <span className="text-[#5C5B57] text-sm">{c}</span>
             </motion.div>
           ))}
         </div>
@@ -111,7 +111,7 @@ export default function ActivatePage() {
         >
           {activating ? (
             <span className="flex items-center gap-2 justify-center">
-              <span className="w-5 h-5 border-2 border-[#0A0908]/30 border-t-[#0A0908] rounded-full animate-spin" />
+              <span className="w-5 h-5 border-2 border-[#FFFFFF]/30 border-t-[#FFFFFF] rounded-full animate-spin" />
               Setting things up…
             </span>
           ) : (

@@ -46,7 +46,7 @@ export default function LoginPage() {
             Email not verified.{' '}
             <Link
               href={`/resend-verification?email=${encodeURIComponent(email)}`}
-              className="underline text-[#F59E0B] hover:text-[#FCD34D]"
+              className="underline text-[#009e97] hover:text-[#33c4be]"
             >
               Resend verification email
             </Link>
@@ -67,14 +67,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0908] flex">
+    <div className="min-h-screen bg-[#FFFFFF] flex">
 
       {/* Left: Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1208] via-[#0A0908] to-[#0A0908]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#e6f8f7] via-[#FFFFFF] to-[#FFFFFF]" />
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(0,158,151,0.4) 0%, transparent 70%)' }}
         />
         <div className="relative z-10 flex flex-col justify-between p-16 w-full">
           <OneGoalLogo size={30} textSize="text-2xl" />
@@ -84,12 +84,12 @@ export default function LoginPage() {
             transition={{ delay: 0.3, duration: 0.8 }}
             className="max-w-sm"
           >
-            <blockquote className="font-display text-3xl leading-snug text-[#E8E2DC] italic">
+            <blockquote className="font-display text-3xl leading-snug text-[#28271F] italic">
               "You do not rise to the level of your goals. You fall to the level of your systems."
             </blockquote>
-            <p className="mt-4 text-[#7A6E65] text-sm tracking-widest uppercase">— James Clear</p>
+            <p className="mt-4 text-[#9E9D9B] text-sm tracking-widest uppercase">— James Clear</p>
           </motion.div>
-          <p className="text-[#3D3630] text-sm">One Goal. One identity. One day at a time.</p>
+          <p className="text-[#C8C7C5] text-sm">One Goal. One identity. One day at a time.</p>
         </div>
       </div>
 
@@ -105,8 +105,8 @@ export default function LoginPage() {
             <OneGoalLogo size={30} textSize="text-2xl" />
           </div>
 
-          <h1 className="font-display text-3xl text-[#F5F1ED] mb-2">Welcome back</h1>
-          <p className="text-[#7A6E65] mb-8">Pick up where you left off.</p>
+          <h1 className="font-display text-3xl text-[#1A1A1A] mb-2">Welcome back</h1>
+          <p className="text-[#9E9D9B] mb-8">Pick up where you left off.</p>
 
           {error && (
             <motion.div
@@ -114,7 +114,7 @@ export default function LoginPage() {
               animate={{ opacity: 1, y: 0 }}
               className={`mb-6 px-4 py-3 rounded-xl text-sm ${
                 showResendLink
-                  ? 'bg-amber-950/40 border border-amber-900/30 text-amber-400'
+                  ? 'bg-teal-950/40 border border-teal-900/30 text-teal-400'
                   : 'bg-red-950/40 border border-red-900/30 text-red-400'
               }`}
             >
@@ -135,14 +135,14 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 mb-6">
             <div className="flex-1 h-px bg-white/5" />
-            <span className="text-[#3D3630] text-xs">or</span>
+            <span className="text-[#C8C7C5] text-xs">or</span>
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
           {/* Email form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[#A09690] text-sm mb-1.5">Email</label>
+              <label className="block text-[#7A7974] text-sm mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -155,8 +155,8 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[#A09690] text-sm">Password</label>
-                <Link href="/forgot-password" className="text-[#F59E0B] hover:text-[#FCD34D] text-sm transition-colors">
+                <label className="text-[#7A7974] text-sm">Password</label>
+                <Link href="/forgot-password" className="text-[#009e97] hover:text-[#33c4be] text-sm transition-colors">
                   Forgot password?
                 </Link>
               </div>
@@ -179,9 +179,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-[#5C524A] text-sm">
+          <p className="mt-6 text-center text-[#C8C7C5] text-sm">
             No account?{' '}
-            <Link href="/signup" className="text-[#F59E0B] hover:text-[#FCD34D] transition-colors">Create one</Link>
+            <Link href="/signup" className="text-[#009e97] hover:text-[#33c4be] transition-colors">Create one</Link>
           </p>
         </motion.div>
       </div>

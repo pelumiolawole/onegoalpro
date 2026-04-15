@@ -50,18 +50,18 @@ export default function TaskCard({ task, onComplete, onSkip, onReflect }: Props)
   return (
     <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
       isCompleted
-        ? 'bg-[#0F1A0F] border-[#22C55E]/20'
+        ? 'bg-[#F0FDF4] border-[#22C55E]/20'
         : isSkipped
-        ? 'bg-[#141210] border-white/5 opacity-60'
-        : 'bg-[#141210] border-[#F59E0B]/15'
+        ? 'bg-[#F8F8F7] border-black/5 opacity-60'
+        : 'bg-[#F8F8F7] border-[#009e97]/15'
     }`}>
 
       {/* ── Identity Focus ──────────────────────────── */}
-      <div className={`px-5 py-3 border-b ${isCompleted ? 'border-[#22C55E]/10' : 'border-white/5'}`}>
-        <p className={`text-xs uppercase tracking-widest font-mono ${isCompleted ? 'text-[#22C55E]/70' : 'text-[#F59E0B]/70'}`}>
+      <div className={`px-5 py-3 border-b ${isCompleted ? 'border-[#22C55E]/10' : 'border-black/5'}`}>
+        <p className={`text-xs uppercase tracking-widest font-mono ${isCompleted ? 'text-[#22C55E]/70' : 'text-[#009e97]/70'}`}>
           Today you are
         </p>
-        <p className={`text-sm mt-0.5 italic ${isCompleted ? 'text-[#4ADE80]/80' : 'text-[#C4BBB5]'}`}>
+        <p className={`text-sm mt-0.5 italic ${isCompleted ? 'text-[#4ADE80]/80' : 'text-[#5C5B57]'}`}>
           {task.identity_focus}
         </p>
       </div>
@@ -69,25 +69,25 @@ export default function TaskCard({ task, onComplete, onSkip, onReflect }: Props)
       {/* ── Task Body ───────────────────────────────── */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-4 mb-3">
-          <h2 className={`font-display text-xl leading-snug ${isCompleted ? 'text-[#4ADE80]' : 'text-[#F5F1ED]'}`}>
+          <h2 className={`font-display text-xl leading-snug ${isCompleted ? 'text-[#4ADE80]' : 'text-[#1A1A1A]'}`}>
             {task.title}
           </h2>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[#3D3630] text-xs font-mono">
+            <span className="text-[#C8C7C5] text-xs font-mono">
               {task.time_estimate_minutes}m
             </span>
             <DifficultyDots level={task.difficulty} />
           </div>
         </div>
 
-        <p className="text-[#7A6E65] text-sm leading-relaxed mb-4">
+        <p className="text-[#9E9D9B] text-sm leading-relaxed mb-4">
           {task.description}
         </p>
 
         {/* Execution guidance — expandable */}
         <button
           onClick={() => setExpanded(e => !e)}
-          className="text-[#5C524A] text-xs flex items-center gap-1 hover:text-[#A09690] transition-colors mb-4"
+          className="text-[#C8C7C5] text-xs flex items-center gap-1 hover:text-[#7A7974] transition-colors mb-4"
         >
           <span>{expanded ? '↑' : '↓'}</span>
           {expanded ? 'Hide guidance' : 'How to do this'}
@@ -102,7 +102,7 @@ export default function TaskCard({ task, onComplete, onSkip, onReflect }: Props)
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <p className="text-[#A09690] text-sm leading-relaxed bg-[#1E1B18] rounded-xl p-4 mb-4 border border-white/5">
+              <p className="text-[#7A7974] text-sm leading-relaxed bg-[#F0EFED] rounded-xl p-4 mb-4 border border-black/5">
                 {/* execution_guidance not in summary — pass full task if needed */}
                 Approach this task with full presence. Let the doing be the practice.
               </p>
@@ -175,18 +175,18 @@ export default function TaskCard({ task, onComplete, onSkip, onReflect }: Props)
             {!task.reflection_submitted ? (
               <button
                 onClick={onReflect}
-                className="btn btn-ghost h-9 text-sm px-4 border-[#F59E0B]/20 text-[#F59E0B] hover:bg-[#F59E0B]/10"
+                className="btn btn-ghost h-9 text-sm px-4 border-[#009e97]/20 text-[#009e97] hover:bg-[#009e97]/10"
               >
                 Reflect ✦
               </button>
             ) : (
-              <span className="text-[#3D3630] text-xs">Reflected ✓</span>
+              <span className="text-[#C8C7C5] text-xs">Reflected ✓</span>
             )}
           </div>
         )}
 
         {isSkipped && (
-          <p className="text-[#5C524A] text-sm">Skipped today. Tomorrow is new.</p>
+          <p className="text-[#C8C7C5] text-sm">Skipped today. Tomorrow is new.</p>
         )}
       </div>
     </div>
@@ -200,7 +200,7 @@ function DifficultyDots({ level }: { level: number }) {
       {[...Array(5)].map((_, i) => (
         <div
           key={i}
-          className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-[#F59E0B]' : 'bg-[#2A2520]'}`}
+          className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-[#009e97]' : 'bg-[#E5E4E2]'}`}
         />
       ))}
     </div>

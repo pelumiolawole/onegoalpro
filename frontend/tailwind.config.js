@@ -16,33 +16,33 @@ module.exports = {
         mono: ['var(--font-mono)', 'monospace'],
       },
       colors: {
-        // Core palette — deep night / warm ink
-        ink: {
-          950: '#0A0908',
-          900: '#141210',
-          800: '#1E1B18',
-          700: '#2A2520',
-          600: '#3D3630',
-          500: '#5C524A',
-          400: '#7A6E65',
-          300: '#A09690',
-          200: '#C4BBB5',
-          100: '#E8E2DC',
-          50:  '#F5F1ED',
+        // Core palette — light-mode slate
+        slate: {
+          950: '#FFFFFF',
+          900: '#F8F8F7',
+          800: '#F0EFED',
+          700: '#E5E4E2',
+          600: '#C8C7C5',
+          500: '#9E9D9B',
+          400: '#7A7974',
+          300: '#5C5B57',
+          200: '#3D3C39',
+          100: '#28271F',
+          50:  '#1A1A1A',
         },
-        // Accent — warm amber / gold (extended for landing)
-        gold: {
-          950: '#1a150f',
-          900: '#5c421b',
-          800: '#70501e',
-          700: '#8a6420',
-          600: '#a67a24',
-          500: '#c99a2e',
-          400: '#dcb04d',
-          300: '#e8c97a',
-          200: '#f2e0b0',
-          100: '#f9f0d8',
-          50:  '#fdf9f0',
+        // Accent — teal
+        teal: {
+          950: '#003d3a',
+          900: '#005450',
+          800: '#006b66',
+          700: '#00827c',
+          600: '#009e97',
+          500: '#00b5ad',
+          400: '#33c4be',
+          300: '#66d4cf',
+          200: '#99e3e0',
+          100: '#ccf1ef',
+          50:  '#e6f8f7',
         },
         // Signal colors
         rise:  '#4ADE80',
@@ -54,10 +54,10 @@ module.exports = {
         danger:  '#EF4444',
         // Landing-specific aliases
         void: {
-          DEFAULT: '#0A0908',
-          light: '#0d0b08',
-          dark: '#050403',
-          center: '#1a150f',
+          DEFAULT: '#FFFFFF',
+          light: '#F8F8F7',
+          dark: '#F0EFED',
+          center: '#e6f8f7',
         },
       },
       spacing: {
@@ -73,14 +73,14 @@ module.exports = {
         '5xl': '2.5rem',
       },
       boxShadow: {
-        'warm-sm': '0 1px 3px rgba(10,9,8,0.3), 0 1px 2px rgba(10,9,8,0.2)',
-        'warm':    '0 4px 16px rgba(10,9,8,0.25), 0 2px 6px rgba(10,9,8,0.15)',
-        'warm-lg': '0 12px 40px rgba(10,9,8,0.35), 0 4px 16px rgba(10,9,8,0.2)',
-        'warm-xl': '0 24px 64px rgba(10,9,8,0.45), 0 8px 24px rgba(10,9,8,0.25)',
-        'glow-gold': '0 0 24px rgba(245,158,11,0.3), 0 0 8px rgba(245,158,11,0.15)',
-        'inner-warm': 'inset 0 2px 8px rgba(10,9,8,0.2)',
+        'warm-sm': '0 1px 2px rgba(0,0,0,0.05)',
+        'warm':    '0 2px 4px rgba(0,0,0,0.08)',
+        'warm-lg': '0 4px 12px rgba(0,0,0,0.1)',
+        'warm-xl': '0 8px 24px rgba(0,0,0,0.12)',
+        'glow-teal': '0 0 15px rgba(0,158,151,0.3), 0 0 30px rgba(0,158,151,0.15)',
+        'inner-warm': 'inset 0 2px 8px rgba(0,0,0,0.06)',
         // Landing-specific glow
-        'gold-lg': '0 0 40px rgba(201, 154, 46, 0.25), 0 0 80px rgba(201, 154, 46, 0.1)',
+        'teal-lg': '0 4px 15px rgba(0,158,151,0.25), 0 1px 3px rgba(0,158,151,0.1)',
       },
       animation: {
         'fade-up':     'fadeUp 0.5s ease-out both',
@@ -131,11 +131,11 @@ module.exports = {
       },
       backgroundImage: {
         'grain': "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg '%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
-        'gradient-warm': 'linear-gradient(135deg, #0A0908 0%, #1E1B18 50%, #141210 100%)',
-        'gradient-gold': 'linear-gradient(135deg, #B45309 0%, #F59E0B 50%, #D97706 100%)',
+        'gradient-warm': 'linear-gradient(135deg, #FFFFFF 0%, #F0EFED 50%, #F8F8F7 100%)',
+        'gradient-teal': 'linear-gradient(135deg, #006b66 0%, #009e97 50%, #00827c 100%)',
         // Landing-specific gradients
-        'gradient-void': 'radial-gradient(ellipse at center, #1a150f 0%, #0a0908 50%, #050403 100%)',
-        'gradient-gold-shine': 'linear-gradient(135deg, #e8c97a 0%, #c99a2e 50%, #8a6420 100%)',
+        'gradient-void': 'radial-gradient(ellipse at center, #e6f8f7 0%, #FFFFFF 50%, #F0EFED 100%)',
+        'gradient-teal-shine': 'linear-gradient(135deg, #66d4cf 0%, #00b5ad 50%, #006b66 100%)',
       },
     },
   },
