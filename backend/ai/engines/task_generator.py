@@ -82,12 +82,9 @@ class TaskGeneratorEngine(BaseAIEngine):
         async def _run(db: AsyncSession):
             nonlocal tasks_generated
 
-            # Get dates that need tasks (today + missed days)
             dates_needed = await self._get_missed_task_dates(uid, today, db)
 
-            # Limit to max 3 tasks (today + up to 2 missed)
             if len(dates_needed) > 3:
-                # Keep only the most recent 3
                 dates_needed = sorted(dates_needed)[-3:]
                 logger.warning(
                     "backlog_exceeds_limit",
@@ -96,7 +93,6 @@ class TaskGeneratorEngine(BaseAIEngine):
                     limiting_to=3
                 )
 
-            # Generate tasks for each date
             for task_date in dates_needed:
                 try:
                     task = await self.generate_task_for_user(
@@ -114,12 +110,10 @@ class TaskGeneratorEngine(BaseAIEngine):
                         date=str(task_date),
                         error=str(e)
                     )
-                    # Rollback aborted transaction before attempting fallback
                     try:
                         await db.rollback()
                     except Exception:
                         pass
-                    # Try fallback template for this date
                     try:
                         await self._create_fallback_task(uid, task_date, db)
                         tasks_generated += 1
@@ -131,9 +125,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                             error=str(fallback_error)
                         )
 
-            # Check if intervention needed (3 missed tasks)
             await self._trigger_intervention_if_needed(uid, db)
-
             return tasks_generated
 
         if db:
@@ -148,11 +140,6 @@ class TaskGeneratorEngine(BaseAIEngine):
         today: date,
         db: AsyncSession,
     ) -> list[date]:
-        """
-        Find dates from last 3 days that don't have tasks.
-        Returns list of dates that need tasks generated.
-        """
-        # Check last 3 days + today
         check_dates = [today - timedelta(days=i) for i in range(3, -1, -1)]
 
         result = await db.execute(
@@ -171,21 +158,13 @@ class TaskGeneratorEngine(BaseAIEngine):
             },
         )
         existing_dates = {row[0] for row in result.fetchall()}
-
-        # Return dates that don't have tasks
-        missing_dates = [d for d in check_dates if d not in existing_dates]
-        return missing_dates
+        return [d for d in check_dates if d not in existing_dates]
 
     async def _trigger_intervention_if_needed(
         self,
         user_id: str,
         db: AsyncSession,
     ) -> None:
-        """
-        Check if user has 3+ missed tasks and trigger intervention.
-        Creates a coach intervention message.
-        """
-        # Count missed tasks (pending tasks from past dates)
         result = await db.execute(
             text("""
                 SELECT COUNT(*)
@@ -200,7 +179,6 @@ class TaskGeneratorEngine(BaseAIEngine):
         missed_count = result.scalar() or 0
 
         if missed_count >= 3:
-            # Check if intervention already exists for this reason
             existing = await db.execute(
                 text("""
                     SELECT id FROM coach_interventions
@@ -211,15 +189,12 @@ class TaskGeneratorEngine(BaseAIEngine):
                 """),
                 {"user_id": user_id},
             )
-
             if not existing.fetchone():
-                # Create intervention
                 await db.execute(
                     text("""
                         INSERT INTO coach_interventions
                         (user_id, intervention_type, message, urgency)
-                        VALUES
-                        (:user_id, 'backlog_crisis', :message, 'high')
+                        VALUES (:user_id, 'backlog_crisis', :message, 'high')
                     """),
                     {
                         "user_id": user_id,
@@ -227,12 +202,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                     }
                 )
                 await db.commit()
-
-                logger.info(
-                    "backlog_intervention_triggered",
-                    user_id=user_id,
-                    missed_count=missed_count
-                )
+                logger.info("backlog_intervention_triggered", user_id=user_id, missed_count=missed_count)
 
     async def _create_fallback_task(
         self,
@@ -240,8 +210,6 @@ class TaskGeneratorEngine(BaseAIEngine):
         task_date: date,
         db: AsyncSession,
     ) -> None:
-        """Create a template fallback task when AI generation fails."""
-        # Rotate through fallback tasks based on date
         fallback_index = task_date.day % len(self.FALLBACK_TASKS)
         fallback = self.FALLBACK_TASKS[fallback_index]
 
@@ -282,19 +250,12 @@ class TaskGeneratorEngine(BaseAIEngine):
         db: AsyncSession | None = None,
         is_backlog: bool = False,
     ) -> dict:
-        """
-        Generate a task for a specific user and date.
-
-        Args:
-            is_backlog: If True, this is a missed day task (adjusts messaging)
-        """
         from core.database import get_db_context
 
         uid = str(user_id)
         task_date = target_date or date.today() + timedelta(days=1)
 
         async def _run(db: AsyncSession):
-            # Check if task already exists
             existing = await db.execute(
                 text("""
                     SELECT id FROM daily_tasks
@@ -308,11 +269,9 @@ class TaskGeneratorEngine(BaseAIEngine):
                 logger.info("task_already_exists", user_id=uid, date=str(task_date))
                 return None
 
-            # Get full user context
             context = await context_builder.get_context(uid, db, force_refresh=True)
             context_str = context_builder.format_for_prompt(context)
 
-            # Get time availability
             identity = context.get("identity", {})
             time_avail = identity.get("time_availability") or {}
             day_name = task_date.strftime("%A").lower()
@@ -322,15 +281,11 @@ class TaskGeneratorEngine(BaseAIEngine):
                 time_available = time_avail.get("weekday", 30)
             time_available = max(15, min(120, time_available or 30))
 
-            # Fetch enriched history context
             task_history_str = await self._get_task_history(uid, db)
             reflection_history_str = await self._get_reflection_history(uid, db)
             progress_context_str = await self._get_progress_context(context)
-
-            # Get day-of-week context signal
             day_of_week, day_context = self._get_day_context(task_date)
 
-            # Build the generation prompt
             system_prompt = get_prompt("task_generator").format(
                 user_context=context_str,
                 time_available=time_available,
@@ -341,12 +296,10 @@ class TaskGeneratorEngine(BaseAIEngine):
                 day_context=day_context,
             )
 
-            # Adjust prompt for backlog tasks
             date_note = ""
             if is_backlog:
                 date_note = f"\n\nNOTE: This task is for {task_date.strftime('%A, %B %d')} (a missed day). Keep the tone supportive and non-judgmental. Focus on 'starting fresh' rather than 'catching up'."
 
-            # Build task type description
             task_type_desc = "a catch-up" if is_backlog else "tomorrow's"
 
             try:
@@ -368,19 +321,23 @@ class TaskGeneratorEngine(BaseAIEngine):
                 if not task_data or not task_data.get("title"):
                     raise ValueError("Empty task data from AI")
 
+                # Database-level duplicate check — safety net that catches what the prompt misses
+                is_duplicate = await self._is_title_duplicate(uid, task_data.get("title", ""), db)
+                if is_duplicate:
+                    logger.warning(
+                        "duplicate_task_title_detected",
+                        user_id=uid,
+                        title=task_data.get("title"),
+                        date=str(task_date),
+                    )
+                    raise ValueError(f"Duplicate task title: {task_data.get('title')}")
+
             except Exception as e:
-                logger.error(
-                    "ai_task_generation_failed",
-                    user_id=uid,
-                    date=str(task_date),
-                    error=str(e)
-                )
-                # Use fallback template
+                logger.error("ai_task_generation_failed", user_id=uid, date=str(task_date), error=str(e))
                 fallback_index = task_date.day % len(self.FALLBACK_TASKS)
                 task_data = self.FALLBACK_TASKS[fallback_index].copy()
                 task_data["fallback"] = True
 
-            # Write task to database
             task_id = await self._persist_task(uid, task_date, task_data, context, db)
 
             logger.info(
@@ -401,15 +358,60 @@ class TaskGeneratorEngine(BaseAIEngine):
             async with get_db_context() as db:
                 return await _run(db)
 
+    async def _is_title_duplicate(
+        self, user_id: str, title: str, db: AsyncSession
+    ) -> bool:
+        """
+        Database-level duplicate title check.
+        Normalises away filler words and compares against last 21 days of generated titles.
+        Catches what the prompt-level non-repetition instruction misses.
+        """
+        if not title:
+            return False
+
+        result = await db.execute(
+            text("""
+                SELECT title FROM daily_tasks
+                WHERE user_id = :user_id
+                  AND created_at >= NOW() - INTERVAL '21 days'
+                ORDER BY created_at DESC
+                LIMIT 30
+            """),
+            {"user_id": user_id},
+        )
+        recent_titles = [row[0] for row in result.fetchall() if row[0]]
+
+        filler = {
+            "a", "an", "the", "your", "my", "on", "in", "of", "for",
+            "to", "and", "with", "about", "write", "create", "draft",
+            "reflect", "engage", "design", "build", "craft", "explore",
+            "conduct", "identify", "develop", "make", "do", "plan", "how",
+        }
+
+        def normalise(t: str) -> str:
+            return " ".join(
+                w.lower() for w in t.split()
+                if w.lower() not in filler and len(w) > 2
+            )
+
+        norm_new = normalise(title)
+        for recent in recent_titles:
+            norm_recent = normalise(recent)
+            if norm_new == norm_recent:
+                return True
+            new_words = set(norm_new.split())
+            recent_words = set(norm_recent.split())
+            if new_words and recent_words:
+                overlap = len(new_words & recent_words) / max(len(new_words), len(recent_words))
+                if overlap >= 0.70:
+                    return True
+        return False
+
     async def generate_initial_tasks(
         self,
         user_id: UUID | str,
         db: AsyncSession,
     ) -> list[dict]:
-        """
-        Generate the first 3 days of tasks when a user activates.
-        Gives them immediate value and establishes the pattern.
-        """
         uid = str(user_id)
         tasks = []
         today = date.today()
@@ -421,12 +423,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                 if task:
                     tasks.append(task)
             except Exception as e:
-                logger.error(
-                    "initial_task_generation_failed",
-                    user_id=uid,
-                    day=i,
-                    error=str(e),
-                )
+                logger.error("initial_task_generation_failed", user_id=uid, day=i, error=str(e))
                 await db.rollback()
 
         return tasks
@@ -435,17 +432,42 @@ class TaskGeneratorEngine(BaseAIEngine):
         self, user_id: str, db: AsyncSession, days: int = 30
     ) -> str:
         """
-        Fetch the last 30 days of tasks with date, title, and status.
-        Returned as a formatted string for prompt injection.
+        Fetch task history for non-repetition checking.
+
+        Uses two windows merged together:
+        1. Last 30 days by scheduled date (standard window)
+        2. Last 14 tasks by creation date (catches users with large pending backlogs
+           where the date-based window shows stale data)
+
+        This is the key fix for the repetition problem: users with 90 pending tasks
+        were generating into a blind spot because the date window only showed pending
+        tasks that looked "different" by title even when they were effectively the same.
         """
         result = await db.execute(
             text("""
-                SELECT scheduled_date, title, status
-                FROM daily_tasks
-                WHERE user_id = :user_id
-                  AND scheduled_date >= CURRENT_DATE - (:days * INTERVAL '1 day')
-                ORDER BY scheduled_date DESC
-                LIMIT 30
+                WITH by_date AS (
+                    SELECT scheduled_date, title, status, created_at
+                    FROM daily_tasks
+                    WHERE user_id = :user_id
+                      AND scheduled_date >= CURRENT_DATE - (:days * INTERVAL '1 day')
+                    ORDER BY scheduled_date DESC
+                    LIMIT 30
+                ),
+                by_creation AS (
+                    SELECT scheduled_date, title, status, created_at
+                    FROM daily_tasks
+                    WHERE user_id = :user_id
+                    ORDER BY created_at DESC
+                    LIMIT 14
+                )
+                SELECT DISTINCT ON (title) scheduled_date, title, status
+                FROM (
+                    SELECT * FROM by_date
+                    UNION ALL
+                    SELECT * FROM by_creation
+                ) combined
+                ORDER BY title, scheduled_date DESC
+                LIMIT 45
             """),
             {"user_id": user_id, "days": days},
         )
@@ -454,20 +476,12 @@ class TaskGeneratorEngine(BaseAIEngine):
         if not rows:
             return "No task history yet."
 
-        lines = []
-        for row in rows:
-            task_date, title, status = row
-            lines.append(f"  {task_date} | {status} | {title}")
-
-        return "\n".join(lines)
+        lines = [f"  {row[0]} | {row[2]} | {row[1]}" for row in rows]
+        return "\n".join(sorted(lines, reverse=True))
 
     async def _get_reflection_history(
         self, user_id: str, db: AsyncSession, limit: int = 10
     ) -> str:
-        """
-        Fetch the last 10 reflections with associated task title and what the user said.
-        Returned as a formatted string for prompt injection.
-        """
         result = await db.execute(
             text("""
                 SELECT
@@ -494,7 +508,6 @@ class TaskGeneratorEngine(BaseAIEngine):
             reflection_date, task_title, questions_answers, depth_score = row
             task_label = task_title or "unknown task"
 
-            # Extract user responses from questions_answers JSONB
             user_responses = []
             if questions_answers:
                 pairs = questions_answers if isinstance(questions_answers, list) else []
@@ -511,36 +524,20 @@ class TaskGeneratorEngine(BaseAIEngine):
         return "\n".join(lines)
 
     async def _get_progress_context(self, context: dict) -> str:
-        """
-        Build a short progress summary string from the already-loaded context.
-        No additional DB query needed.
-        """
         scores = context.get("scores", {})
         retention = context.get("retention", {})
 
-        streak = scores.get("streak", 0)
-        momentum = scores.get("momentum_state", "holding")
-        transformation = scores.get("transformation", 0)
-        consistency = scores.get("consistency", 0)
-        days_active = context.get("days_active", 0)
-        days_since_last = retention.get("days_since_last_task", 0)
-
         lines = [
-            f"Streak: {streak} days",
-            f"Momentum: {momentum}",
-            f"Transformation score: {transformation:.1f}/100",
-            f"Consistency: {consistency:.1f}",
-            f"Days active: {days_active}",
-            f"Days since last task: {days_since_last}",
+            f"Streak: {scores.get('streak', 0)} days",
+            f"Momentum: {scores.get('momentum_state', 'holding')}",
+            f"Transformation score: {scores.get('transformation', 0):.1f}/100",
+            f"Consistency: {scores.get('consistency', 0):.1f}",
+            f"Days active: {context.get('days_active', 0)}",
+            f"Days since last task: {retention.get('days_since_last_task', 0)}",
         ]
         return "\n".join(lines)
 
     def _get_day_context(self, task_date: date) -> tuple[str, str]:
-        """
-        Returns (day_name, day_context_string) for the task generation prompt.
-        Day context is a soft signal — the AI weighs it alongside momentum and scores.
-        Not an override. A user in high momentum on Sunday still gets a challenging task.
-        """
         day = task_date.strftime("%A")
         contexts = {
             "Monday": (
@@ -593,14 +590,10 @@ class TaskGeneratorEngine(BaseAIEngine):
         context: dict,
         db: AsyncSession,
     ) -> UUID:
-        """Write the generated task to the database."""
         goal = context.get("goal") or {}
         goal_id = goal.get("id")
-
-        # Find current active objective
         obj_id = await self._get_current_objective_id(user_id, db)
 
-        # Store generation context
         generation_context = {
             "momentum_state": context.get("scores", {}).get("momentum_state"),
             "streak": context.get("scores", {}).get("streak"),
@@ -646,7 +639,6 @@ class TaskGeneratorEngine(BaseAIEngine):
         return result.scalar()
 
     async def _get_current_objective_id(self, user_id: str, db: AsyncSession):
-        """Get the ID of the first in-progress or upcoming objective."""
         result = await db.execute(
             text("""
                 SELECT o.id FROM objectives o
