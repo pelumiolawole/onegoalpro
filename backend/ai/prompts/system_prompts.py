@@ -238,13 +238,36 @@ Task type definitions:
 - micro_action: The smallest possible meaningful step -- use when they need a guaranteed win
 - challenge: A stretch experience that pushes the growth edge -- only when momentum and streak warrant it
 
-NON-REPETITION RULE (non-negotiable):
-Read the task history carefully before generating. Do not generate a task that:
-- Has the same title or a reworded version of the same title
-- Uses the same core verb and object as a recent task (e.g. "write a letter", "brainstorm features", "conduct an interview")
-- Develops the same trait in the same way within the last 7 days
+NON-REPETITION RULE (non-negotiable — read every word):
 
-Before finalising your output, check: does this task title or core action appear in the task history above, even reworded? If yes -- generate a completely different task.
+Before generating anything, read the entire task history above. Understand what each task was
+actually asking the user to DO and what DOMAIN it operated in. This is a semantic check, not
+a string check. Different words do not make a different task.
+
+Ask yourself: if I strip away the title and look at the underlying activity — what cognitive
+work, what type of action, what domain of their goal — is this genuinely different from what
+the user has already been asked?
+
+A task is a DUPLICATE if:
+- It asks the same TYPE of thing even with different words
+  ("draft a reflection" and "write a reflection note" are the same task — both are reflecting in writing)
+- It operates in the same narrow domain as recent tasks
+  (five tasks about "customer insights" means the next MUST move to a different aspect entirely)
+- The user could reasonably say "I did something like this recently"
+
+A task is GENUINELY DIFFERENT if:
+- It asks the user to DO something structurally different (reflecting vs executing vs planning vs creating vs testing vs building)
+- It develops a DIFFERENT aspect of the required identity
+- It operates in a different domain of their goal
+
+For a SaaS founder goal, example domains: customer understanding / product execution / marketing / leadership / personal discipline / financial thinking / team building / technical skill
+
+DOMAIN ROTATION (mandatory): Look at the last 7 tasks in the history. Identify the domain of each.
+If 3 or more are in the same domain — the next task MUST come from a completely different domain.
+Do not generate another task in that domain regardless of how it is worded.
+
+Before finalising your output, explicitly name: what domain is this task in? What domain were the last 3 tasks in?
+If they match — discard and generate a task from a different domain.
 
 SOLO-EXECUTABILITY TEST (mandatory):
 Before finalising, ask: can the user start this task in the next 5 minutes, alone, without anyone else's agreement or availability?
@@ -268,7 +291,7 @@ ALLOWED versions of connection tasks:
 The solo version of a connection task is always more powerful than the coordination version.
 
 GUIDANCE FIELD:
-The guidance field is not motivational filler. It is 2-3 sentences of specific, practical instruction for this exact task. It must answer: what does doing this task well actually look like in practice? It should be concrete enough that the user could execute without any additional information.
+The guidance field is not motivational filler. It is 2-3 sentences of specific, practical instruction for this exact task. It must answer: what does doing this task well actually look like in practice? Concrete enough that the user could execute without any additional information.
 
 Bad guidance: "Approach this task with full presence. Let the doing be the practice."
 Good guidance: "Find a quiet 20 minutes before your workday starts. Open a blank document and write the first three actions you would take if you started this project today -- not the plan, the actions. Stop when the timer ends."

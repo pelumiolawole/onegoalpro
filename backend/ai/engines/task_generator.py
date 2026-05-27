@@ -321,16 +321,39 @@ class TaskGeneratorEngine(BaseAIEngine):
                 if not task_data or not task_data.get("title"):
                     raise ValueError("Empty task data from AI")
 
-                # Database-level duplicate check — safety net that catches what the prompt misses
+                # Exact-match duplicate check — last resort safety net
                 is_duplicate = await self._is_title_duplicate(uid, task_data.get("title", ""), db)
                 if is_duplicate:
                     logger.warning(
-                        "duplicate_task_title_detected",
+                        "duplicate_task_title_detected_retrying",
                         user_id=uid,
                         title=task_data.get("title"),
                         date=str(task_date),
                     )
-                    raise ValueError(f"Duplicate task title: {task_data.get('title')}")
+                    # Retry once at higher temperature with explicit instruction
+                    retry_raw = await self._complete(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}\n\n"
+                                    f"IMPORTANT: The title '{task_data.get('title')}' was rejected as a duplicate. "
+                                    f"Generate a task in a completely different domain — "
+                                    f"not the same type of activity, not the same subject area. "
+                                    f"Think about what aspect of their goal has NOT been addressed recently."
+                                ),
+                            },
+                        ],
+                        user_id=uid,
+                        temperature=0.95,
+                        max_tokens=800,
+                    )
+                    retry_data = self._parse_json(retry_raw, fallback={})
+                    if retry_data and retry_data.get("title"):
+                        task_data = retry_data
+                    else:
+                        raise ValueError(f"Retry also failed for duplicate: {task_data.get('title')}")
 
             except Exception as e:
                 logger.error("ai_task_generation_failed", user_id=uid, date=str(task_date), error=str(e))
@@ -362,9 +385,12 @@ class TaskGeneratorEngine(BaseAIEngine):
         self, user_id: str, title: str, db: AsyncSession
     ) -> bool:
         """
-        Database-level duplicate title check.
-        Normalises away filler words and compares against last 21 days of generated titles.
-        Catches what the prompt-level non-repetition instruction misses.
+        Exact-match duplicate title check against last 14 days.
+
+        Fuzzy matching was removed — it was too aggressive, causing valid AI-generated
+        tasks to be rejected and replaced with fallback templates. The semantic
+        non-repetition work is now done by the prompt (domain rotation rule).
+        This method is the last-resort safety net for exact title repeats only.
         """
         if not title:
             return False
@@ -373,39 +399,14 @@ class TaskGeneratorEngine(BaseAIEngine):
             text("""
                 SELECT title FROM daily_tasks
                 WHERE user_id = :user_id
-                  AND created_at >= NOW() - INTERVAL '21 days'
+                  AND created_at >= NOW() - INTERVAL '14 days'
                 ORDER BY created_at DESC
-                LIMIT 30
+                LIMIT 20
             """),
             {"user_id": user_id},
         )
-        recent_titles = [row[0] for row in result.fetchall() if row[0]]
-
-        filler = {
-            "a", "an", "the", "your", "my", "on", "in", "of", "for",
-            "to", "and", "with", "about", "write", "create", "draft",
-            "reflect", "engage", "design", "build", "craft", "explore",
-            "conduct", "identify", "develop", "make", "do", "plan", "how",
-        }
-
-        def normalise(t: str) -> str:
-            return " ".join(
-                w.lower() for w in t.split()
-                if w.lower() not in filler and len(w) > 2
-            )
-
-        norm_new = normalise(title)
-        for recent in recent_titles:
-            norm_recent = normalise(recent)
-            if norm_new == norm_recent:
-                return True
-            new_words = set(norm_new.split())
-            recent_words = set(norm_recent.split())
-            if new_words and recent_words:
-                overlap = len(new_words & recent_words) / max(len(new_words), len(recent_words))
-                if overlap >= 0.70:
-                    return True
-        return False
+        recent_titles = [row[0].lower().strip() for row in result.fetchall() if row[0]]
+        return title.lower().strip() in recent_titles
 
     async def generate_initial_tasks(
         self,
