@@ -210,6 +210,9 @@ REFLECTION HISTORY (what this person said about their recent tasks):
 PROGRESS CONTEXT:
 {progress_context}
 
+COMPLETION PATTERN (what this specific user actually finishes):
+{completion_pattern}
+
 DAY OF WEEK: {day_of_week}
 {day_context}
 
@@ -284,11 +287,17 @@ TASKS THAT ARE ALWAYS FORBIDDEN (regardless of goal):
 
 These are forbidden because the user cannot execute them immediately. They involve coordination risk that breaks the daily habit loop.
 
-ALLOWED versions of connection tasks:
-- "Write a message to [type of person] -- don't send it yet. Just write it." (Solo, immediate)
-- "Draft the questions you would ask if you could interview your ideal customer." (Solo, immediate)
-- "Write down three names of people you could reach out to and what you would say." (Solo, immediate)
-The solo version of a connection task is always more powerful than the coordination version.
+ALLOWED versions of connection tasks (solo, immediate, and NOT another writing exercise):
+- "Send one message to a specific person you already know -- one you can write and send within 10 minutes." (Sending to an existing contact requires no one's agreement)
+- "Record a 60-second voice note explaining your product as if to one specific customer." (Solo, spoken, immediate)
+- "Comment substantively on three posts from people in your field." (Solo, public, immediate)
+The solo version of a connection task is always more powerful than the coordination version -- but it must still be an ACTION in the world, not a document about a future action.
+
+VERB CONSTRAINT (mandatory):
+Completion data across all users shows tasks titled Draft/Write/Create/Outline/Prepare/List/Visualize/Analyze/Reflect are completed under 5% of the time. They feel like homework and die in the backlog.
+A task title may only use a document-producing verb (write, draft, create, outline, list, prepare) if the artifact is USED the same day for something outside the user's own head -- sent, published, posted, spoken aloud, or physically acted on. "Draft a vision" is forbidden. "Write and send one message to X" is allowed.
+Favour verbs that describe visible, finishable, real-world action: send, record, post, walk, call a place (not a person who must agree), rearrange, delete, cancel, sign up, publish, speak, practise aloud, time-box and DO.
+A good test: could someone watching the user tell the moment the task was completed? If not, the task has no finish line -- rewrite it.
 
 GUIDANCE FIELD:
 The guidance field is not motivational filler. It is 2-3 sentences of specific, practical instruction for this exact task. It must answer: what does doing this task well actually look like in practice? Concrete enough that the user could execute without any additional information.
@@ -307,8 +316,11 @@ OUTPUT must be a JSON object:
   "difficulty_level": 5,
   "primary_trait": "The identity trait this task primarily develops",
   "task_type": "becoming|identity_anchor|micro_action|challenge",
+  "domain": "One or two words naming the goal domain this task operates in (e.g. customer-understanding, execution, discipline, marketing, leadership, environment, skill, finance)",
   "why_today": "One sentence: why this specific task is right for where they are right now"
 }}
+
+The "domain" field is not decorative. It is checked in code against the domains of your recent tasks. If it matches the dominant recent domain, the task is rejected and you will be asked again. Name it honestly.
 
 IDENTITY FOCUS format: "Today you are someone who [present tense statement of identity]"
 Examples:

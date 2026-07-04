@@ -284,7 +284,11 @@ class TaskGeneratorEngine(BaseAIEngine):
             task_history_str = await self._get_task_history(uid, db)
             reflection_history_str = await self._get_reflection_history(uid, db)
             progress_context_str = await self._get_progress_context(context)
+            completion_pattern_str = await self._get_completion_pattern(uid, db)
             day_of_week, day_context = self._get_day_context(task_date)
+
+            # Pre-compute domain dominance so the rejection message can name it
+            dominant_domain = await self._get_dominant_recent_domain(uid, db)
 
             system_prompt = get_prompt("task_generator").format(
                 user_context=context_str,
@@ -292,9 +296,17 @@ class TaskGeneratorEngine(BaseAIEngine):
                 task_history=task_history_str,
                 reflection_history=reflection_history_str,
                 progress_context=progress_context_str,
+                completion_pattern=completion_pattern_str,
                 day_of_week=day_of_week,
                 day_context=day_context,
             )
+
+            if dominant_domain:
+                system_prompt += (
+                    f"\n\nDOMAIN OVERRIDE (computed from this user's actual history): "
+                    f"The last several tasks were all in the '{dominant_domain}' domain. "
+                    f"Today's task MUST NOT be in '{dominant_domain}'. Choose a different domain entirely."
+                )
 
             date_note = ""
             if is_backlog:
@@ -321,16 +333,20 @@ class TaskGeneratorEngine(BaseAIEngine):
                 if not task_data or not task_data.get("title"):
                     raise ValueError("Empty task data from AI")
 
-                # Exact-match duplicate check — last resort safety net
-                is_duplicate = await self._is_title_duplicate(uid, task_data.get("title", ""), db)
-                if is_duplicate:
+                # Validation gauntlet: forbidden patterns, duplicates, domain rotation.
+                # One retry with the specific violation named. Deterministic checks in
+                # code — the prompt asks, the code verifies.
+                rejection_reason = await self._validate_task(
+                    uid, task_data, dominant_domain, db
+                )
+                if rejection_reason:
                     logger.warning(
-                        "duplicate_task_title_detected_retrying",
+                        "task_rejected_retrying",
                         user_id=uid,
                         title=task_data.get("title"),
+                        reason=rejection_reason,
                         date=str(task_date),
                     )
-                    # Retry once at higher temperature with explicit instruction
                     retry_raw = await self._complete(
                         messages=[
                             {"role": "system", "content": system_prompt},
@@ -338,10 +354,9 @@ class TaskGeneratorEngine(BaseAIEngine):
                                 "role": "user",
                                 "content": (
                                     f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}\n\n"
-                                    f"IMPORTANT: The title '{task_data.get('title')}' was rejected as a duplicate. "
-                                    f"Generate a task in a completely different domain — "
-                                    f"not the same type of activity, not the same subject area. "
-                                    f"Think about what aspect of their goal has NOT been addressed recently."
+                                    f"REJECTED: Your previous task '{task_data.get('title')}' failed validation.\n"
+                                    f"Reason: {rejection_reason}\n"
+                                    f"Generate a completely different task that passes this check."
                                 ),
                             },
                         ],
@@ -350,10 +365,16 @@ class TaskGeneratorEngine(BaseAIEngine):
                         max_tokens=800,
                     )
                     retry_data = self._parse_json(retry_raw, fallback={})
-                    if retry_data and retry_data.get("title"):
-                        task_data = retry_data
-                    else:
-                        raise ValueError(f"Retry also failed for duplicate: {task_data.get('title')}")
+                    if not retry_data or not retry_data.get("title"):
+                        raise ValueError(f"Retry returned empty after rejection: {rejection_reason}")
+                    retry_rejection = await self._validate_task(
+                        uid, retry_data, dominant_domain, db
+                    )
+                    if retry_rejection:
+                        raise ValueError(
+                            f"Retry also failed validation: {retry_rejection} — title: {retry_data.get('title')}"
+                        )
+                    task_data = retry_data
 
             except Exception as e:
                 logger.error("ai_task_generation_failed", user_id=uid, date=str(task_date), error=str(e))
@@ -380,6 +401,148 @@ class TaskGeneratorEngine(BaseAIEngine):
         else:
             async with get_db_context() as db:
                 return await _run(db)
+
+    # Title patterns that violate solo-executability. Checked in code because
+    # the prompt-level ban provably failed: "Host a Virtual Coffee Chat" x10,
+    # "Reach Out to a Potential Mentor" x9, "Attend a Local Networking Event" x5
+    # all shipped despite being in the prompt's forbidden list.
+    FORBIDDEN_TITLE_PATTERNS = [
+        r"\breach out\b",
+        r"\battend\b",
+        r"\bjoin a\b",
+        r"\bjoin an\b",
+        r"\bhost\b",
+        r"\bfacilitate\b",
+        r"\bschedule a\b",
+        r"\bset up a (call|meeting)\b",
+        r"\binvite\b",
+        r"\binterview (a|an|your|someone)\b",
+        r"\bconduct .{0,20}interview\b",
+        r"\bconnect with a\b",
+        r"\bfind a (community|group|mentor)\b",
+        r"\bwebinar\b",
+        r"\bnetworking event\b",
+    ]
+
+    def _violates_forbidden_patterns(self, title: str) -> str | None:
+        """
+        Returns the matched pattern if the title requires another person's
+        agreement or an external event to exist. None if clean.
+        Code-level enforcement of the prompt's solo-executability ban.
+        """
+        import re
+        t = (title or "").lower()
+        for pattern in self.FORBIDDEN_TITLE_PATTERNS:
+            if re.search(pattern, t):
+                return pattern
+        return None
+
+    async def _get_dominant_recent_domain(
+        self, user_id: str, db: AsyncSession
+    ) -> str | None:
+        """
+        Look at the domains of the last 5 generated tasks (stored in
+        generation_context). If 3+ share a domain, return it — the next
+        task must NOT be in that domain. Returns None if no dominance.
+        """
+        result = await db.execute(
+            text("""
+                SELECT generation_context->>'domain' AS domain
+                FROM daily_tasks
+                WHERE user_id = :user_id
+                  AND generation_context->>'domain' IS NOT NULL
+                ORDER BY created_at DESC
+                LIMIT 5
+            """),
+            {"user_id": user_id},
+        )
+        domains = [row[0].lower().strip() for row in result.fetchall() if row[0]]
+        if len(domains) < 3:
+            return None
+        from collections import Counter
+        domain, count = Counter(domains).most_common(1)[0]
+        return domain if count >= 3 else None
+
+    async def _get_completion_pattern(
+        self, user_id: str, db: AsyncSession
+    ) -> str:
+        """
+        One-line behavioural signal: which task shapes this user actually
+        completes vs ignores. The strongest steering signal we have —
+        completion rates vary 20x by verb across the user base.
+        """
+        result = await db.execute(
+            text("""
+                SELECT
+                    lower(split_part(title, ' ', 1)) AS verb,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS done
+                FROM daily_tasks
+                WHERE user_id = :user_id
+                  AND generated_by_ai = TRUE
+                GROUP BY verb
+                HAVING COUNT(*) >= 3
+            """),
+            {"user_id": user_id},
+        )
+        rows = result.fetchall()
+        if not rows:
+            return "No completion data yet for this user. Favour short, concrete, real-world tasks with a visible finish line."
+
+        completed_verbs = sorted(
+            [(r[0], r[2] / r[1]) for r in rows if r[2] > 0],
+            key=lambda x: x[1], reverse=True,
+        )[:3]
+        ignored_verbs = [r[0] for r in rows if r[2] == 0 and r[1] >= 4][:4]
+
+        parts = []
+        if completed_verbs:
+            verbs = ", ".join(f"'{v}'" for v, _ in completed_verbs)
+            parts.append(f"This user completes tasks starting with: {verbs}.")
+        if ignored_verbs:
+            verbs = ", ".join(f"'{v}'" for v in ignored_verbs)
+            parts.append(f"This user has NEVER completed a task starting with: {verbs} — do not generate these shapes.")
+        if not parts:
+            parts.append("This user has completed almost nothing — generate the smallest, most concrete real-world action possible.")
+        return " ".join(parts)
+
+    async def _validate_task(
+        self,
+        user_id: str,
+        task_data: dict,
+        dominant_domain: str | None,
+        db: AsyncSession,
+    ) -> str | None:
+        """
+        Run all deterministic checks on a generated task.
+        Returns a human-readable rejection reason, or None if the task passes.
+        Order: forbidden patterns (cheapest) -> duplicate -> domain rotation.
+        """
+        title = task_data.get("title", "")
+
+        violated = self._violates_forbidden_patterns(title)
+        if violated:
+            return (
+                f"The title contains a coordination-dependent action (matched '{violated}'). "
+                f"Tasks must be executable alone, immediately, without another person's "
+                f"agreement or an event existing. Generate a solo, real-world action instead."
+            )
+
+        if await self._is_title_duplicate(user_id, title, db):
+            return (
+                f"This exact title was generated for this user within the last 14 days. "
+                f"Generate a structurally different task."
+            )
+
+        task_domain = (task_data.get("domain") or "").lower().strip()
+        if dominant_domain and task_domain and task_domain == dominant_domain:
+            return (
+                f"The task domain '{task_domain}' matches the user's over-saturated recent "
+                f"domain. The last several tasks were all '{dominant_domain}'. "
+                f"Choose a completely different domain of their goal."
+            )
+
+        return None
 
     async def _is_title_duplicate(
         self, user_id: str, title: str, db: AsyncSession
@@ -600,6 +763,7 @@ class TaskGeneratorEngine(BaseAIEngine):
             "streak": context.get("scores", {}).get("streak"),
             "top_trait_gap": (context.get("traits") or [{}])[0].get("name") if context.get("traits") else None,
             "is_fallback": task_data.get("fallback", False),
+            "domain": (task_data.get("domain") or "").lower().strip() or None,
         }
 
         result = await db.execute(
