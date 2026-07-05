@@ -254,27 +254,21 @@ export default function DashboardPage() {
                           <div key={i} className="h-12 bg-[#1E1B18] rounded-xl animate-pulse" />
                         ))}
                       </div>
-                    ) : !historyData || historyData.tasks.length === 0 ? (
+                    ) : !historyData || historyData.tasks.filter((t: any) => t.status === 'completed').length === 0 ? (
                       <p className="px-5 py-6 text-[#3D3630] text-sm">
-                        No past tasks yet. Complete your first task to start building history.
+                        Your completed tasks will appear here.
                       </p>
                     ) : (
                       <div className="divide-y divide-white/5">
-                        {/* Stats row */}
-                        <div className="px-5 py-3 flex gap-5">
+                        {/* Completed count — progress only, never failure metrics */}
+                        <div className="px-5 py-3">
                           <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#4ADE80]">{historyData.stats.completed}</span> completed
-                          </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#F87171]">{historyData.stats.missed + historyData.stats.skipped}</span> missed
-                          </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#F59E0B]">{historyData.stats.completion_rate}%</span> rate
+                            <span className="text-[#F59E0B]">{historyData.stats.completed}</span> tasks completed
                           </span>
                         </div>
 
-                        {/* Task rows — expandable */}
-                        {historyData.tasks.map((t: any) => (
+                        {/* Task rows — completed only, expandable */}
+                        {historyData.tasks.filter((t: any) => t.status === 'completed').map((t: any) => (
                           <div key={t.id}>
                             <button
                               onClick={() => toggleTask(t.id)}
