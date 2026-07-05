@@ -25,6 +25,15 @@ function stripMarkdown(text: string): string {
     .replace(/^\s*-\s+/gm, '')     // leading bullets
 }
 
+// Long coach answers read as conversation, not essay: split multi-paragraph
+// messages over ~280 chars into sequential bubbles. Single-paragraph messages
+// stay whole — never split mid-paragraph.
+function chunkMessage(content: string): string[] {
+  if (content.length <= 280) return [content]
+  const parts = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+  return parts.length > 1 ? parts : [content]
+}
+
 function formatDateLabel(dateStr: string): string {
   const date = new Date(dateStr)
   const today = new Date()
@@ -342,34 +351,61 @@ export default function CoachPage() {
                 {showDateSeparator && (
                   <DateSeparator label={formatDateLabel(msg.created_at!)} />
                 )}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
-                      <span className="text-[#F59E0B] text-[10px]">✦</span>
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
-                        : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
-                    }`}
-                  >
-                    {(msg.role === 'assistant' ? stripMarkdown(msg.content) : msg.content) || (msg.streaming ? <TypingDots /> : '')}
-                    {msg.streaming && msg.content && (
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ duration: 0.5, repeat: Infinity }}
-                        className="inline-block w-0.5 h-3.5 bg-[#F59E0B] ml-0.5 align-middle"
-                      />
-                    )}
+                {msg.role === 'assistant' && !msg.streaming ? (
+                  // Settled assistant message — chunked into conversational bubbles
+                  <div className="space-y-2">
+                    {chunkMessage(stripMarkdown(msg.content)).map((chunk, ci) => (
+                      <motion.div
+                        key={`${msg.id}-${ci}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: ci * 0.12 }}
+                        className="flex justify-start"
+                      >
+                        {ci === 0 ? (
+                          <div className="w-7 h-7 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
+                            <span className="text-[#F59E0B] text-[10px]">✦</span>
+                          </div>
+                        ) : (
+                          <div className="w-7 mr-2.5 shrink-0" />
+                        )}
+                        <div className="max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm">
+                          {chunk}
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </motion.div>
+                ) : (
+                  // User messages and in-flight streaming — single bubble
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="w-7 h-7 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/20 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
+                        <span className="text-[#F59E0B] text-[10px]">✦</span>
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                        msg.role === 'user'
+                          ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
+                          : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
+                      }`}
+                    >
+                      {(msg.role === 'assistant' ? stripMarkdown(msg.content) : msg.content) || (msg.streaming ? <TypingDots /> : '')}
+                      {msg.streaming && msg.content && (
+                        <motion.span
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                          className="inline-block w-0.5 h-3.5 bg-[#F59E0B] ml-0.5 align-middle"
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </React.Fragment>
             )
           })}
