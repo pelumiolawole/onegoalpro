@@ -70,6 +70,15 @@ const quotaConfig = {
   },
 }
 
+// The coach should send plain conversational text. If markdown slips through,
+// strip the artifacts rather than rendering raw asterisks to the user.
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*/g, '')          // bold markers
+    .replace(/^#{1,6}\s+/gm, '')   // headers
+    .replace(/^\s*-\s+/gm, '')     // leading bullets
+}
+
 function formatDateLabel(dateStr: string): string {
   const date = new Date(dateStr)
   const today = new Date()
@@ -470,7 +479,7 @@ export default function CoachPage() {
                         : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
                     }`}
                   >
-                    {msg.content || (msg.streaming ? <TypingDots /> : '')}
+                    {(msg.role === 'assistant' ? stripMarkdown(msg.content) : msg.content) || (msg.streaming ? <TypingDots /> : '')}
                     {msg.streaming && msg.content && (
                       <motion.span
                         animate={{ opacity: [1, 0] }}
