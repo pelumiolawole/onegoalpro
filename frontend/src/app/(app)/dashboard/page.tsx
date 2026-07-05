@@ -183,22 +183,25 @@ export default function DashboardPage() {
               <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-3 font-mono">
                 Your goal
               </p>
-              <p className="text-[#C4BBB5] text-sm mb-3 leading-relaxed">
+              <p className="text-[#C4BBB5] text-sm leading-relaxed">
                 {data.goal.statement}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-[#F59E0B]/60 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${data.goal.progress}%` }}
-                    transition={{ duration: 1, delay: 0.4 }}
-                  />
+              {/* Progress bar and fraction only once there is progress to show */}
+              {data.goal.objectives_done > 0 && (
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="flex-1 h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-[#F59E0B]/60 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${data.goal.progress}%` }}
+                      transition={{ duration: 1, delay: 0.4 }}
+                    />
+                  </div>
+                  <span className="text-[#5C524A] text-xs font-mono whitespace-nowrap">
+                    {data.goal.objectives_done}/{data.goal.objectives_total} objectives
+                  </span>
                 </div>
-                <span className="text-[#5C524A] text-xs font-mono whitespace-nowrap">
-                  {data.goal.objectives_done}/{data.goal.objectives_total} objectives
-                </span>
-              </div>
+              )}
             </motion.div>
           )}
 
