@@ -1,0 +1,1045 @@
+2026-02-21 | 923482b | Pelumi Olawole | Initial commit
+
+---
+2026-02-21 | a958aa5 | Pelumi Olawole | Update README.md
+
+---
+2026-02-21 | a874a4e | Pelumi Olawole | add all files
+
+---
+2026-02-22 | 7b647aa | Pelumi Olawole | feat: restructure project with proper folder layout
+
+---
+2026-02-22 | de34556 | Pelumi Olawole | README File added
+
+---
+2026-02-22 | a3f149d | Pelumi Olawole | Onboarding Flow + Goal System API
+
+---
+2026-02-22 | ebe636f | Pelumi Olawole | feat: complete frontend
+
+---
+2026-02-22 | 895f8dc | Pelumi Olawole | add Procfile for Railway
+
+---
+2026-02-22 | 9245ce3 | Pelumi Olawole | fix: downgrade httpx for supabase compatibility
+
+---
+2026-02-22 | 2d036a1 | Pelumi Olawole | fix: resolve httpx supabase version conflict
+
+---
+2026-02-22 | c279021 | Pelumi Olawole | fix: supabase version requirement
+
+---
+2026-02-22 | 0ad10da | Pelumi Olawole | fix: httpx version conflict
+
+---
+2026-02-22 | de445a9 | Pelumi Olawole | fix: add missing db/models folder
+
+---
+2026-02-22 | 4fe3bda | Pelumi Olawole | replace router files with correct versions
+
+---
+2026-02-22 | be5d4bf | Pelumi Olawole | fix: sync all backend files with correct versions
+
+---
+2026-02-22 | f05a245 | Pelumi Olawole | fix: add email-validator dependency
+
+---
+2026-02-22 | 4ce446e | Pelumi Olawole | fix: use supabase 2.9.1, add email-validator, add project for end of day
+
+---
+2026-02-26 | 90339fc | Pelumi Olawole | fix: suapbase version updated
+
+---
+2026-02-26 | f3d4ca2 | Pelumi Olawole | fix: add greenlet for SQLAlchemy async on Python 3,13
+
+---
+2026-02-26 | e60b9b6 | Pelumi Olawole | fix: make init_db non-fatal so app starts if DB unreachable at boot
+
+---
+2026-02-26 | 0385961 | Pelumi Olawole | fix: make Redis and scheduler startup non-fatal
+
+---
+2026-02-26 | f64ba54 | Pelumi Olawole | fix: upgrade next version for react compatibility
+
+---
+2026-02-26 | 4c88c72 | Pelumi Olawole | fix: add .npmrc to fix peer dependency conflict
+
+---
+2026-02-26 | 8e1ede1 | Pelumi Olawole | fix: sorted JSON syntax error
+
+---
+2026-02-26 | 92b9909 | Pelumi Olawole | fix: match eslint-config-next version to 15.1.0
+
+---
+2026-02-26 | a33562e | Pelumi Olawole | fix: rename onboarding/goal to goal-setuo to avoid route conflict
+
+---
+2026-02-26 | b679aab | Pelumi Olawole | fix: upgrade Next.js to 15.2.2 to patch CVE-2025-66478
+
+---
+2026-02-26 | 232752f | Pelumi Olawole | fix: upgrade Next.js to 15.2.6 resolved version for patch CVE-2025-66478
+
+---
+2026-02-26 | 2e5679c | Pelumi Olawole | fix: upgrade Next.js to 15.2.8 and CORS fix
+
+---
+2026-02-27 | b520a50 | Pelumi Olawole | fix: add hashed_password column to users table in migrations
+
+---
+2026-02-27 | 19967a9 | Pelumi Olawole | fix: update values_callable for SQLAlchemy
+
+---
+2026-02-27 | a14f079 | Pelumi Olawole | fix: update router.push for auth;login and signup
+
+---
+2026-02-27 | 78fcb7a | Pelumi Olawole | fix: replace initial schema migration with new version"
+
+---
+2026-02-27 | ce3b87a | Pelumi Olawole | fix: cast JSONB differently to avoid the conflict
+
+---
+2026-02-28 | c83e5ef | Pelumi Olawole | fix: corrected goal-setup path for onboarding
+
+---
+2026-02-28 | 5334fd0 | Pelumi Olawole | fix: update paths for goal-setup rerouting
+
+---
+2026-02-28 | 81f75ef | Pelumi Olawole | fix: addding todo.md for claude code
+
+---
+2026-02-28 | 0ec9d34 | Pelumi Olawole | fix: correct activate redirect path in preview page
+Replace broken `/onboarding/activate` with `/activate` since the
+`(onboarding)` route group uses parentheses and adds no URL prefix.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+---
+2026-02-28 | 1d0f701 | Pelumi Olawole | Merge pull request #1 from pelumiolawole/claude/nice-cohen
+fix: correct activate redirect path in preview page
+---
+2026-02-28 | 1ecadc3 | Pelumi Olawole | fix: further path correction for login reroute
+
+---
+2026-02-28 | 1b0a58c | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+
+---
+2026-02-28 | 059a440 | Pelumi Olawole | merge resolve
+
+---
+2026-02-28 | a428ebd | Pelumi Olawole | fix: further path resolve for login reroute
+
+---
+2026-02-28 | 7e827b9 | Pelumi Olawole | fix: path reroute error corrected
+
+---
+2026-02-28 | d096147 | Pelumi Olawole | fix: paths resolved v2
+
+---
+2026-02-28 | 15e32fa | Pelumi Olawole | fix: added console.log
+
+---
+2026-02-28 | 754f050 | Pelumi Olawole | fix: homepage reroute resolved'
+
+---
+2026-02-28 | fd1586a | Pelumi Olawole | fix: resolved stray comment in app-layout.tsx
+
+---
+2026-02-28 | 2f1a623 | Pelumi Olawole | fix: add/update interactive landing page
+
+---
+2026-02-28 | 1c14441 | Pelumi Olawole | fix: cleaned up text
+
+---
+2026-02-28 | 36a0ccf | Pelumi Olawole | Replace landing page redirect with full marketing page
+
+---
+2026-02-28 | 7423c87 | Pelumi Olawole | logo SVG integrated
+
+---
+2026-02-28 | 8578c3a | Pelumi Olawole | logo-png added
+
+---
+2026-02-28 | 5069e69 | Pelumi Olawole | update logo extension
+
+---
+2026-02-28 | fc6aa3e | Pelumi Olawole | logo size updated
+
+---
+2026-03-01 | 87e8482 | Pelumi Olawole | fix: onboarding router updated
+
+---
+2026-03-01 | 0be0988 | Pelumi Olawole | update todo for next session
+
+---
+2026-03-01 | 3991815 | Pelumi Olawole | fix: resolve invalid date type error in get_user_retention_context
+v_last_seen was declared as DATE but received the INTEGER result of
+CURRENT_DATE - MAX(event_date). When a user has no engagement events,
+COALESCE returned 999 which Postgres couldn't cast to DATE, breaking
+POST /api/onboarding/goal-setup for all new users.
+
+Fixed by declaring v_last_seen as INTEGER and using it directly in
+the JSON output. Added migration 005 to patch the live Supabase DB.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+---
+2026-03-01 | da7f67f | Pelumi Olawole | Merge pull request #2 from pelumiolawole/claude/laughing-jackson
+fix: resolve invalid date type error in get_user_retention_context
+---
+2026-03-01 | 3a4885d | Pelumi Olawole | fix: replace :key_shifts::text[] cast with CAST() to fix asyncpg syntax error
+The asyncpg driver translates :param named params to $N positional
+params, but the PostgreSQL :: cast operator after a named param
+confuses the parser with "syntax error at or near ':'".
+
+Using CAST(:key_shifts AS text[]) avoids the ambiguity.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+---
+2026-03-01 | bc0970c | Pelumi Olawole | Merge pull request #3 from pelumiolawole/claude/laughing-jackson
+fix: replace :key_shifts::text[] cast with CAST() to fix asyncpg synt…
+---
+2026-03-01 | b0dff87 | Pelumi Olawole | fix: align backend goal routes with frontend paths
+Backend had /goal/preview, /goal/confirm, /goal/clarify but frontend
+calls /goal-setup/preview, /goal-setup/confirm, /goal-setup/clarify.
+Updated backend routes to use /goal-setup/* prefix consistently.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+---
+2026-03-01 | fc1530b | Pelumi Olawole | Merge pull request #4 from pelumiolawole/claude/laughing-jackson
+fix: align backend goal routes with frontend paths
+---
+2026-03-01 | 2adc653 | Pelumi Olawole | task generator updated
+
+---
+2026-03-01 | a11b93b | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+
+---
+2026-03-01 | cbc3e4b | Pelumi Olawole | task generator update
+
+---
+2026-03-01 | 91b9e57 | Pelumi Olawole | settings page created and layout fixed for auth-state trigger
+
+---
+2026-03-02 | 6248db2 | Pelumi Olawole | todo updated, settings page upbranded
+
+---
+2026-03-02 | 832586b | Pelumi Olawole | updates for prfilr rebrand
+
+---
+2026-03-02 | 1dc0678 | Pelumi Olawole | new profile elements
+
+---
+2026-03-02 | 1ab302f | Pelumi Olawole | avatar path fixed
+
+---
+2026-03-02 | dcdac96 | Pelumi Olawole | profile router and auto generate bio updated
+
+---
+2026-03-02 | 3303380 | Pelumi Olawole | api.ts reroute fixed
+
+---
+2026-03-02 | ac49398 | Pelumi Olawole | fix: submit_goal router path updated
+
+---
+2026-03-02 | 06f6fe4 | Pelumi Olawole | dt.staus refined
+
+---
+2026-03-02 | 066052c | Pelumi Olawole | fix: ai retrieval :embedding error resolved
+
+---
+2026-03-02 | 492f532 | Pelumi Olawole | fix: scheduler updated to track user timezoen for task generation differently
+
+---
+2026-03-03 | aaeb1d8 | Pelumi Olawole | timezone endpoints added for backend engine and frontend UI
+
+---
+2026-03-03 | 34f0675 | Pelumi Olawole | fix: coach page seed message added and loading
+
+---
+2026-03-03 | e3f2b61 | Pelumi Olawole | fix: indentation error
+
+---
+2026-03-03 | 5f8608c | Pelumi Olawole | fix: indentation error in _load_recent_messages
+
+---
+2026-03-03 | 2e1bd58 | Pelumi Olawole | fix: missing run_weekly_review_generation added to scheduler
+
+---
+2026-03-03 | 33990c6 | Pelumi Olawole | feat(safety): Add admin endpoints for safety flag review
+
+---
+2026-03-03 | 7952b1a | Pelumi Olawole | feat(gdpr): Add data export and account deletion
+
+---
+2026-03-03 | a2ead45 | Pelumi Olawole | feat(billing): Add Stripe subscription integration
+
+---
+2026-03-03 | 76149f6 | Pelumi Olawole | billing router param fix
+
+---
+2026-03-03 | ca617b0 | Pelumi Olawole | stripe webhook added
+
+---
+2026-03-03 | e1a6983 | Pelumi Olawole | config indentation error fixed
+
+---
+2026-03-03 | be0fa3a | Pelumi Olawole | fix: billing endpoints re-orientaion
+
+---
+2026-03-03 | e041ede | Pelumi Olawole | fix: import get_current_user error
+
+---
+2026-03-03 | 02f26a9 | Pelumi Olawole | feat: implement tier-based quota enforcement for AI coach
+
+---
+2026-03-04 | 8ee76c6 | Pelumi Olawole | feat: polished quota warnings + conversational Coach PO personality
+
+---
+2026-03-04 | 4bb1c8f | Pelumi Olawole | fix(auth): rename shadowed status variable in quota check
+
+---
+2026-03-04 | 53fa5ec | Pelumi Olawole | fix(coach): replace generic prompt with Coach PO personality
+
+---
+2026-03-04 | 60abcd8 | Pelumi Olawole | fix(settings): add TypeScript type for subscription state
+
+---
+2026-03-04 | f70cb25 | Pelumi Olawole | fix(settings): remove orphaned subscription code causing TS error
+
+---
+2026-03-04 | 0fb0aee | Pelumi Olawole | fix: wrap useSearchParams in Suspense boundary for billing success page ++ resolve Next.js 15 metadata warnings by moving themeColor to viewport
+
+---
+2026-03-04 | 8be4762 | Pelumi Olawole | fix: add billing API methods to ApiClient - adds createCheckout, verifySession, getSubscription, cancel/resume subscription, and getInvoices methods to fix TypeError in billing/success page
+
+---
+2026-03-04 | 62c7465 | Pelumi Olawole | fix: move get_invoices method inside BillingService class and fix stripe error reference
+
+---
+2026-03-04 | 74cd1e2 | Pelumi Olawole | fix: add missing closing brace for ApiClient class in api.ts
+
+---
+2026-03-04 | 1b98ff1 | Pelumi Olawole | feat: add logout method to auth store with backend api call and local cleanup
+
+---
+2026-03-04 | 4f612a8 | Pelumi Olawole | fix: add type assertion for subscription API response in settings page
+
+---
+2026-03-04 | 2c974a8 | Pelumi Olawole | fix: handle undefined plan in getPlanDisplay call
+
+---
+2026-03-04 | da4a6f1 | Pelumi Olawole | fix: restore profile features and fix billing API - merge old settings page with billing, fix billing_cycle attribute error, add upgrade page, fix sign out handler
+
+---
+2026-03-04 | 36279d9 | Pelumi Olawole | fix: Changed api.billing.createCheckoutSession to api.billing.createCheckout for upgrade page
+
+---
+2026-03-04 | 3365033 | Pelumi Olawole | fix(upgrade page):  wrapped useSearchParams() in a Suspense boundary
+
+---
+2026-03-04 | 3019bcb | Pelumi Olawole | fix: password reset implementation - syntax fixes and endpoint additions
+
+---
+2026-03-04 | 7ef48be | Pelumi Olawole | feat: add email verification reminder job, API client methods, and frontend_url config
+
+---
+2026-03-05 | 2128161 | Pelumi Olawole | signature added to /backend/static
+
+---
+2026-03-05 | db487c7 | Pelumi Olawole | verifcatio structure update
+
+---
+2026-03-05 | 07c85a3 | Pelumi Olawole | feat: add static files mount for signature image serving
+
+---
+2026-03-05 | 9075772 | Pelumi Olawole | feat: redesign task generation with backlog handling and interventions
+
+---
+2026-03-05 | 49dd1f8 | Pelumi Olawole | fix: wrap resend-verification in Suspense boundary for Next.js 15
+
+---
+2026-03-05 | ee8e200 | Pelumi Olawole | fix: resolve syntax error in task_generator f-string with escaped quotes
+
+---
+2026-03-05 | 9d873a8 | Pelumi Olawole | feat: add 4am morning sweep job to catch users missing today's task
+
+---
+2026-03-05 | 3df5a9f | Pelumi Olawole | feat: add continuous guardrail with BackgroundTasks for async task generation
+
+---
+2026-03-05 | b64cf24 | Pelumi Olawole | feat: Phase 1 Genesis Loop landing page
+
+---
+2026-03-05 | 031289e | Pelumi Olawole | fix: add TypeScript types for Three.js JSX elements
+
+---
+2026-03-05 | ff30307 | Pelumi Olawole | fix: add React Three Fiber JSX types
+
+---
+2026-03-05 | f7a4fd4 | Pelumi Olawole | fix: use programmatic geometry to avoid JSX type errors
+
+---
+2026-03-05 | 071bff7 | Pelumi Olawole | fix: use pure Three.js without React Three Fiber JSX
+
+---
+2026-03-05 | d7eb3ad | Pelumi Olawole | fix: remove deprecated swcMinify from next.config.js
+
+---
+2026-03-05 | 766f2bc | Pelumi Olawole | fix: complete Singularity component with proper JSX and Three.js types
+
+---
+2026-03-05 | b639cc4 | Pelumi Olawole | fix: lazy load Three.js landing component to avoid JSX type conflicts
+
+---
+2026-03-05 | ec26330 | Pelumi Olawole | fix: upgrade @react-three/fiber to v9 for React 19 compatibility
+
+---
+2026-03-05 | 66247bc | Pelumi Olawole | fix: update ParticleCanvas for R3F v9 API - use imperative geometry creation
+
+---
+2026-03-05 | 6147a43 | Pelumi Olawole | fix: use extend() API and inline JSX types for R3F v9 compatibility
+
+---
+2026-03-05 | 8dd80a0 | Pelumi Olawole | fix: remove unnecessary extend() calls, use built-in R3F v9 JSX types
+
+---
+2026-03-05 | 7139051 | Pelumi Olawole | fix: use imperative Three.js API to bypass JSX type conflicts
+
+---
+2026-03-05 | 4ed2c81 | Pelumi Olawole | fix: add proper JSX returns and client-side mount check to prevent hydration errors
+
+---
+2026-03-05 | e5a775a | Pelumi Olawole | WebGL detection added
+
+---
+2026-03-05 | 5198567 | Pelumi Olawole | original laging page restored
+
+---
+2026-03-05 | 5c2f05d | Pelumi Olawole | staticlanding removed
+
+---
+2026-03-06 | e5f7557 | Pelumi Olawole | fix: correct resend-verification folder spelling
+
+---
+2026-03-06 | 17b47dd | Pelumi Olawole | fix: correct OnboardingStatus enum value in email verification
+
+---
+2026-03-06 | 5b83384 | Pelumi Olawole | fix: remove signature image, update sign-off to Pelumi (Coach PO) ++ feat: add temporary admin endpoint to send welcome emails to existing users
+
+---
+2026-03-06 | 7b0d7e1 | Pelumi Olawole | fix: OnboardingStatus enum and add bulk welcome email endpoint
+
+---
+2026-03-06 | 42e0576 | Pelumi Olawole | endpoint reverted
+
+---
+2026-03-06 | 909785a | Pelumi Olawole | fix: complete unterminated f-string in email templates
+
+---
+2026-03-06 | 37ac626 | Pelumi Olawole | email.py edit
+
+---
+2026-03-06 | 5224394 | Pelumi Olawole | chore: remove unused Three.js dependencies
+
+---
+2026-03-17 | ba3a275 | Pelumi Olawole | Update system_prompts.py
+
+---
+2026-03-17 | 46a1610 | Pelumi Olawole | Update interview.py
+
+---
+2026-03-17 | 11de598 | Pelumi Olawole | Update page.tsx
+
+---
+2026-03-17 | bd37a9f | Pelumi Olawole | Update api.ts
+
+---
+2026-03-17 | 028692d | Pelumi Olawole | syntax fix
+
+---
+2026-03-17 | 5c87d0b | Pelumi Olawole | update interview page
+
+---
+2026-03-17 | 7c878f3 | Pelumi Olawole | fix: interview page
+
+---
+2026-03-17 | f9879f1 | Pelumi Olawole | fix: interview page
+
+---
+2026-03-17 | 318d2ca | Pelumi Olawole | sentry ref rmvd
+
+---
+2026-03-17 | 4c528aa | Pelumi Olawole | Update page.tsx
+
+---
+2026-03-17 | 36ae27a | Pelumi Olawole | fix: unblock goal-setup for new users, fix error display, tighten interview engine
+
+---
+2026-03-17 | 90dbd12 | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalclaude
+
+---
+2026-03-18 | dbf6eb0 | Pelumi Olawole | system propmts update
+
+---
+2026-03-18 | 11b0847 | Pelumi Olawole | interview update
+
+---
+2026-03-18 | 40b40ae | Pelumi Olawole | fix: streak updates immediately on completion, task guardrail type-agnostic, progress traits SWR key, timezone endpoint
+
+---
+2026-03-18 | cb2e19f | Pelumi Olawole | feat: avatar in sidebar top-right, Profile nav item replaces settings link + Porgess page redress
+
+---
+2026-03-18 | a84c5d4 | Pelumi Olawole | feat: task history panel on dashboard with status indicator
+
+---
+2026-03-18 | 16aa7dd | Pelumi Olawole | fix: bio in sidebar via UserSummary, task history route ordering, api.ts type 🎯
+
+---
+2026-03-18 | aa006e0 | Pelumi Olawole | fix: od display bug, HTML entities in traits, past tasks SWR key 🎯
+
+---
+2026-03-18 | faa905b | Pelumi Olawole | fix: tasks.py indentation, history route ordering, include pending tasks in history 🎯
+
+---
+2026-03-19 | 0b22497 | Pelumi Olawole | feat: Google OAuth on login and signup, auth callback page 🎯
+
+---
+2026-03-19 | 69feb3a | Pelumi Olawole | fix: morning sweep task_type filter removed, daily generation catches all users 🎯
+
+---
+2026-03-19 | a7d515c | Pelumi Olawole | fix: reflection submission JSON bug, missing db.commit, route ordering 🎯
+
+---
+2026-03-19 | e8f073c | Pelumi Olawole | fix: reflection analyzer ::jsonb cast syntax breaking asyncpg 🎯
+
+---
+2026-03-19 | 9a31491 | Pelumi Olawole | fix: retrieval.py vector embedding ::vector cast syntax for asyncpg 🎯
+
+---
+2026-03-19 | f637a72 | Pelumi Olawole | fix: progress_metrics depth_score column name 🎯
+
+---
+2026-03-19 | f9140e2 | Pelumi Olawole | fix: progress_metrics column depth_score not avg_depth_score, weekly review query 🎯
+
+---
+2026-03-19 | 50ec053 | Pelumi Olawole | domain update
+
+---
+2026-03-19 | 965fed8 | Pelumi Olawole | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+
+---
+2026-03-19 | 0720e03 | Pelumi Olawole | fix(scoring): repair score pipeline - add missing columns, real-time triggers, manual refresh endpoint
+
+---
+2026-03-20 | 313963e | Pelumi Olawole | feat(coach): complete V2 upgrade with PMOS, psychological frameworks, and enhanced memory system
+Core Framework:
+- Add COACH_SYSTEM_V2 with full PMOS operating system (Forge, Field, Harbor, War Room)
+- Integrate 8 evidence-based psychological frameworks (SDT, Stages of Change, ACT, Kegan, etc.)
+- Implement session architecture with intentional openings, closings, and between-session touchpoints
+- Anonymize backstory (experiential wisdom without specific personal details)
+
+Memory & Context System:
+- Add three-layer memory: conversation summaries, tagged moments, progress tracking
+- Implement automatic coaching mode detection: crisis/intervention/celebrate/support/challenge/guide
+- Add session continuity tracking: opening hooks, pending follow-ups, last commitments
+- Support COACH_SYSTEM_V2 placeholders: {last_session_summary}, {recent_behavior_pattern}
+
+Session Architecture:
+- Add start_session()/end_session() with opening_context and closing_insight
+- Implement moment logging (breakthrough, resistance, commitment, vulnerability, crisis)
+- Detect is_new_session on first message for continuity handling
+- Add include_v2_details to list_sessions for full session data
+
+Safety & Interventions:
+- Expand coaching modes with Crisis Mode and safety protocols
+- Add 12 specific intervention responses for common coaching moments
+- Integrate crisis detection with admin alert triggers
+
+API & Integration:
+- Update context builder to query coach_sessions, coach_moments, coach_patterns tables
+- Enrich prompt formatting with recognized patterns and significant moments
+- Add PMOS domain keywords (forge, field, harbor, war room) to topic extraction
+- Support both V2 and legacy session tables for backward compatibility
+
+BREAKING CHANGE: Database migration 011_Enhanced_Coach_Memory.sql required
+
+---
+2026-03-20 | b8a888a | Pelumi Olawole | fix(migration): update 011_Enhanced_Coach_Memory_System.sql to match deployed schema
+- Add message_count and updated_at to coach_sessions
+- Add missing indexes for performance
+- Update coach_safety_flags to match actual schema (source_type, source_id)
+- Update coach_interventions to include reason and metadata columns
+- Make all CREATE statements idempotent with IF NOT EXISTS
+
+---
+2026-03-20 | b0f6d64 | Pelumi Olawole | fix(migration-010): comprehensive scoring system fix
+- Fix momentum_state enum cast error
+- Fix quality_score column reference (now depth_score)
+- Add missing progress_metrics columns (task_id, timestamps)
+- Fix task completion source (daily_tasks.completed_at)
+- Add defensive column checks for reflections table
+
+---
+2026-03-20 | 36a87ef | Pelumi Olawole | fix(billing): handle cancel_at_period_end in webhook to prevent race condition
+
+---
+2026-03-20 | 7a9caea | Pelumi Olawole | feat(billing): show readable plan name in invoice history
+
+---
+2026-03-20 | 1a37595 | Pelumi Olawole | refactor(subscription): simplify status to active/ended only
+
+---
+2026-03-25 | 32b26b3 | Pelumi Olawole | new todo
+
+---
+2026-03-25 | ef8798b | Pelumi Olawole | chore: remove claude code worktree artifacts
+
+---
+2026-03-25 | 2717cf2 | Pelumi Olawole | fix(billing): env var for FRONTEND_URL, add verify-session endpoint, dual-write to subscriptions table, log webhook errors
+
+---
+2026-03-25 | 6d34e04 | Pelumi Olawole | chore: temp rename for case fix
+
+---
+2026-03-25 | df45b27 | Pelumi Olawole | fix(routing): rename Upgrade to upgrade for case-sensitive Vercel routing
+
+---
+2026-03-25 | f5a292c | Pelumi Olawole | chore: remove claude code worktree artifacts
+
+---
+2026-03-25 | 3ed1e0a | Pelumi Olawole | docs: update CLAUDE.md v1.1 and TODO after March 25 session
+
+---
+2026-03-25 | bb77a3b | Pelumi Olawole | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+
+---
+2026-03-25 | 1775f0e | Pelumi Olawole | feat(landing): apply marketing brief — static headline, identity subhead, social proof, 3 outcome features, updated CTAs
+
+---
+2026-03-25 | 15c3b7c | Pelumi Olawole | feat(landing): static headline, identity subhead, social proof block, 3 outcome features, corrected task count
+
+---
+2026-03-25 | e1ffcb6 | Pelumi Olawole | pricing font updated
+
+---
+2026-03-25 | 7b63299 | Pelumi Olawole | feat(notifications): add daily task email + re-engagement email system
+
+---
+2026-03-25 | 69e04a4 | Pelumi Olawole | fix(auth): correct free tier quota to 5/day, fix upgrade URL; fix(billing): restyle success page to OneGoal Pro brand
+
+---
+2026-03-25 | 0a66c32 | Pelumi Olawole | fix(notifications): correct goals column from identity_anchor to required_identity
+
+---
+2026-03-25 | 6552727 | Pelumi Olawole | fix(coach): swallow session counter timeout, fix deprecated task_type filter
+
+---
+2026-03-26 | 93122cf | Pelumi Olawole | fix(coach): SSE parser now correctly intercepts quota_banner system events
+
+---
+2026-03-27 | 988cf54 | Pelumi Olawole | fix(layout): sticky sidebar on desktop, fixed bottom nav on mobile
+
+---
+2026-03-27 | 16d66a5 | Pelumi Olawole | fix(layout): sidebar stays fixed on desktop scroll
+
+---
+2026-03-27 | 8df3de1 | Pelumi Olawole | fix(email): migrate all sending to hello@onegoalpro.app, update admin whitelist
+
+---
+2026-03-27 | cf3cd6c | Pelumi Olawole | feat(push): implement web push notifications end-to-end
+
+---
+2026-03-27 | f5ef8e7 | Pelumi Olawole | fix(dashboard): add bottom padding so past tasks clears fixed mobile nav
+
+---
+2026-03-27 | 5c3149b | Pelumi Olawole | chore: remove claude code worktree artifacts
+
+---
+2026-03-27 | 1062e08 | Pelumi Olawole | chore: ignore claude code worktrees in gitignore
+
+---
+2026-03-27 | 569d7ad | Pelumi Olawole | feat(diary): expandable past tasks with reflection Q&A and coach insight
+
+---
+2026-03-27 | af897ad | Pelumi Olawole | fix(reflection): centre modal on mobile instead of snapping to bottom
+
+---
+2026-03-27 | f178c87 | Pelumi Olawole | fix(coach): add bottom padding so input clears fixed mobile nav
+
+---
+2026-03-27 | 7ec0480 | Pelumi Olawole | fix(coach): remove trim() preserving token spaces; switch to gpt-4o-mini for speed
+
+---
+2026-03-27 | 01bfbd4 | Pelumi Olawole | fix(coach): add bottom padding so input clears fixed mobile nav
+
+---
+2026-03-27 | daad13a | Pelumi Olawole | fix(coach): rollback after all silent except blocks to prevent InFailedSQLTransactionError
+
+---
+2026-03-27 | 2f0995c | Pelumi Olawole | fix(coach): remove counter update from _save_message — was causing 2min stream stalls
+
+---
+2026-03-27 | 66c8704 | Pelumi Olawole | fix(coach): date separators in chat history + prevent mobile zoom on input focus
+
+---
+2026-03-27 | b04edfe | Pelumi Olawole | fix(coach): add bottom padding so input clears fixed mobile nav
+
+---
+2026-03-27 | 4020d22 | Pelumi Olawole | add CODING_INSTRUCTIONS.md
+
+---
+2026-03-27 | 72caef2 | Pelumi Olawole | fix(mobile): prevent content hiding under nav on goal, progress, settings pages
+
+---
+2026-03-28 | 95e9b59 | Pelumi Olawole | fix(meta): merge duplicate metadata exports, add OG image
+
+---
+2026-03-28 | a4da94b | Pelumi Olawole | fix(onboarding): interview lenght added to landing page
+
+---
+2026-03-28 | 93eff5d | Pelumi Olawole | feat: add privacy policy page
+
+---
+2026-03-28 | c249729 | Pelumi Olawole | feat: interview completion nudge — 24h and 72h email + push
+
+---
+2026-03-28 | e3d2b5a | Pelumi Olawole | temp: add nudge email test endpoint
+
+---
+2026-03-28 | 3c0dbd8 | Pelumi Olawole | temp: add nudge email test endpoint
+
+---
+2026-03-28 | 8b9ab49 | Pelumi Olawole | chore: remove temp nudge test endpoint
+
+---
+2026-03-29 | d09c9e2 | Pelumi Olawole | fix(interview): add 30s request timeout, improve error message on slow response
+
+---
+2026-03-29 | 03beb3b | Pelumi Olawole | fix(scheduler): fix interview nudge event loop error
+
+---
+2026-03-29 | 40f4611 | Pelumi Olawole | fix: push subscribe double api path, add robots.txt
+
+---
+2026-03-29 | 20d8811 | Pelumi Olawole | fix(interview): redirect to dashboard on 400 (already complete)
+
+---
+2026-03-29 | f73dfe8 | Pelumi Olawole | feat: add install to home screen banner with push permission request
+
+---
+2026-03-29 | 8e2b6c8 | Pelumi Olawole | feat: cookie consent banner, AI disclosure on interview and coach
+
+---
+2026-03-29 | 3f34be8 | Pelumi Olawole | feat: cookie consent banner, AI disclosure on interview and coach
+
+---
+2026-03-30 | 37110ef | Pelumi Olawole | revert cookie banner
+
+---
+2026-03-30 | e9f162a | Pelumi Olawole | Revert "feat: add install to home screen banner with push permission request"
+This reverts commit f73dfe8274481ff234e5f4d8d32aa36fac8638be.
+
+---
+2026-03-30 | 45fd20e | Pelumi Olawole | Revert "revert cookie banner"
+This reverts commit 37110ef5adb20583e33e7a8eb610bcc9f2f016ba.
+
+---
+2026-03-30 | 0fb6eca | Pelumi Olawole | banner removed
+
+---
+2026-03-30 | c0bd2db | Pelumi Olawole | banner removed from dashboard
+
+---
+2026-03-30 | c8bd5ce | Pelumi Olawole | dashboard reverted
+
+---
+2026-03-30 | c29cd76 | Pelumi Olawole | layout updated
+
+---
+2026-03-30 | a767a16 | Pelumi Olawole | feat: install banner, cookie banner — all files committed together
+
+---
+2026-03-30 | b4cafe1 | Pelumi Olawole | feat: install banner, cookie banner — all files committed together
+
+---
+2026-03-30 | 8cc72a7 | Pelumi Olawole | feat: install banner
+
+---
+2026-03-31 | 4aeec33 | Pelumi Olawole | feat: Terms of Service page, cookie banner, landing footer, signup legal links
+
+---
+2026-04-01 | 7f0dfc8 | Pelumi Olawole | fix: scheduler coroutine, re-engagement query, backend robots.txt
+
+---
+2026-04-01 | 09de033 | Pelumi Olawole | fix: scheduler coroutine, re-engagement query, robots.txt, onboarding 403 redirect
+
+---
+2026-04-01 | be45d78 | Pelumi Olawole | fix: guard Notification API access on mobile — prevents dashboard crash
+
+---
+2026-04-01 | c4962ae | Pelumi Olawole | fix: guard Notification API access on mobile — prevents dashboard crash
+
+---
+2026-04-01 | 0648243 | Pelumi Olawole | fix: notification_queue INSERT — add required type, title, body, scheduled_at columns
+
+---
+2026-04-01 | 49e6378 | Pelumi Olawole | fix: prevent SQLAlchemy connection leak in coach stream — skip session update after embedding rollback, commit after AI message save
+
+---
+2026-04-02 | 7e5afd9 | Pelumi Olawole | fix: annual toggle badge - clarify savings apply to paid plans only
+
+---
+2026-04-05 | 0cc80e5 | Pelumi Olawole | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+
+---
+2026-04-05 | f50a08e | Pelumi Olawole | fix: prevent duplicate daily task emails — guard on tasks_generated > 0, remove task_type filter from missed dates check
+
+---
+2026-04-05 | f83a7db | Pelumi Olawole | security: harden auth, billing cancellation fix, CSP headers, token hashing, JTI blocklist
+
+---
+2026-04-05 | ce6c9e3 | Pelumi Olawole | fix: interview nudge links pointing to /onboarding/interview — correct path is /interview
+
+---
+2026-04-06 | 0fd5718 | Pelumi Olawole | fix: resolve asyncpg connection pool leak in coach streaming endpoint
+The db session injected by FastAPI's Depends(get_db) was being passed
+into stream_response(), an async generator that outlives the request.
+FastAPI closed the connection before the stream finished, causing the
+garbage collector to terminate it mid-session.
+
+Fix: stream_response() no longer accepts db as a parameter. It opens
+its own get_db_context() blocks at four points — context loading,
+pre-stream saves, post-stream saves, and embeddings — so connections
+are returned to the pool correctly after each operation.
+
+Also fix: build_behavioral_snapshot() PostgreSQL function created.
+Scheduler was calling a function that never existed in the database.
+Added CAST(:user_id AS uuid) in run_behavioral_snapshots() to match
+the function signature.
+
+---
+2026-04-06 | dac186c | Pelumi Olawole | feat: posthog.capture reintegration on key pages
+
+---
+2026-04-06 | 8bb148a | Pelumi Olawole | fix: resolve UserSummary type error in PostHog identify call
+subscription_plan does not exist on UserSummary — tier lives in the
+billing API not the auth response. Fix: identify user immediately on
+login with id and email, then fetch tier via getSubscription() and
+send a second identify call with { tier: sub.plan } once resolved.
+PostHog merges both calls onto the same person record.
+
+---
+2026-04-06 | a90131b | Pelumi Olawole | fix: move PostHog init to client component — was running on server where window is undefined
+
+---
+2026-04-06 | 366a92d | Pelumi Olawole | feat: update tier copy — outcome-differentiated language, correct upgrade page prices and features
+
+---
+2026-04-06 | 1322630 | Pelumi Olawole | fix: landing page tier savings %, feat: goal completion infrastructure — approaching_completion status, weekly check, coach context shift
+
+---
+2026-04-06 | 561e289 | Pelumi Olawole | fix: verify-session route — change GET to POST to match frontend call
+
+---
+2026-04-07 | 8696cef | Pelumi Olawole | fix: TOS update, add webhook idempotency — processed_webhook_events table check before any handler runs
+
+---
+2026-04-07 | e0f617b | Pelumi Olawole | fix: interview quality gate — require personal_vision, identity_anchor, resistance_triggers before completing
+
+---
+2026-04-07 | 2a17162 | Pelumi Olawole | fix: interview gate
+
+---
+2026-04-07 | 7cfa765 | Pelumi Olawole | fix: resistance_triggers array concat — replace ::text[] cast with CAST() for asyncpg compatibility
+
+---
+2026-04-07 | 3d58cea | Pelumi Olawole | fix: analyzer stats syntax fix
+
+---
+2026-04-09 | 1fbd44f | Pelumi Olawole | fix: pass goal_completion_context to coach prompt — was causing KeyError for all users
+
+---
+2026-04-09 | a55f633 | Pelumi Olawole | feat: weekly email digest — sends stored review letter every Monday 6am UTC
+
+---
+2026-04-09 | 5b97714 | Pelumi Olawole | fix: settings upgrade button — single button routes to upgrade page, no tier label
+
+---
+2026-04-09 | 9b86d7c | Pelumi Olawole | fix: restore <a tag in invoice PDF link; fix target_date typo in traits gap calc ++ feat: re-interview endpoint and api client method; archive approaching_completion goal on activate
+
+---
+2026-04-09 | 531a0ee | Pelumi Olawole | fix: restore missing <a tag in invoice PDF download link
+
+---
+2026-04-10 | 744dc75 | Pelumi Olawole | feat: new logo assets — favicon, apple-touch, PWA icons, og-image, manifest
+
+---
+2026-04-10 | 38c0940 | Pelumi Olawole | feat: new logo assets — favicon, apple-touch, PWA icons, og-image, manifest
+
+---
+2026-04-11 | d006257 | Pelumi Olawole | Update Privacy Policy with ICO number
+
+---
+2026-04-11 | 564984c | Pelumi Olawole | Update privacy with ICO number
+
+---
+2026-04-12 | 256e2bb | Pelumi Olawole | feat: add company details to footer — One Goal Pro Ltd, No. 17127527
+
+---
+2026-04-12 | 624687b | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalpro
+
+---
+2026-04-12 | 0caa9cf | Pelumi Olawole | feat(progress): add behavioural pattern summary for Identity tier
+
+---
+2026-04-12 | 905d580 | Pelumi Olawole | fix: calculate goal progress live from task completions
+
+---
+2026-04-13 | f1b442a | Pelumi Olawole | fix: remove non-existent columns from skip task progress_metrics insert
+
+---
+2026-04-13 | b9f8796 | Pelumi Olawole | feasibility constraint in task generator prompt
+
+---
+2026-04-13 | 33720bc | Pelumi Olawole | feat: free to begin line on hero, update social proof count to 90+
+
+---
+2026-04-26 | add44a8 | Pelumi Olawole | feat: block IPs on 404 burst — credential scan protection
+
+---
+2026-04-27 | 12cb9a7 | Pelumi Olawole | fix: clean middleware — remove duplicate class, add 404 burst blocking
+
+---
+2026-04-28 | 9befa2f | Pelumi Olawole | feat: commitment gate on activation — user writes why before beginning
+
+---
+2026-04-28 | 1c0d9be | Pelumi Olawole | feat: raw interview excerpts in Coach PO context, fix duplicate commitment line
+
+---
+2026-04-28 | ca963d7 | Pelumi Olawole | feat: activation alert to Pelumi on user activate — includes commitment statement
+
+---
+2026-04-30 | aeefcbc | Pelumi Olawole | feat: UX upgrade, context improvement fro coaching and task generation + guidance addition
+
+---
+2026-04-30 | b1097ac | Pelumi Olawole | feat: connected UX loop — progressive tasks, guidance field, coach greeting
+
+---
+2026-04-30 | 2d895cf | Pelumi Olawole | fix: time-of-day greeting in coach opening message
+
+---
+2026-04-30 | 4665303 | Pelumi Olawole | feat: activation reengagement email — 48h post-activation trigger for zero-task users
+
+---
+2026-05-01 | 372f114 | Pelumi Olawole | fix: correct qa_pairs to questions_answers and rollback before fallback in task_generator
+
+---
+2026-05-01 | 7f36fe5 | Pelumi Olawole | fix: add guidance and execution_guidance to the SELECT, and include them in the today_task dict
+
+---
+2026-05-02 | c9a3030 | Pelumi Olawole | feat: reflection gates task completion, personal note diary field, immediate first task on activation
+
+---
+2026-05-02 | d5921b9 | Pelumi Olawole | feat: reflection gates task completion, personal note diary field, immediate first task on activation
+
+---
+2026-05-02 | 124364b | Pelumi Olawole | feat(funnel): pre-interview hook on landing page, answer seeds interview first message
+
+---
+2026-05-02 | 267ae84 | Pelumi Olawole | fix(coach): surface upgrade card on quota exhaustion instead of silent failure
+
+---
+2026-05-03 | b91cbeb | Pelumi Olawole | feat(tasks): day-of-week rhythm context in task generation prompt
+
+---
+2026-05-03 | 4c051c6 | Pelumi Olawole | feat(landing): gravity hero entrance, orbs dim on focus, blur-to-sharp demo reveal
+
+---
+2026-05-05 | 34a626c | Pelumi Olawole | fix: include guidance field in tasks today and by-date endpoints
+
+---
+2026-05-05 | 4a364c0 | Claude | feat(coach): greeting injection, task starters, and session-aware init
+Adds greeting display with isGreeting flag to show contextual welcome
+message and task-specific starter prompts below it. Refactors init to
+async/cancel-safe pattern and upgrades sendMessage to accept override
+text for starter buttons.
+
+https://claude.ai/code/session_01FAaf9mxC3MCwnqXbhfNVPX
+
+---
+2026-05-05 | 318c0f7 | Pelumi Olawole | Merge pull request #7 from pelumiolawole/claude/update-coach-page-q1BcR
+feat(coach): greeting injection, task starters, and session-aware init
+---
+2026-05-08 | d71e10d | Claude | feat(task-generator): hardened task type rules, solo-executability test, forbidden task list
+Added mandatory task_type selection rules keyed to momentum/streak state.
+Added solo-executability gate -- tasks must be startable alone in 5 minutes.
+Added ALWAYS FORBIDDEN list with allowed solo alternatives for connection tasks.
+Tightened non-repetition rule with core-verb/object matching and 7-day trait window.
+Updated comment header to reflect all changes.
+
+https://claude.ai/code/session_01FAaf9mxC3MCwnqXbhfNVPX
+
+---
+2026-05-08 | b7bc0e1 | Pelumi Olawole | Merge pull request #8 from pelumiolawole/claude/update-coach-page-q1BcR
+feat(task-generator): hardened task type rules, solo-executability te…
+---
+2026-05-11 | 22845a0 | Pelumi Olawole | fix: push notification body uses identity_focus instead of task title
+
+---
+2026-05-11 | ee324e4 | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalpro
+
+---
+2026-05-11 | 921712c | Claude | fix: replace placeholder testimonials, update tier descriptions, correct user count
+No fake testimonials were present -- social proof section was already clean.
+Updated pricing tier taglines to outcome-framed copy for all three tiers
+across both monthly and annual plan arrays.
+Updated user count from 99+ to 100+.
+
+https://claude.ai/code/session_01FAaf9mxC3MCwnqXbhfNVPX
+
+---
+2026-05-11 | 7090035 | Claude | Merge branch 'claude/update-coach-page-q1BcR': landing page tier descriptions and user count
+https://claude.ai/code/session_01FAaf9mxC3MCwnqXbhfNVPX
+
+---
+2026-05-11 | e223045 | Pelumi Olawole | Merge pull request #9 from pelumiolawole/claude/update-coach-page-q1BcR
+
+---
+2026-05-13 | 0063995 | Pelumi Olawole | feat: email subject uses identity_focus as psychological hook
+
+---
+2026-05-13 | bd2fa46 | Pelumi Olawole | Merge branch 'main' of https://github.com/pelumiolawole/onegoalpro
+
+---
+2026-05-14 | 7ddbadb | Pelumi Olawole | feat: email subject is identity_focus statement directly
+
+---
+2026-05-14 | f5543e9 | Pelumi Olawole | fix: add icon-72 for push notification badge
+
+---
+2026-05-14 | 1839a9a | Pelumi Olawole | fix: reengagement email removes task count, focuses on today only
+
+---
+2026-05-17 | 56e579c | Pelumi Olawole | feat: add Evolution to nav with flame icon
+
+---
+2026-05-17 | 928e5be | Pelumi Olawole | feat: evolution page — gamified identity journey with chapter system, trait mastery, milestones
+
+---
+2026-05-26 | ba029d3 | Pelumi Olawole | fix: task generator dual-window history + database-level duplicate detection
+
+---
+2026-05-26 | 607bdab | Pelumi Olawole | fix: inject today_task into coach context, dual-window task history for non-repetition
+
+---
+2026-05-27 | f0d1b4b | Pelumi Olawole | fix: semantic domain rotation in task prompt, exact-match duplicate check, retry on duplicate
+
+---
+2026-07-04 | 581504e | Pelumi Olawole | task logic update
+
+---
