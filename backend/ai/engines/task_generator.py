@@ -506,6 +506,37 @@ class TaskGeneratorEngine(BaseAIEngine):
             parts.append("This user has completed almost nothing — generate the smallest, most concrete real-world action possible.")
         return " ".join(parts)
 
+    # Fallback keyword map used ONLY when the AI omits the "domain" field from its
+    # JSON response. This is a real, confirmed production bug: for one user, domain
+    # was null for 9 consecutive days because the model simply didn't include the
+    # field, and _get_dominant_recent_domain had nothing to compare against —
+    # rotation silently never fired. The prompt asking for a field is not enough;
+    # this is the code-level enforcement (see Engineering Rule 15: ask, then verify).
+    DOMAIN_KEYWORD_MAP = [
+        (r"\b(community|connect|connection|network|peer|builder)\b", "community-connection"),
+        (r"\b(customer|user|client)\b", "customer-understanding"),
+        (r"\b(execut|ship|build|launch|deploy|code|develop)\b", "execution"),
+        (r"\b(discipline|habit|routine|consisten|morning|evening)\b", "discipline"),
+        (r"\b(market|brand|content|social|post|audience)\b", "marketing"),
+        (r"\b(lead|team|delegat|manage|hire)\b", "leadership"),
+        (r"\b(learn|skill|study|course|read|research)\b", "skill-development"),
+        (r"\b(financ|budget|revenue|pric|invest|fund)\b", "finance"),
+        (r"\b(faith|pray|spiritual|gratitude|reflect|journal)\b", "reflection"),
+    ]
+
+    def _infer_domain_from_title(self, title: str) -> str:
+        """
+        Best-effort domain inference when the AI omits the domain field.
+        Used only as a fallback so rotation checks always have real data —
+        never a substitute for the AI naming its own domain when it does.
+        """
+        import re
+        t = (title or "").lower()
+        for pattern, domain in self.DOMAIN_KEYWORD_MAP:
+            if re.search(pattern, t):
+                return domain
+        return "uncategorised"
+
     async def _validate_task(
         self,
         user_id: str,
@@ -516,9 +547,29 @@ class TaskGeneratorEngine(BaseAIEngine):
         """
         Run all deterministic checks on a generated task.
         Returns a human-readable rejection reason, or None if the task passes.
-        Order: forbidden patterns (cheapest) -> duplicate -> domain rotation.
+        Order: missing domain (cheapest, and the confirmed-in-production bug) ->
+        forbidden patterns -> duplicate -> domain rotation.
         """
         title = task_data.get("title", "")
+
+        # CONFIRMED BUG FIX: the AI's "domain" field is advisory in the prompt but was
+        # being written to the DB as-is, including null when the model omitted it.
+        # That silently broke domain rotation for any user whose model output skipped
+        # the field. Missing domain is now itself a validation failure, forcing a
+        # retry, rather than a silent null that disables rotation with no error.
+        raw_domain = (task_data.get("domain") or "").strip()
+        if not raw_domain:
+            logger.warning(
+                "task_missing_domain_field",
+                user_id=user_id,
+                title=title,
+                event="ai_omitted_domain_field",
+            )
+            return (
+                "The 'domain' field was missing from your output. This field is mandatory — "
+                "it is used to prevent repeating the same domain of work. Regenerate the same "
+                "task idea but include an honest one-to-two-word 'domain' value this time."
+            )
 
         violated = self._violates_forbidden_patterns(title)
         if violated:
@@ -534,8 +585,8 @@ class TaskGeneratorEngine(BaseAIEngine):
                 f"Generate a structurally different task."
             )
 
-        task_domain = (task_data.get("domain") or "").lower().strip()
-        if dominant_domain and task_domain and task_domain == dominant_domain:
+        task_domain = raw_domain.lower().strip()
+        if dominant_domain and task_domain == dominant_domain:
             return (
                 f"The task domain '{task_domain}' matches the user's over-saturated recent "
                 f"domain. The last several tasks were all '{dominant_domain}'. "
@@ -763,7 +814,10 @@ class TaskGeneratorEngine(BaseAIEngine):
             "streak": context.get("scores", {}).get("streak"),
             "top_trait_gap": (context.get("traits") or [{}])[0].get("name") if context.get("traits") else None,
             "is_fallback": task_data.get("fallback", False),
-            "domain": (task_data.get("domain") or "").lower().strip() or None,
+            "domain": (
+                (task_data.get("domain") or "").lower().strip()
+                or self._infer_domain_from_title(task_data.get("title", ""))
+            ),
         }
 
         result = await db.execute(
