@@ -100,19 +100,21 @@ export default function DashboardPage() {
             <NoTaskCard />
           )}
 
-          {/* Scores + Streak */}
+          {/* Scores + Streak — streak shown only when it reads as progress (>= 2) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+            className={`grid grid-cols-2 gap-3 ${(scores?.streak ?? 0) >= 2 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}
           >
             <ScoreRing
               label="Transformation"
               value={scores?.transformation ?? 0}
               primary
             />
-            <ScoreTile label="Streak" value={scores?.streak ?? 0} unit="d" sub="current" />
+            {(scores?.streak ?? 0) >= 2 && (
+              <ScoreTile label="Streak" value={scores?.streak ?? 0} unit="d" sub="current" />
+            )}
             <ScoreTile label="Momentum" value={momentumLabel(scores?.momentum_state)} sub={scores?.momentum_state} colored />
             <ScoreTile label="Active" value={scores?.days_active ?? 0} unit="d" sub="total days" />
           </motion.div>
@@ -181,22 +183,25 @@ export default function DashboardPage() {
               <p className="text-[#5C524A] text-xs uppercase tracking-widest mb-3 font-mono">
                 Your goal
               </p>
-              <p className="text-[#C4BBB5] text-sm mb-3 leading-relaxed">
+              <p className="text-[#C4BBB5] text-sm leading-relaxed">
                 {data.goal.statement}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-[#F59E0B]/60 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${data.goal.progress}%` }}
-                    transition={{ duration: 1, delay: 0.4 }}
-                  />
+              {/* Progress bar and fraction only once there is progress to show */}
+              {data.goal.objectives_done > 0 && (
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="flex-1 h-1.5 bg-[#1E1B18] rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-[#F59E0B]/60 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${data.goal.progress}%` }}
+                      transition={{ duration: 1, delay: 0.4 }}
+                    />
+                  </div>
+                  <span className="text-[#5C524A] text-xs font-mono whitespace-nowrap">
+                    {data.goal.objectives_done}/{data.goal.objectives_total} objectives
+                  </span>
                 </div>
-                <span className="text-[#5C524A] text-xs font-mono whitespace-nowrap">
-                  {data.goal.objectives_done}/{data.goal.objectives_total} objectives
-                </span>
-              </div>
+              )}
             </motion.div>
           )}
 
@@ -212,9 +217,9 @@ export default function DashboardPage() {
                 Weekly review
               </p>
               <p className="text-[#C4BBB5] text-sm">
-                Week of {data.latest_review.week_start} —{' '}
-                {data.latest_review.tasks_completed}/{data.latest_review.tasks_total} tasks,{' '}
-                {data.latest_review.consistency_pct.toFixed(0)}% consistency
+                {data.latest_review.tasks_completed >= 1
+                  ? `You showed up ${data.latest_review.tasks_completed} ${data.latest_review.tasks_completed === 1 ? 'time' : 'times'} this week.`
+                  : 'This week is still open.'}
               </p>
             </motion.div>
           )}
@@ -254,27 +259,21 @@ export default function DashboardPage() {
                           <div key={i} className="h-12 bg-[#1E1B18] rounded-xl animate-pulse" />
                         ))}
                       </div>
-                    ) : !historyData || historyData.tasks.length === 0 ? (
+                    ) : !historyData || historyData.tasks.filter((t: any) => t.status === 'completed').length === 0 ? (
                       <p className="px-5 py-6 text-[#3D3630] text-sm">
-                        No past tasks yet. Complete your first task to start building history.
+                        Your completed tasks will appear here.
                       </p>
                     ) : (
                       <div className="divide-y divide-white/5">
-                        {/* Stats row */}
-                        <div className="px-5 py-3 flex gap-5">
+                        {/* Completed count — progress only, never failure metrics */}
+                        <div className="px-5 py-3">
                           <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#4ADE80]">{historyData.stats.completed}</span> completed
-                          </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#F87171]">{historyData.stats.missed + historyData.stats.skipped}</span> missed
-                          </span>
-                          <span className="text-[#5C524A] text-xs font-mono">
-                            <span className="text-[#F59E0B]">{historyData.stats.completion_rate}%</span> rate
+                            <span className="text-[#F59E0B]">{historyData.stats.completed}</span> tasks completed
                           </span>
                         </div>
 
-                        {/* Task rows — expandable */}
-                        {historyData.tasks.map((t: any) => (
+                        {/* Task rows — completed only, expandable */}
+                        {historyData.tasks.filter((t: any) => t.status === 'completed').map((t: any) => (
                           <div key={t.id}>
                             <button
                               onClick={() => toggleTask(t.id)}

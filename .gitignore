@@ -10,3 +10,4 @@ node_modules/
 mnt/.claude/worktrees/
 .claude/
 send_campaign.py
+*.tsbuildinfo

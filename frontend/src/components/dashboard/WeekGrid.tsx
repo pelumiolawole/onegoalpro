@@ -32,6 +32,8 @@ export function WeekGrid({ days }: { days: DayData[] }) {
       {grid.map((day, i) => (
         <div key={day.dateStr} className="flex flex-col items-center gap-1.5">
           <span className="text-[#3D3630] text-[10px] font-mono">{day.label}</span>
+          {/* Completed days and today are visible; every other day is visually
+              absent — no "empty boxes of shame" for missed or future days. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -40,8 +42,8 @@ export function WeekGrid({ days }: { days: DayData[] }) {
               day.completed
                 ? 'bg-[#F59E0B]/20 border border-[#F59E0B]/30'
                 : day.isToday
-                ? 'bg-[#1E1B18] border border-white/10 border-dashed'
-                : 'bg-[#0A0908] border border-white/5'
+                ? 'bg-[#1E1B18] border border-[#F59E0B]/40'
+                : 'bg-white/[0.02]'
             }`}
           >
             {day.completed && <span className="text-[#F59E0B] text-xs">✓</span>}
@@ -49,7 +51,7 @@ export function WeekGrid({ days }: { days: DayData[] }) {
               <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#F59E0B]" />
             )}
             {day.isToday && !day.completed && (
-              <div className="w-1.5 h-1.5 rounded-full bg-[#3D3630]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]/50" />
             )}
           </motion.div>
         </div>
