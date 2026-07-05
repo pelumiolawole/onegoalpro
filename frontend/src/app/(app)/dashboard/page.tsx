@@ -100,19 +100,21 @@ export default function DashboardPage() {
             <NoTaskCard />
           )}
 
-          {/* Scores + Streak */}
+          {/* Scores + Streak — streak shown only when it reads as progress (>= 2) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+            className={`grid grid-cols-2 gap-3 ${(scores?.streak ?? 0) >= 2 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}
           >
             <ScoreRing
               label="Transformation"
               value={scores?.transformation ?? 0}
               primary
             />
-            <ScoreTile label="Streak" value={scores?.streak ?? 0} unit="d" sub="current" />
+            {(scores?.streak ?? 0) >= 2 && (
+              <ScoreTile label="Streak" value={scores?.streak ?? 0} unit="d" sub="current" />
+            )}
             <ScoreTile label="Momentum" value={momentumLabel(scores?.momentum_state)} sub={scores?.momentum_state} colored />
             <ScoreTile label="Active" value={scores?.days_active ?? 0} unit="d" sub="total days" />
           </motion.div>
@@ -212,9 +214,9 @@ export default function DashboardPage() {
                 Weekly review
               </p>
               <p className="text-[#C4BBB5] text-sm">
-                Week of {data.latest_review.week_start} —{' '}
-                {data.latest_review.tasks_completed}/{data.latest_review.tasks_total} tasks,{' '}
-                {data.latest_review.consistency_pct.toFixed(0)}% consistency
+                {data.latest_review.tasks_completed >= 1
+                  ? `You showed up ${data.latest_review.tasks_completed} ${data.latest_review.tasks_completed === 1 ? 'time' : 'times'} this week.`
+                  : 'This week is still open.'}
               </p>
             </motion.div>
           )}
