@@ -30,7 +30,27 @@ class TaskGeneratorEngine(BaseAIEngine):
     engine_name = "task_generator"
     default_temperature = 0.85
 
-    # Fallback template tasks when AI generation fails
+    # Canonical domain vocabulary. Shared with the prompt (V2) so the model
+    # names domains the rotation check can actually reason about, and so
+    # saturation retries can offer NAMED alternatives instead of "different".
+    CANONICAL_DOMAINS = [
+        "customer-understanding",
+        "execution",
+        "discipline",
+        "marketing",
+        "leadership",
+        "skill-development",
+        "finance",
+        "reflection",
+        "community-connection",
+        "environment",
+    ]
+
+    # Fallback template tasks when AI generation fails.
+    # Each carries an explicit domain so rotation math sees what the user
+    # actually experienced. Without this, a user stuck in a fallback loop
+    # never dilutes their saturated domain window (observed in production:
+    # same user hit domain-saturation double-failure 3 consecutive days).
     FALLBACK_TASKS = [
         {
             "title": "15-Minute Identity Anchor",
@@ -41,6 +61,7 @@ class TaskGeneratorEngine(BaseAIEngine):
             "time_estimate_minutes": 15,
             "difficulty_level": 3,
             "task_type": "identity_anchor",
+            "domain": "discipline",
         },
         {
             "title": "The Minimum Effective Dose",
@@ -51,6 +72,7 @@ class TaskGeneratorEngine(BaseAIEngine):
             "time_estimate_minutes": 10,
             "difficulty_level": 2,
             "task_type": "micro_action",
+            "domain": "discipline",
         },
         {
             "title": "Reflection in Action",
@@ -61,6 +83,7 @@ class TaskGeneratorEngine(BaseAIEngine):
             "time_estimate_minutes": 15,
             "difficulty_level": 3,
             "task_type": "becoming",
+            "domain": "reflection",
         },
     ]
 
@@ -238,7 +261,11 @@ class TaskGeneratorEngine(BaseAIEngine):
                 "guidance": fallback["guidance"],
                 "time_estimate": fallback["time_estimate_minutes"],
                 "difficulty": fallback["difficulty_level"],
-                "gen_context": json.dumps({"fallback": True, "reason": "ai_generation_failed"}),
+                "gen_context": json.dumps({
+                    "fallback": True,
+                    "reason": "ai_generation_failed",
+                    "domain": fallback.get("domain", "uncategorised"),
+                }),
             }
         )
         await db.commit()
@@ -302,10 +329,14 @@ class TaskGeneratorEngine(BaseAIEngine):
             )
 
             if dominant_domain:
+                alternatives = ", ".join(
+                    f"'{d}'" for d in self.CANONICAL_DOMAINS if d != dominant_domain
+                )
                 system_prompt += (
                     f"\n\nDOMAIN OVERRIDE (computed from this user's actual history): "
                     f"The last several tasks were all in the '{dominant_domain}' domain. "
-                    f"Today's task MUST NOT be in '{dominant_domain}'. Choose a different domain entirely."
+                    f"Today's task MUST NOT be in '{dominant_domain}'. "
+                    f"Choose from one of these domains instead: {alternatives}."
                 )
 
             date_note = ""
@@ -334,18 +365,26 @@ class TaskGeneratorEngine(BaseAIEngine):
                     raise ValueError("Empty task data from AI")
 
                 # Validation gauntlet: forbidden patterns, duplicates, domain rotation.
-                # One retry with the specific violation named. Deterministic checks in
-                # code — the prompt asks, the code verifies.
-                rejection_reason = await self._validate_task(
+                # One retry, with a REASON-SPECIFIC redirection that gives the model
+                # concrete alternative material - not just "different, please".
+                # Production data showed 8 double-failures in 10 days when the retry
+                # only named the violation: the model re-sampled the same verb pool.
+                # Deterministic checks in code - the prompt asks, the code verifies.
+                rejection = await self._validate_task(
                     uid, task_data, dominant_domain, db
                 )
-                if rejection_reason:
+                if rejection:
+                    reason_code, rejection_reason = rejection
                     logger.warning(
                         "task_rejected_retrying",
                         user_id=uid,
                         title=task_data.get("title"),
                         reason=rejection_reason,
+                        reason_code=reason_code,
                         date=str(task_date),
+                    )
+                    retry_guidance = self._retry_guidance(
+                        reason_code, rejection_reason, task_data, dominant_domain
                     )
                     retry_raw = await self._complete(
                         messages=[
@@ -354,14 +393,15 @@ class TaskGeneratorEngine(BaseAIEngine):
                                 "role": "user",
                                 "content": (
                                     f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}\n\n"
-                                    f"REJECTED: Your previous task '{task_data.get('title')}' failed validation.\n"
-                                    f"Reason: {rejection_reason}\n"
-                                    f"Generate a completely different task that passes this check."
+                                    f"{retry_guidance}"
                                 ),
                             },
                         ],
                         user_id=uid,
-                        temperature=0.95,
+                        # Lower than first attempt, not higher. The failure mode is
+                        # non-compliance, not lack of creativity - raising temperature
+                        # adds randomness around the same prior instead of moving it.
+                        temperature=0.8,
                         max_tokens=800,
                     )
                     retry_data = self._parse_json(retry_raw, fallback={})
@@ -371,8 +411,9 @@ class TaskGeneratorEngine(BaseAIEngine):
                         uid, retry_data, dominant_domain, db
                     )
                     if retry_rejection:
+                        retry_code, retry_reason = retry_rejection
                         raise ValueError(
-                            f"Retry also failed validation: {retry_rejection} — title: {retry_data.get('title')}"
+                            f"Retry also failed validation: {retry_reason} — title: {retry_data.get('title')}"
                         )
                     task_data = retry_data
 
@@ -423,6 +464,78 @@ class TaskGeneratorEngine(BaseAIEngine):
         r"\bwebinar\b",
         r"\bnetworking event\b",
     ]
+
+    # Solo-executable task shapes for socially-oriented goals. Injected into the
+    # retry prompt when a forbidden pattern fires, because the model demonstrably
+    # needs positive material, not just a ban. Mirrors the library in the V2
+    # system prompt (belt and braces - the model skims long system prompts).
+    SOLO_CONNECTION_SHAPES = (
+        "- Publish one specific insight from your own work where your field can see it, today\n"
+        "- Comment substantively on three posts from practitioners in the field (real analysis, not 'great post')\n"
+        "- Write and send one message to a person the user ALREADY knows (an existing contact needs no one's agreement)\n"
+        "- Record a 90-second voice or video explanation of one concept, as if teaching it, then listen back\n"
+        "- Practise aloud, timed and standing, the 60-second version of who they are and what they're building\n"
+        "- For technical or security fields: complete one hands-on lab, challenge, or exercise solo (a CTF challenge, a lab room, a home-lab build) and post one sentence about what was learned\n"
+        "- Study one public artefact from someone ahead of them (a talk, a write-up, a codebase) and act on one thing from it the same day"
+    )
+
+    def _retry_guidance(
+        self,
+        reason_code: str,
+        rejection_reason: str,
+        task_data: dict,
+        dominant_domain: str | None,
+    ) -> str:
+        """
+        Build a reason-specific retry instruction that REDIRECTS rather than
+        just rejects. Each failure mode gets concrete alternative material:
+        the production failure pattern was the model re-sampling the same
+        verb pool when told only "different, please".
+        """
+        title = task_data.get("title", "")
+        header = (
+            f"REJECTED: Your previous task '{title}' failed validation.\n"
+            f"Reason: {rejection_reason}\n\n"
+        )
+
+        if reason_code == "missing_domain":
+            domains = ", ".join(f"'{d}'" for d in self.CANONICAL_DOMAINS)
+            return header + (
+                "Regenerate the SAME task idea, but include an honest 'domain' field this time. "
+                f"Choose the closest fit from: {domains}. "
+                "Do not change the task itself - only add the missing field."
+            )
+
+        if reason_code == "forbidden_pattern":
+            return header + (
+                "The intent behind that task (visibility, relationships, learning from others) is valid - "
+                "the coordination-dependent form is not. Convert the intent into a SOLO action the user "
+                "can start alone within 5 minutes. Use one of these shapes, adapted to their goal:\n"
+                f"{self.SOLO_CONNECTION_SHAPES}\n"
+                "Do NOT output another task whose first step depends on another person agreeing "
+                "or an event existing. No reach out, attend, join, host, schedule, invite, "
+                "connect with, or find a group/mentor."
+            )
+
+        if reason_code == "duplicate":
+            return header + (
+                "Generate a structurally different task: a different primary action verb, "
+                "a different type of work, and preferably a different domain of their goal. "
+                "Do not reword the rejected task - replace it."
+            )
+
+        if reason_code == "domain_saturated":
+            alternatives = ", ".join(
+                f"'{d}'" for d in self.CANONICAL_DOMAINS if d != (dominant_domain or "")
+            )
+            return header + (
+                f"Choose the task's domain from this list ONLY: {alternatives}. "
+                f"Any task in '{dominant_domain}' will be rejected again, however it is worded. "
+                "Pick one of the named alternatives and design the task inside it."
+            )
+
+        # Unknown code - fall back to the old generic instruction.
+        return header + "Generate a different task that passes this check."
 
     def _violates_forbidden_patterns(self, title: str) -> str | None:
         """
@@ -543,10 +656,12 @@ class TaskGeneratorEngine(BaseAIEngine):
         task_data: dict,
         dominant_domain: str | None,
         db: AsyncSession,
-    ) -> str | None:
+    ) -> tuple[str, str] | None:
         """
         Run all deterministic checks on a generated task.
-        Returns a human-readable rejection reason, or None if the task passes.
+        Returns (reason_code, human-readable rejection reason), or None if
+        the task passes. The reason_code drives a tailored retry instruction
+        in _retry_guidance - each failure mode needs different redirection.
         Order: missing domain (cheapest, and the confirmed-in-production bug) ->
         forbidden patterns -> duplicate -> domain rotation.
         """
@@ -566,31 +681,35 @@ class TaskGeneratorEngine(BaseAIEngine):
                 event="ai_omitted_domain_field",
             )
             return (
+                "missing_domain",
                 "The 'domain' field was missing from your output. This field is mandatory — "
                 "it is used to prevent repeating the same domain of work. Regenerate the same "
-                "task idea but include an honest one-to-two-word 'domain' value this time."
+                "task idea but include an honest one-to-two-word 'domain' value this time.",
             )
 
         violated = self._violates_forbidden_patterns(title)
         if violated:
             return (
+                "forbidden_pattern",
                 f"The title contains a coordination-dependent action (matched '{violated}'). "
                 f"Tasks must be executable alone, immediately, without another person's "
-                f"agreement or an event existing. Generate a solo, real-world action instead."
+                f"agreement or an event existing. Generate a solo, real-world action instead.",
             )
 
         if await self._is_title_duplicate(user_id, title, db):
             return (
-                f"This exact title was generated for this user within the last 14 days. "
-                f"Generate a structurally different task."
+                "duplicate",
+                "This exact title was generated for this user within the last 14 days. "
+                "Generate a structurally different task.",
             )
 
         task_domain = raw_domain.lower().strip()
         if dominant_domain and task_domain == dominant_domain:
             return (
+                "domain_saturated",
                 f"The task domain '{task_domain}' matches the user's over-saturated recent "
                 f"domain. The last several tasks were all '{dominant_domain}'. "
-                f"Choose a completely different domain of their goal."
+                f"Choose a completely different domain of their goal.",
             )
 
         return None
@@ -871,3 +990,4 @@ class TaskGeneratorEngine(BaseAIEngine):
         )
         row = result.fetchone()
         return row[0] if row else None
+        
