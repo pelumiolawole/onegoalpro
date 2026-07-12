@@ -908,7 +908,7 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
     """Send interview completion nudge to users who signed up but haven't completed the interview."""
     from core.database import get_db_context
     from services.email import send_interview_nudge_email
-    from services.push import send_push_notification
+    from services.push import send_push_notification, PUSH_EXPIRED
 
     window_start = hours_since_signup - 1
     window_end = hours_since_signup
@@ -933,6 +933,8 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
     attempt = 1 if hours_since_signup == 24 else 2
     logger.info("interview_nudge_starting", attempt=attempt, user_count=len(users))
 
+    expired_ids = []
+
     for user in users:
         first_name = (user.display_name or user.email).split()[0].capitalize()
         try:
@@ -946,12 +948,43 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
             body = ("You signed up but didn't finish. 10-15 min. One goal on the other side."
                     if attempt == 1 else
                     "The question isn't what you want. It's who you need to become.")
-            try:
-                send_push_notification(endpoint=user.endpoint, p256dh=user.p256dh, auth=user.auth,
-                                       title=title, body=body, url="/interview")
+            # NOTE: send_push_notification() catches its own exceptions internally
+            # and returns True / False / PUSH_EXPIRED — it never raises. The old
+            # try/except here was dead code that could never trigger. Fixed to
+            # actually handle the return value, matching run_daily_push_notifications
+            # below: an expired subscription (410/404) must be deleted, or this job
+            # re-sends to the same dead endpoint every hour, indefinitely, forever
+            # generating a fresh push_send_failed error each time.
+            #
+            # `db` from the query above is already closed by this point (the
+            # `async with get_db_context() as db:` block that fetched `users`
+            # exited before this loop starts) — expired subscriptions are
+            # collected here and cleaned up in one fresh connection after the
+            # loop, same pattern as run_daily_push_notifications below.
+            result = send_push_notification(
+                endpoint=user.endpoint, p256dh=user.p256dh, auth=user.auth,
+                title=title, body=body, url="/interview",
+            )
+            if result is True:
                 logger.info("interview_nudge_push_sent", user_id=str(user.id), attempt=attempt)
-            except Exception as e:
-                logger.warning("interview_nudge_push_failed", user_id=str(user.id), error=str(e))
+            elif result == PUSH_EXPIRED:
+                expired_ids.append(str(user.id))
+            else:
+                logger.warning("interview_nudge_push_failed", user_id=str(user.id), attempt=attempt)
+
+    if expired_ids:
+        async with get_db_context() as cleanup_db:
+            for uid in expired_ids:
+                await cleanup_db.execute(
+                    text("DELETE FROM push_subscriptions WHERE user_id = CAST(:uid AS uuid)"),
+                    {"uid": uid},
+                )
+            await cleanup_db.commit()
+        logger.info(
+            "interview_nudge_push_subscriptions_expired_removed",
+            count=len(expired_ids),
+            attempt=attempt,
+        )
 
 
 async def run_weekly_digest_emails() -> None:

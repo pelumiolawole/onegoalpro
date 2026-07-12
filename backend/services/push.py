@@ -46,10 +46,34 @@ def send_push_notification(
         )
         return True
     except WebPushException as e:
-        if e.response and e.response.status_code == 410:
-            logger.warning("push_subscription_expired", endpoint=endpoint[:50])
+        # BUG FIX (July 2026): `e.response` is a requests.Response object, and
+        # requests overrides truthiness on Response so that `bool(response)`
+        # is False for ANY error status code (400+), by design (so error pages
+        # aren't mistaken for successful content). That means the old check
+        # `if e.response and e.response.status_code == 410` short-circuited to
+        # False on every error response, 410 included — the status code was
+        # never actually inspected. This branch has never fired since it was
+        # written; every 410 fell through to the generic error log below,
+        # which is why expired subscriptions were never cleaned up and instead
+        # generated a fresh Sentry error on every retry, indefinitely.
+        # Fix: check `is not None` instead of relying on truthiness.
+        status_code = e.response.status_code if e.response is not None else None
+        if status_code in (410, 404):
+            # Both codes mean "this subscription no longer exists" per the
+            # Web Push protocol (RFC 8030) — 410 Gone is the common case,
+            # 404 Not Found is a documented alternative some push services use.
+            logger.warning(
+                "push_subscription_expired",
+                endpoint=endpoint[:50],
+                status_code=status_code,
+            )
             return PUSH_EXPIRED
-        logger.error("push_send_failed", error=str(e), endpoint=endpoint[:50])
+        logger.error(
+            "push_send_failed",
+            error=str(e),
+            endpoint=endpoint[:50],
+            status_code=status_code,
+        )
         return False
     except Exception as e:
         logger.error("push_send_error", error=str(e))
