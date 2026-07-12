@@ -1,0 +1,7 @@
+docs: update CLAUDE.md to v2.2
+
+Documents July 12 fixes: push 410 truthiness bug, evolution date
+mislabel, task-generator duplicate-retry guidance, landing page
+stat correction. Updates confirmed counts (99 registered, 49 with
+goal, 3 past commitment gate) and adds two new engineering rules
+generalized from today's bugs.
