@@ -204,6 +204,20 @@ function IdentityArc({ first, latest }: { first: Task | null; latest: Task | nul
     ? Math.round((new Date(latest!.date).getTime() - new Date(first.date).getTime()) / 86400000)
     : 0
   const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  // BUG FIX (July 2026): the label next to `latest.date` was the hardcoded
+  // word "Today", but `latest` is the user's most recently COMPLETED task -
+  // not necessarily today's task. For any user who hasn't completed a task
+  // recently (most of the user base, per the retention data), this falsely
+  // labelled an old date as "today" - e.g. "TODAY · 25 MAY 2026" while the
+  // real date was in July. This was never a caching or date-math bug; the
+  // date itself was always correct, only the label was wrong. Now the label
+  // reflects reality: "Today" only when the date genuinely is today.
+  const isActuallyToday = (d: string) => {
+    const a = new Date(d)
+    const b = new Date()
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  }
+  const latestLabel = latest && isActuallyToday(latest.date) ? 'Today' : 'Most recent'
 
   return (
     <motion.div
@@ -234,7 +248,7 @@ function IdentityArc({ first, latest }: { first: Task | null; latest: Task | nul
           <div className="pl-3 border-l-2" style={{ borderColor: 'rgba(200,150,62,0.6)' }}>
             <p className="text-[#C8963E] text-[10px] font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#E8A83E] inline-block" style={{ animation: 'pulse 2s ease infinite' }} />
-              Today · {fmt(latest.date)}
+              {latestLabel} · {fmt(latest.date)}
             </p>
             <p className="text-[#F5ECD7] text-sm italic leading-relaxed" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               {latest.identity_focus || latest.title}

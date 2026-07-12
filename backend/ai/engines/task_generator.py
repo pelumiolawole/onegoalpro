@@ -383,8 +383,11 @@ class TaskGeneratorEngine(BaseAIEngine):
                         reason_code=reason_code,
                         date=str(task_date),
                     )
+                    recent_titles = None
+                    if reason_code == "duplicate":
+                        recent_titles = await self._get_recent_titles_sample(uid, db)
                     retry_guidance = self._retry_guidance(
-                        reason_code, rejection_reason, task_data, dominant_domain
+                        reason_code, rejection_reason, task_data, dominant_domain, recent_titles
                     )
                     retry_raw = await self._complete(
                         messages=[
@@ -479,12 +482,49 @@ class TaskGeneratorEngine(BaseAIEngine):
         "- Study one public artefact from someone ahead of them (a talk, a write-up, a codebase) and act on one thing from it the same day"
     )
 
+    # Verbs the prompt's own VERB CONSTRAINT favours (visible, finishable,
+    # real-world action). Used to give the "duplicate" retry path concrete
+    # alternative material instead of a vague "be different" instruction.
+    # Production evidence (July 12): a duplicate retry with only vague
+    # guidance reproduced the SAME title verbatim on the second attempt.
+    # Lower retry temperature (see below) improves compliance when paired
+    # with concrete material, but can backfire into repetition when the
+    # guidance is vague - this fixes the guidance side of that.
+    APPROVED_ACTION_VERBS = [
+        "send", "record", "post", "publish", "practise", "comment",
+        "study", "complete", "walk", "sign up", "speak", "rearrange",
+    ]
+
+    async def _get_recent_titles_sample(
+        self, user_id: str, db: AsyncSession, limit: int = 5
+    ) -> list[str]:
+        """
+        Short sample of this user's most recent task titles, used only when
+        a duplicate rejection fires. The full task history is already in the
+        system prompt, but a retry has demonstrably failed to avoid repeats
+        even with that in context (production, July 12: identical title on
+        both attempts) - naming the specific recent titles again, right next
+        to the rejection, is cheap and gives the retry something concrete to
+        check against rather than relying on it to re-scan a long block.
+        """
+        result = await db.execute(
+            text("""
+                SELECT title FROM daily_tasks
+                WHERE user_id = :user_id
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """),
+            {"user_id": user_id, "limit": limit},
+        )
+        return [row[0] for row in result.fetchall() if row[0]]
+
     def _retry_guidance(
         self,
         reason_code: str,
         rejection_reason: str,
         task_data: dict,
         dominant_domain: str | None,
+        recent_titles: list[str] | None = None,
     ) -> str:
         """
         Build a reason-specific retry instruction that REDIRECTS rather than
@@ -518,10 +558,21 @@ class TaskGeneratorEngine(BaseAIEngine):
             )
 
         if reason_code == "duplicate":
+            rejected_title = task_data.get("title", "")
+            first_word = rejected_title.strip().split(" ")[0].lower().strip(".,!?:;") if rejected_title else ""
+            verbs = ", ".join(f"'{v}'" for v in self.APPROVED_ACTION_VERBS)
+            titles_block = (
+                "\n".join(f"- {t}" for t in recent_titles)
+                if recent_titles else "(recent titles unavailable)"
+            )
             return header + (
-                "Generate a structurally different task: a different primary action verb, "
-                "a different type of work, and preferably a different domain of their goal. "
-                "Do not reword the rejected task - replace it."
+                f"Do not start the new title with '{first_word}' or reuse that verb anywhere in the title. "
+                f"Pick a different primary action verb from: {verbs} (or another equally concrete, "
+                "visible, finishable real-world verb).\n\n"
+                f"This user's most recent task titles, for reference - do not produce anything close to these:\n"
+                f"{titles_block}\n\n"
+                "The new task must differ in verb, in what the user actually does, and ideally in domain. "
+                "Reword alone does not count as different."
             )
 
         if reason_code == "domain_saturated":
@@ -990,4 +1041,3 @@ class TaskGeneratorEngine(BaseAIEngine):
         )
         row = result.fetchone()
         return row[0] if row else None
-        

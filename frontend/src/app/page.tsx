@@ -692,9 +692,9 @@ export default function LandingPage() {
               transition={{ duration: 0.3 }}
               className="p-10 rounded-2xl border border-white/8 bg-[#141210]"
             >
-              <div className="text-5xl font-display text-[#F59E0B] mb-6">100+</div>
+              <div className="text-5xl font-display text-[#F59E0B] mb-6">99</div>
               <p className="text-[#C4BBB5] text-lg leading-relaxed mb-6">
-                people have committed to one goal.
+                people have started their transformation. And counting.
               </p>
               <div className="w-px h-8 bg-[#F59E0B]/20 mx-auto mb-6" />
               <p className="text-[#7A6E65] text-base leading-relaxed mb-4">
