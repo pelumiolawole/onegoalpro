@@ -415,9 +415,27 @@ class TaskGeneratorEngine(BaseAIEngine):
                     )
                     if retry_rejection:
                         retry_code, retry_reason = retry_rejection
-                        raise ValueError(
-                            f"Retry also failed validation: {retry_reason} — title: {retry_data.get('title')}"
-                        )
+                        if retry_code == "domain_saturated":
+                            # Content already cleared every other check (see
+                            # _validate_task's order) - only the domain label
+                            # is wrong. Fix the label in code rather than
+                            # discard a good task. See _resolve_domain_conflict.
+                            resolved_domain = self._resolve_domain_conflict(
+                                retry_data, dominant_domain
+                            )
+                            logger.info(
+                                "domain_auto_remapped",
+                                user_id=uid,
+                                title=retry_data.get("title"),
+                                declared_domain=retry_data.get("domain"),
+                                dominant_domain=dominant_domain,
+                                resolved_domain=resolved_domain,
+                            )
+                            retry_data["domain"] = resolved_domain
+                        else:
+                            raise ValueError(
+                                f"Retry also failed validation: {retry_reason} — title: {retry_data.get('title')}"
+                            )
                     task_data = retry_data
 
             except Exception as e:
@@ -496,16 +514,24 @@ class TaskGeneratorEngine(BaseAIEngine):
     ]
 
     async def _get_recent_titles_sample(
-        self, user_id: str, db: AsyncSession, limit: int = 5
+        self, user_id: str, db: AsyncSession, limit: int = 14
     ) -> list[str]:
         """
-        Short sample of this user's most recent task titles, used only when
-        a duplicate rejection fires. The full task history is already in the
+        Recent task titles shown to a duplicate-retry, used only when a
+        duplicate rejection fires. The full task history is already in the
         system prompt, but a retry has demonstrably failed to avoid repeats
-        even with that in context (production, July 12: identical title on
-        both attempts) - naming the specific recent titles again, right next
-        to the rejection, is cheap and gives the retry something concrete to
-        check against rather than relying on it to re-scan a long block.
+        even with that in context.
+
+        PRODUCTION BUG FOUND (July 14, three separate users, one nightly
+        run): this limit was originally 5, but the duplicate check itself
+        (_is_title_duplicate) spans 14 days. A retry would correctly avoid
+        repeating the immediately-prior rejected title, then collide with a
+        DIFFERENT title from 6-14 days back that was never shown to it -
+        e.g. one user's retry produced "Complete a Short Discomfort
+        Challenge", an exact match for a title used 12 days earlier. The
+        fix wasn't wrong, the window it was given was just narrower than
+        the window it was being checked against. limit now matches the
+        actual duplicate-check window so there is no blind spot.
         """
         result = await db.execute(
             text("""
@@ -569,7 +595,8 @@ class TaskGeneratorEngine(BaseAIEngine):
                 f"Do not start the new title with '{first_word}' or reuse that verb anywhere in the title. "
                 f"Pick a different primary action verb from: {verbs} (or another equally concrete, "
                 "visible, finishable real-world verb).\n\n"
-                f"This user's most recent task titles, for reference - do not produce anything close to these:\n"
+                f"This user's task titles from the last 14 days (the full duplicate-check window) - "
+                f"do not produce anything close to any of these:\n"
                 f"{titles_block}\n\n"
                 "The new task must differ in verb, in what the user actually does, and ideally in domain. "
                 "Reword alone does not count as different."
@@ -791,6 +818,39 @@ class TaskGeneratorEngine(BaseAIEngine):
         )
         recent_titles = [row[0].lower().strip() for row in result.fetchall() if row[0]]
         return title.lower().strip() in recent_titles
+
+    def _resolve_domain_conflict(self, task_data: dict, dominant_domain: str) -> str:
+        """
+        Called only when a retry's CONTENT has already passed every other
+        check (missing-domain, forbidden-pattern, duplicate) but its
+        declared 'domain' field still matches the user's saturated domain.
+
+        PRODUCTION EVIDENCE (July 17, two separate users): the retry
+        reliably produces good, on-topic, non-forbidden content when told
+        to avoid a saturated domain - "Share a Cybersecurity Insight
+        Online", "Comment on Three Relevant Coding Posts" - but does not
+        reliably relabel the domain field away from the saturated one even
+        when given an explicit list of alternatives. This is a labelling
+        failure, not a content failure. Discarding a genuinely good task
+        over a mislabelled field and replacing it with a generic template
+        fallback is a worse outcome for the user than keeping the real task
+        and fixing the label in code.
+
+        Resolution order: infer a domain from the title's own keywords
+        (the same DOMAIN_KEYWORD_MAP already used when the AI omits the
+        field entirely). If that also lands on the saturated domain, or
+        finds nothing, fall back to the first canonical domain that is not
+        the saturated one. The priority here is breaking the saturation
+        lock so rotation tracking recovers - not perfect semantic accuracy
+        of a label whose only real job is rotation bookkeeping.
+        """
+        inferred = self._infer_domain_from_title(task_data.get("title", ""))
+        if inferred and inferred != dominant_domain and inferred != "uncategorised":
+            return inferred
+        for domain in self.CANONICAL_DOMAINS:
+            if domain != dominant_domain:
+                return domain
+        return "uncategorised"
 
     async def generate_initial_tasks(
         self,
