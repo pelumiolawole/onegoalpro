@@ -11,3 +11,4 @@ mnt/.claude/worktrees/
 .claude/
 send_campaign.py
 *.tsbuildinfo
+message.txt
