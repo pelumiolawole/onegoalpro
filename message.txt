@@ -1,0 +1,23 @@
+fix: widen duplicate-check window; auto-remap mislabelled saturated domains
+
+- _get_recent_titles_sample: limit was 5, but the duplicate check itself
+  spans 14 days, leaving a blind spot for titles 6-14 days back. Confirmed
+  in production July 14 and again July 17 (5 separate users): a retry would
+  correctly avoid the immediately-prior rejected title, then collide with a
+  different title from the un-shown part of the window - e.g. an exact
+  match on a title used 12 days earlier. limit now matches the actual
+  14-day check so there is no blind spot.
+
+- generate_task_for_user: on retry, a domain_saturated rejection no longer
+  discards the task. _validate_task's check order guarantees that if
+  domain_saturated is the failure reason, content already passed missing-
+  domain, forbidden-pattern, and duplicate checks - the task itself is
+  good, only the domain label is wrong. Confirmed in production July 17
+  (two separate users): retries reliably produced good, on-topic, non-
+  forbidden content ("Share a Cybersecurity Insight Online", "Comment on
+  Three Relevant Coding Posts") but kept the same saturated domain label
+  despite being given explicit alternatives. Discarding a good task over a
+  mislabelled field was a worse outcome than fixing the label in code, so
+  the domain is now re-resolved via keyword inference (falling back to the
+  first non-saturated canonical domain) and the task is accepted. New log
+  event "domain_auto_remapped" added to track how often this fires.
