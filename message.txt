@@ -1,23 +1,18 @@
-fix: widen duplicate-check window; auto-remap mislabelled saturated domains
+fix: validate task_type in code before persist, closing a DB-crash gap
 
-- _get_recent_titles_sample: limit was 5, but the duplicate check itself
-  spans 14 days, leaving a blind spot for titles 6-14 days back. Confirmed
-  in production July 14 and again July 17 (5 separate users): a retry would
-  correctly avoid the immediately-prior rejected title, then collide with a
-  different title from the un-shown part of the window - e.g. an exact
-  match on a title used 12 days earlier. limit now matches the actual
-  14-day check so there is no blind spot.
+_validate_task now checks task_type first - cheapest check, and the one
+that previously reached the database with zero validation. Confirmed in
+production July 21 (Sentry issue #40): the AI returned
+task_type: "reflection" (a domain name, not a valid task type) and the
+value went straight into an INSERT, crashing with asyncpg's
+InvalidTextRepresentationError against the task_type enum. The user
+still got a task that day via the backlog recovery path, but the crash
+itself was avoidable.
 
-- generate_task_for_user: on retry, a domain_saturated rejection no longer
-  discards the task. _validate_task's check order guarantees that if
-  domain_saturated is the failure reason, content already passed missing-
-  domain, forbidden-pattern, and duplicate checks - the task itself is
-  good, only the domain label is wrong. Confirmed in production July 17
-  (two separate users): retries reliably produced good, on-topic, non-
-  forbidden content ("Share a Cybersecurity Insight Online", "Comment on
-  Three Relevant Coding Posts") but kept the same saturated domain label
-  despite being given explicit alternatives. Discarding a good task over a
-  mislabelled field was a worse outcome than fixing the label in code, so
-  the domain is now re-resolved via keyword inference (falling back to the
-  first non-saturated canonical domain) and the task is accepted. New log
-  event "domain_auto_remapped" added to track how often this fires.
+Adds VALID_TASK_TYPES (becoming, identity_anchor, micro_action,
+challenge - matching both the prompt and the actual DB enum) and a new
+"invalid_task_type" reason code with its own retry guidance: same task
+idea, fix the one bad field, and an explicit note that task_type and
+domain are separate fields. Same pattern as every other check in this
+file - reject, name the problem, one retry with concrete guidance,
+fallback only if that also fails.
