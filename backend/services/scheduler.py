@@ -555,10 +555,21 @@ async def run_activation_reengagement_day7() -> None:
     as the excerpt — same selection logic as context_builder's
     _enrich_with_interview_excerpts, done directly in SQL since only one
     excerpt is needed here rather than a ranked top-5.
+
+    Also sends a push notification alongside the email, same pattern as
+    run_interview_nudge — reaches this cohort through a second channel
+    rather than relying on email opens alone. Push uses a shorter version
+    of the same identity-forward message (push bodies don't support the
+    interview-excerpt block styling an email can), and follows the same
+    expired-subscription cleanup pattern as run_interview_nudge and
+    run_daily_push_notifications: collected during the loop, deleted in
+    one fresh connection after, since a push subscription can expire (410/404)
+    independently of whether the email send itself succeeded.
     """
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
     from services.email import email_service
+    from services.push import send_push_notification, PUSH_EXPIRED
 
     lock_acquired = await acquire_lock("activation_reengagement_day7", ttl_seconds=3600)
     if not lock_acquired:
@@ -586,7 +597,8 @@ async def run_activation_reengagement_day7() -> None:
                 SELECT
                     u.id, u.email, u.display_name,
                     be.content AS interview_excerpt,
-                    dt.title AS task_title
+                    dt.title AS task_title,
+                    ps.endpoint, ps.p256dh, ps.auth
                 FROM users u
                 JOIN goals g ON g.user_id = u.id
                     AND g.status IN ('active', 'approaching_completion')
@@ -595,6 +607,7 @@ async def run_activation_reengagement_day7() -> None:
                 LEFT JOIN daily_tasks dt ON dt.user_id = u.id
                     AND dt.scheduled_date = CURRENT_DATE
                     AND dt.status = 'pending'
+                LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
                 WHERE u.is_active = TRUE
                   AND u.onboarding_status = 'active'
                   AND g.started_at <= NOW() - INTERVAL '7 days'
@@ -614,13 +627,19 @@ async def run_activation_reengagement_day7() -> None:
 
         logger.info("activation_reengagement_day7_started", user_count=len(users))
         sent_count = 0
+        push_sent_count = 0
+        expired_ids = []
 
         for row in users:
             user_id = str(row[0])
+            display_name = row[2]
+            interview_excerpt = row[3]
+            endpoint, p256dh, auth = row[5], row[6], row[7]
+
             try:
                 sent = await email_service.send_activation_reengagement_day7_email(
-                    to_email=row[1], display_name=row[2],
-                    interview_excerpt=row[3], task_title=row[4],
+                    to_email=row[1], display_name=display_name,
+                    interview_excerpt=interview_excerpt, task_title=row[4],
                     app_url=settings.frontend_url,
                 )
                 if sent:
@@ -637,7 +656,42 @@ async def run_activation_reengagement_day7() -> None:
             except Exception as e:
                 logger.error("activation_reengagement_day7_failed", user_id=user_id, error=str(e))
 
-        logger.info("activation_reengagement_day7_complete", sent=sent_count, total=len(users))
+            if endpoint and p256dh and auth:
+                first_name = (display_name or "").split()[0].capitalize() if display_name else "there"
+                push_body = (
+                    f"You said: \"{interview_excerpt[:80]}{'...' if len(interview_excerpt) > 80 else ''}\""
+                    if interview_excerpt
+                    else "A week ago you started something here. It's still waiting."
+                )
+                push_result = send_push_notification(
+                    endpoint=endpoint, p256dh=p256dh, auth=auth,
+                    title=f"You said this, {first_name}",
+                    body=push_body,
+                    url="/dashboard",
+                )
+                if push_result is True:
+                    push_sent_count += 1
+                    logger.info("activation_reengagement_day7_push_sent", user_id=user_id)
+                elif push_result == PUSH_EXPIRED:
+                    expired_ids.append(user_id)
+                else:
+                    logger.warning("activation_reengagement_day7_push_failed", user_id=user_id)
+
+        if expired_ids:
+            async with get_db_context() as cleanup_db:
+                from sqlalchemy import text as t
+                for uid in expired_ids:
+                    await cleanup_db.execute(
+                        t("DELETE FROM push_subscriptions WHERE user_id = CAST(:uid AS uuid)"),
+                        {"uid": uid},
+                    )
+                await cleanup_db.commit()
+            logger.info("activation_reengagement_day7_push_subscriptions_expired_removed", count=len(expired_ids))
+
+        logger.info(
+            "activation_reengagement_day7_complete",
+            sent=sent_count, push_sent=push_sent_count, total=len(users),
+        )
 
     finally:
         await release_lock("activation_reengagement_day7")
@@ -655,10 +709,18 @@ async def run_activation_reengagement_day14() -> None:
     see send_activation_reengagement_day14_email's docstring for why.
     This is the last automated touch for this cohort; nothing further
     is scheduled after this stage completes for a given user.
+
+    Push is sent alongside the email but deliberately carries the same
+    plain, low-pressure register as the day-14 email itself — no identity
+    language, no urgency. If two identity-forward touches on two channels
+    haven't worked, a third insistent one is fatigue, not persistence.
+    Expired subscriptions are cleaned up after the loop, same pattern as
+    run_interview_nudge and run_daily_push_notifications.
     """
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
     from services.email import email_service
+    from services.push import send_push_notification, PUSH_EXPIRED
 
     lock_acquired = await acquire_lock("activation_reengagement_day14", ttl_seconds=3600)
     if not lock_acquired:
@@ -668,11 +730,13 @@ async def run_activation_reengagement_day14() -> None:
         async with get_db_context() as db:
             from sqlalchemy import text
             result = await db.execute(text("""
-                SELECT u.id, u.email, u.display_name
+                SELECT u.id, u.email, u.display_name,
+                       ps.endpoint, ps.p256dh, ps.auth
                 FROM users u
                 JOIN goals g ON g.user_id = u.id
                     AND g.status IN ('active', 'approaching_completion')
                 JOIN identity_profiles ip ON ip.user_id = u.id
+                LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
                 WHERE u.is_active = TRUE
                   AND u.onboarding_status = 'active'
                   AND g.started_at <= NOW() - INTERVAL '14 days'
@@ -692,9 +756,13 @@ async def run_activation_reengagement_day14() -> None:
 
         logger.info("activation_reengagement_day14_started", user_count=len(users))
         sent_count = 0
+        push_sent_count = 0
+        expired_ids = []
 
         for row in users:
             user_id = str(row[0])
+            endpoint, p256dh, auth = row[3], row[4], row[5]
+
             try:
                 sent = await email_service.send_activation_reengagement_day14_email(
                     to_email=row[1], display_name=row[2],
@@ -714,7 +782,36 @@ async def run_activation_reengagement_day14() -> None:
             except Exception as e:
                 logger.error("activation_reengagement_day14_failed", user_id=user_id, error=str(e))
 
-        logger.info("activation_reengagement_day14_complete", sent=sent_count, total=len(users))
+            if endpoint and p256dh and auth:
+                push_result = send_push_notification(
+                    endpoint=endpoint, p256dh=p256dh, auth=auth,
+                    title="Last one from me on this",
+                    body="Your goal is still here if you want it. No pressure either way.",
+                    url="/dashboard",
+                )
+                if push_result is True:
+                    push_sent_count += 1
+                    logger.info("activation_reengagement_day14_push_sent", user_id=user_id)
+                elif push_result == PUSH_EXPIRED:
+                    expired_ids.append(user_id)
+                else:
+                    logger.warning("activation_reengagement_day14_push_failed", user_id=user_id)
+
+        if expired_ids:
+            async with get_db_context() as cleanup_db:
+                from sqlalchemy import text as t
+                for uid in expired_ids:
+                    await cleanup_db.execute(
+                        t("DELETE FROM push_subscriptions WHERE user_id = CAST(:uid AS uuid)"),
+                        {"uid": uid},
+                    )
+                await cleanup_db.commit()
+            logger.info("activation_reengagement_day14_push_subscriptions_expired_removed", count=len(expired_ids))
+
+        logger.info(
+            "activation_reengagement_day14_complete",
+            sent=sent_count, push_sent=push_sent_count, total=len(users),
+        )
 
     finally:
         await release_lock("activation_reengagement_day14")
