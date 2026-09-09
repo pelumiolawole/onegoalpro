@@ -78,8 +78,16 @@ async def start_scheduler() -> AsyncIOScheduler:
         id="reengagement_emails", name="Send re-engagement emails to inactive users",
         replace_existing=True, max_instances=1, misfire_grace_time=3600)
 
-    scheduler.add_job(func=run_activation_reengagement, trigger=CronTrigger(hour=9, minute=30),
-        id="activation_reengagement", name="48h activation reengagement — users who never completed a task",
+    scheduler.add_job(func=run_activation_reengagement_day3, trigger=CronTrigger(hour=9, minute=30),
+        id="activation_reengagement_day3", name="Day 3 activation reengagement — commitment statement",
+        replace_existing=True, max_instances=1, misfire_grace_time=3600)
+
+    scheduler.add_job(func=run_activation_reengagement_day7, trigger=CronTrigger(hour=9, minute=35),
+        id="activation_reengagement_day7", name="Day 7 activation reengagement — interview excerpt",
+        replace_existing=True, max_instances=1, misfire_grace_time=3600)
+
+    scheduler.add_job(func=run_activation_reengagement_day14, trigger=CronTrigger(hour=9, minute=40),
+        id="activation_reengagement_day14", name="Day 14 activation reengagement — final, plain touch",
         replace_existing=True, max_instances=1, misfire_grace_time=3600)
 
     scheduler.add_job(func=run_daily_push_notifications, trigger=CronTrigger(hour=8, minute=0),
@@ -447,18 +455,19 @@ async def run_reengagement_emails() -> None:
         await release_lock("reengagement_emails")
 
 
-async def run_activation_reengagement() -> None:
+async def run_activation_reengagement_day3() -> None:
     """
     Runs daily at 9:30am UTC.
-    Targets users who activated 48+ hours ago but have never completed a task.
-    Sends one email referencing their commitment statement.
-    Throttled: sends once only per user via activation_reengagement_sent_at on identity_profiles.
+    Stage 1 of 3. Targets users who activated 48+ hours ago, never
+    completed a task, and have not yet been sent this stage.
+    Unchanged in content and throttling logic from the original
+    single-stage version — references commitment_statement.
     """
     from core.cache import acquire_lock, release_lock
     from core.database import get_db_context
     from services.email import email_service
 
-    lock_acquired = await acquire_lock("activation_reengagement", ttl_seconds=3600)
+    lock_acquired = await acquire_lock("activation_reengagement_day3", ttl_seconds=3600)
     if not lock_acquired:
         return
 
@@ -492,10 +501,10 @@ async def run_activation_reengagement() -> None:
             users = result.fetchall()
 
         if not users:
-            logger.info("activation_reengagement_no_users")
+            logger.info("activation_reengagement_day3_no_users")
             return
 
-        logger.info("activation_reengagement_started", user_count=len(users))
+        logger.info("activation_reengagement_day3_started", user_count=len(users))
         sent_count = 0
 
         for row in users:
@@ -523,14 +532,192 @@ async def run_activation_reengagement() -> None:
                         """), {"user_id": user_id})
                         await db2.commit()
                     sent_count += 1
-                    logger.info("activation_reengagement_sent", user_id=user_id)
+                    logger.info("activation_reengagement_day3_sent", user_id=user_id)
             except Exception as e:
-                logger.error("activation_reengagement_failed", user_id=user_id, error=str(e))
+                logger.error("activation_reengagement_day3_failed", user_id=user_id, error=str(e))
 
-        logger.info("activation_reengagement_complete", sent=sent_count, total=len(users))
+        logger.info("activation_reengagement_day3_complete", sent=sent_count, total=len(users))
 
     finally:
-        await release_lock("activation_reengagement")
+        await release_lock("activation_reengagement_day3")
+
+
+async def run_activation_reengagement_day7() -> None:
+    """
+    Runs daily at 9:35am UTC (staggered 5 min after stage 1 to avoid
+    lock contention on identity_profiles).
+    Stage 2 of 3. Targets users who:
+      - activated 7+ days ago
+      - already received the day-3 email (activation_reengagement_sent_at IS NOT NULL)
+      - have not yet received this stage
+      - still have zero completed tasks
+    Pulls the single longest user-authored interview message (>40 chars)
+    as the excerpt — same selection logic as context_builder's
+    _enrich_with_interview_excerpts, done directly in SQL since only one
+    excerpt is needed here rather than a ranked top-5.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("activation_reengagement_day7", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+            result = await db.execute(text("""
+                WITH excerpts AS (
+                    SELECT
+                        ois.user_id,
+                        msg->>'content' AS content,
+                        length(msg->>'content') AS content_len
+                    FROM onboarding_interview_state ois,
+                         jsonb_array_elements(ois.messages) AS msg
+                    WHERE msg->>'role' = 'user'
+                      AND length(msg->>'content') > 40
+                ),
+                best_excerpt AS (
+                    SELECT DISTINCT ON (user_id) user_id, content
+                    FROM excerpts
+                    ORDER BY user_id, content_len DESC
+                )
+                SELECT
+                    u.id, u.email, u.display_name,
+                    be.content AS interview_excerpt,
+                    dt.title AS task_title
+                FROM users u
+                JOIN goals g ON g.user_id = u.id
+                    AND g.status IN ('active', 'approaching_completion')
+                JOIN identity_profiles ip ON ip.user_id = u.id
+                LEFT JOIN best_excerpt be ON be.user_id = u.id
+                LEFT JOIN daily_tasks dt ON dt.user_id = u.id
+                    AND dt.scheduled_date = CURRENT_DATE
+                    AND dt.status = 'pending'
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND g.started_at <= NOW() - INTERVAL '7 days'
+                  AND ip.activation_reengagement_sent_at IS NOT NULL
+                  AND ip.activation_reengagement_day7_sent_at IS NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM daily_tasks completed
+                    WHERE completed.user_id = u.id
+                      AND completed.status = 'completed'
+                  )
+            """))
+            users = result.fetchall()
+
+        if not users:
+            logger.info("activation_reengagement_day7_no_users")
+            return
+
+        logger.info("activation_reengagement_day7_started", user_count=len(users))
+        sent_count = 0
+
+        for row in users:
+            user_id = str(row[0])
+            try:
+                sent = await email_service.send_activation_reengagement_day7_email(
+                    to_email=row[1], display_name=row[2],
+                    interview_excerpt=row[3], task_title=row[4],
+                    app_url=settings.frontend_url,
+                )
+                if sent:
+                    async with get_db_context() as db2:
+                        from sqlalchemy import text as t
+                        await db2.execute(t("""
+                            UPDATE identity_profiles
+                            SET activation_reengagement_day7_sent_at = NOW()
+                            WHERE user_id = CAST(:user_id AS uuid)
+                        """), {"user_id": user_id})
+                        await db2.commit()
+                    sent_count += 1
+                    logger.info("activation_reengagement_day7_sent", user_id=user_id)
+            except Exception as e:
+                logger.error("activation_reengagement_day7_failed", user_id=user_id, error=str(e))
+
+        logger.info("activation_reengagement_day7_complete", sent=sent_count, total=len(users))
+
+    finally:
+        await release_lock("activation_reengagement_day7")
+
+
+async def run_activation_reengagement_day14() -> None:
+    """
+    Runs daily at 9:40am UTC (staggered 10 min after stage 1).
+    Stage 3 of 3, final. Targets users who:
+      - activated 14+ days ago
+      - already received the day-7 email
+      - have not yet received this final stage
+      - still have zero completed tasks
+    No identity language, no commitment quote, no interview excerpt —
+    see send_activation_reengagement_day14_email's docstring for why.
+    This is the last automated touch for this cohort; nothing further
+    is scheduled after this stage completes for a given user.
+    """
+    from core.cache import acquire_lock, release_lock
+    from core.database import get_db_context
+    from services.email import email_service
+
+    lock_acquired = await acquire_lock("activation_reengagement_day14", ttl_seconds=3600)
+    if not lock_acquired:
+        return
+
+    try:
+        async with get_db_context() as db:
+            from sqlalchemy import text
+            result = await db.execute(text("""
+                SELECT u.id, u.email, u.display_name
+                FROM users u
+                JOIN goals g ON g.user_id = u.id
+                    AND g.status IN ('active', 'approaching_completion')
+                JOIN identity_profiles ip ON ip.user_id = u.id
+                WHERE u.is_active = TRUE
+                  AND u.onboarding_status = 'active'
+                  AND g.started_at <= NOW() - INTERVAL '14 days'
+                  AND ip.activation_reengagement_day7_sent_at IS NOT NULL
+                  AND ip.activation_reengagement_day14_sent_at IS NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM daily_tasks completed
+                    WHERE completed.user_id = u.id
+                      AND completed.status = 'completed'
+                  )
+            """))
+            users = result.fetchall()
+
+        if not users:
+            logger.info("activation_reengagement_day14_no_users")
+            return
+
+        logger.info("activation_reengagement_day14_started", user_count=len(users))
+        sent_count = 0
+
+        for row in users:
+            user_id = str(row[0])
+            try:
+                sent = await email_service.send_activation_reengagement_day14_email(
+                    to_email=row[1], display_name=row[2],
+                    app_url=settings.frontend_url,
+                )
+                if sent:
+                    async with get_db_context() as db2:
+                        from sqlalchemy import text as t
+                        await db2.execute(t("""
+                            UPDATE identity_profiles
+                            SET activation_reengagement_day14_sent_at = NOW()
+                            WHERE user_id = CAST(:user_id AS uuid)
+                        """), {"user_id": user_id})
+                        await db2.commit()
+                    sent_count += 1
+                    logger.info("activation_reengagement_day14_sent", user_id=user_id)
+            except Exception as e:
+                logger.error("activation_reengagement_day14_failed", user_id=user_id, error=str(e))
+
+        logger.info("activation_reengagement_day14_complete", sent=sent_count, total=len(users))
+
+    finally:
+        await release_lock("activation_reengagement_day14")
 
 
 async def send_verification_reminders() -> None:

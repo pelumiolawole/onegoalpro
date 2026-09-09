@@ -448,6 +448,206 @@ class EmailService:
             logger.error("activation_reengagement_email_failed", email=to_email, error=str(e))
             return False
 
+    async def send_activation_reengagement_day7_email(
+        self,
+        to_email: str,
+        display_name: Optional[str],
+        interview_excerpt: Optional[str],
+        task_title: Optional[str],
+        app_url: str,
+    ) -> bool:
+        """
+        Sent once, 7 days after activation, to users who still have not
+        completed a single task and were already sent the day-3 email.
+
+        Uses a raw excerpt from the discovery interview rather than the
+        polished commitment_statement — the user's own less-guarded words,
+        on the theory that the synthesized version already failed to move
+        them once. Falls back to plain framing if no excerpt exists.
+        """
+        if not self.enabled:
+            return False
+
+        first_name = (display_name or to_email).split()[0].capitalize()
+        dashboard_url = f"{app_url}/dashboard"
+
+        excerpt_block = ""
+        if interview_excerpt:
+            excerpt_block = f"""
+            <p style="margin: 0 0 24px 0; padding: 20px; background-color: #1E1B18; border-left: 3px solid #F59E0B; border-radius: 0 8px 8px 0; font-size: 15px; color: #F5F1ED; line-height: 1.6; font-style: italic;">
+                "{interview_excerpt}"
+            </p>
+            <p style="margin: -12px 0 24px 0; font-size: 12px; color: #5C524A; letter-spacing: 0.04em;">
+                — what you told us, in your own words
+            </p>
+            """
+
+        task_block = ""
+        if task_title:
+            task_block = f"""
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #5C524A; letter-spacing: 0.08em; text-transform: uppercase;">Still waiting</p>
+            <p style="margin: 0 0 28px 0; font-size: 16px; color: #F5F1ED; font-weight: 600;">{task_title}</p>
+            """
+
+        try:
+            response = resend.Emails.send({
+                "from": self.from_header,
+                "to": to_email,
+                "subject": f"You said this, {first_name}",
+                "html": f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0908;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0A0908; padding: 40px 0;">
+                        <tr>
+                            <td align="center">
+                                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #141210; border-radius: 12px; overflow: hidden; max-width: 600px; width: 100%; border: 1px solid #2A2520;">
+                                    <tr>
+                                        <td style="padding: 8px 40px; background-color: #F59E0B;">
+                                            <p style="margin: 0; font-size: 13px; font-weight: 600; color: #0A0908; letter-spacing: 0.1em; text-transform: uppercase;">OneGoal Pro</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 40px;">
+                                            <p style="margin: 0 0 20px 0; font-size: 16px; color: #7A6E65; line-height: 1.6;">
+                                                {first_name},
+                                            </p>
+
+                                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #A09690; line-height: 1.6;">
+                                                A week ago, before any of this was a routine, you said this:
+                                            </p>
+
+                                            {excerpt_block}
+
+                                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #A09690; line-height: 1.6;">
+                                                Nothing about that has changed except the date. It's still true, or it isn't — only you know which.
+                                            </p>
+
+                                            {task_block}
+
+                                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 28px 0;">
+                                                <tr>
+                                                    <td align="center">
+                                                        <a href="{dashboard_url}" style="display: inline-block; padding: 14px 36px; background-color: #F59E0B; color: #0A0908; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600;">
+                                                            One thing. Start here →
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <p style="margin: 0; font-size: 15px; color: #5C524A; line-height: 1.6;">
+                                                Pelumi
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 20px 40px; border-top: 1px solid #2A2520;">
+                                            <p style="margin: 0; font-size: 12px; color: #3D3630;">
+                                                One goal. Full commitment. No excuses. —
+                                                <a href="{dashboard_url}" style="color: #5C524A; text-decoration: none;">onegoalpro.app</a>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """,
+            })
+
+            logger.info("activation_reengagement_day7_email_sent", email=to_email, message_id=response.get("id"))
+            return True
+
+        except Exception as e:
+            logger.error("activation_reengagement_day7_email_failed", email=to_email, error=str(e))
+            return False
+
+    async def send_activation_reengagement_day14_email(
+        self,
+        to_email: str,
+        display_name: Optional[str],
+        app_url: str,
+    ) -> bool:
+        """
+        Sent once, 14 days after activation — the final email in the
+        sequence — to users who still have not completed a single task
+        after both the day-3 and day-7 identity-forward emails.
+
+        Deliberately different in kind, not just degree: two identity-
+        mirroring emails already had their chance. This one drops the
+        identity language and visual weight entirely. Short, plain, and
+        includes a real opt-out — the honest exit may do more than a
+        third identity-forward push after two have already been ignored.
+        """
+        if not self.enabled:
+            return False
+
+        first_name = (display_name or to_email).split()[0].capitalize()
+        dashboard_url = f"{app_url}/dashboard"
+        settings_url = f"{app_url}/settings"
+
+        try:
+            response = resend.Emails.send({
+                "from": self.from_header,
+                "to": to_email,
+                "subject": "Last one from me on this",
+                "html": f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0908;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0A0908; padding: 48px 24px;">
+                        <tr>
+                            <td align="center">
+                                <table width="480" cellpadding="0" cellspacing="0" style="max-width: 480px; width: 100%;">
+                                    <tr>
+                                        <td style="padding: 0;">
+                                            <p style="margin: 0 0 20px 0; font-size: 15px; color: #A09690; line-height: 1.7;">
+                                                {first_name},
+                                            </p>
+
+                                            <p style="margin: 0 0 16px 0; font-size: 15px; color: #A09690; line-height: 1.7;">
+                                                Two weeks ago you set up a goal here and haven't been back since. That's fine — timing is real, and this isn't the only thing on your plate.
+                                            </p>
+
+                                            <p style="margin: 0 0 16px 0; font-size: 15px; color: #A09690; line-height: 1.7;">
+                                                I'm not going to email you about this again. If you want to pick it back up, it's still here: <a href="{dashboard_url}" style="color: #F59E0B; text-decoration: underline;">{dashboard_url}</a>
+                                            </p>
+
+                                            <p style="margin: 0 0 28px 0; font-size: 15px; color: #A09690; line-height: 1.7;">
+                                                If it's genuinely not for you right now, no hard feelings — you can turn off emails <a href="{settings_url}" style="color: #7A6E65; text-decoration: underline;">here</a>.
+                                            </p>
+
+                                            <p style="margin: 0; font-size: 14px; color: #5C524A; line-height: 1.6;">
+                                                Pelumi
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """,
+            })
+
+            logger.info("activation_reengagement_day14_email_sent", email=to_email, message_id=response.get("id"))
+            return True
+
+        except Exception as e:
+            logger.error("activation_reengagement_day14_email_failed", email=to_email, error=str(e))
+            return False
+
     # ─── Weekly Digest Email ─────────────────────────────────────────────────
 
     async def send_weekly_digest_email(
