@@ -46,7 +46,7 @@ WHO YOU ARE WORKING WITH
 Name: Pelumi Olawole
 Role: Founder, IIC Networks (Influence, Impact, Change) | Author | Coach | Day job: E.ON Next (UK)
 Book: Petty Little Things: 50 Habits Quietly Ruining Your Life and How to Fix Them
-Working environment: Windows, VS Code, Git Bash / PowerShell. Mac mini (M4, 16GB, 512GB) acquired for iOS builds — mobile sprint.
+Working environment: Windows, VS Code, Git Bash / PowerShell. Mac mini (M4, 16GB, 512GB) acquired for iOS builds — iOS is deferred; Android ships first (see MOBILE SPRINT).
 Skill level: Rebuilding development skills — needs explicit step-by-step terminal instructions.
 Note: multi-line commit messages with embedded quotes break in PowerShell
 (it doesn't parse them like bash). Use `git commit -F message.txt` for any
@@ -98,7 +98,7 @@ hasn't been freshly queried against Supabase.
 
 
 TECH STACK — PRODUCTION
-LayerTechnologyProviderURLFrontendNext.js 15 (React 19)Vercelonegoalpro.appBackendFastAPI (Python)Railwayapi.onegoalpro.appDatabaseSupabase (PostgreSQL + pgvector)Supabaseproject: one-goal-v2 (id: guqlwplztxxiseyenbye)CacheRedisRailwayinternalAIOpenAI (model per engine — see AI SYSTEMS)OpenAIBilling: auto-top-up + spend alert now configured (fixed after a June incident — see INCIDENT LOG)StorageSupabase Storage (avatars bucket)Supabase—AuthJWT + Google OAuth. Apple OAuth NOT built — planned for mobile sprint Week 2, sprint has not started.Supabase Auth—EmailResend (services/email.py)ResendDaily task email + re-engagement email — both rebuilt, see AI SYSTEMSPaymentsStripe — liveStripeConfirm live webhook test has happenedSchedulerAPSchedulerRailway (in-process)Runs nightly ~00:00–00:05 UTC per Sentry/Railway logs, fifteen cron jobs total (task generation, sweep, scoring, weekly review/digest, goal-completion check, interventions, behavioural snapshots, data purge, verification reminders, two re-engagement jobs, daily push, 24h/72h interview nudges)DomainCloudflare RegistrarCloudflare—Error trackingSentrySentryOrg: iic-a9. Backend project slug: onegoal-backend (project id 4510997306474496). Confirm frontend project separately — not yet verified in this file's lineage.AnalyticsPostHogPostHogInstrumented across 6 frontend files (interview completion, task completion, coach session start, upgrade modal views, subscription activation) — confirm still firingSupabase MCP—Claude tool accessProject ID guqlwplztxxiseyenbye. Key fn: get_user_ai_context(id::uuid) — UUID cast required. execute_sql confirmed reliable for direct verification queries (used July 12 to get exact user/goal/commitment counts).Sentry MCP—Claude tool accessOrg slug iic-a9. search_issues, get_sentry_resource, and search_sentry_tools all confirmed working July 12. analyze_issue_with_seer (Autofix) returned HTTP 402 "No budget for Seer Autofix" on July 12 — that feature needs billing attention if you want to use it again; do not assume it works without checking first.GitHub MCP—Not available as an in-chat toolNo GitHub MCP tool is loaded in standard Claude Projects sessions. The repo IS accessible via `git clone` inside the bash/computer-use tool when that tool is available in the session — confirmed working July 12 (cloned github.com/pelumiolawole/onegoalpro, read the full backend and frontend tree directly). If bash/computer-use is not available in a given session, direct repo reading is not possible and Pelumi needs to paste file contents.Canva MCP—Claude tool accessBrand kit ID kAHFT2qrrA8 (current). Manual template-and-duplicate preferred over AI generation for brand accuracy — AI generation doesn't reliably hit exact hex values
+LayerTechnologyProviderURLFrontendNext.js 15 (React 19)Vercelonegoalpro.appBackendFastAPI (Python)Railwayapi.onegoalpro.appDatabaseSupabase (PostgreSQL + pgvector)Supabaseproject: one-goal-v2 (id: guqlwplztxxiseyenbye)CacheRedisRailwayinternalAIOpenAI (model per engine — see AI SYSTEMS)OpenAIBilling: auto-top-up + spend alert now configured (fixed after a June incident — see INCIDENT LOG)StorageSupabase Storage (avatars bucket)Supabase—AuthJWT + Google OAuth. Apple OAuth NOT built — deferred with iOS. Android TWA uses Google OAuth unchanged (see MOBILE SPRINT).Supabase Auth—EmailResend (services/email.py)ResendDaily task email + re-engagement email — both rebuilt, see AI SYSTEMSPaymentsStripe — liveStripeConfirm live webhook test has happenedSchedulerAPSchedulerRailway (in-process)Runs nightly ~00:00–00:05 UTC per Sentry/Railway logs, fifteen cron jobs total (task generation, sweep, scoring, weekly review/digest, goal-completion check, interventions, behavioural snapshots, data purge, verification reminders, two re-engagement jobs, daily push, 24h/72h interview nudges)DomainCloudflare RegistrarCloudflare—Error trackingSentrySentryOrg: iic-a9. Backend project slug: onegoal-backend (project id 4510997306474496). Confirm frontend project separately — not yet verified in this file's lineage.AnalyticsPostHogPostHogInstrumented across 6 frontend files (interview completion, task completion, coach session start, upgrade modal views, subscription activation) — confirm still firingSupabase MCP—Claude tool accessProject ID guqlwplztxxiseyenbye. Key fn: get_user_ai_context(id::uuid) — UUID cast required. execute_sql confirmed reliable for direct verification queries (used July 12 to get exact user/goal/commitment counts).Sentry MCP—Claude tool accessOrg slug iic-a9. search_issues, get_sentry_resource, and search_sentry_tools all confirmed working July 12. analyze_issue_with_seer (Autofix) returned HTTP 402 "No budget for Seer Autofix" on July 12 — that feature needs billing attention if you want to use it again; do not assume it works without checking first.GitHub MCP—Not available as an in-chat toolNo GitHub MCP tool is loaded in standard Claude Projects sessions. The repo IS accessible via `git clone` inside the bash/computer-use tool when that tool is available in the session — confirmed working July 12 (cloned github.com/pelumiolawole/onegoalpro, read the full backend and frontend tree directly). If bash/computer-use is not available in a given session, direct repo reading is not possible and Pelumi needs to paste file contents.Canva MCP—Claude tool accessBrand kit ID kAHFT2qrrA8 (current). Manual template-and-duplicate preferred over AI generation for brand accuracy — AI generation doesn't reliably hit exact hex values
 
 REPOSITORY STRUCTURE
 onegoalpro/
@@ -124,7 +124,7 @@ onegoalpro/
 │   │   ├── dependencies/auth.py
 │   │   ├── routers/
 │   │   │   ├── admin.py
-│   │   │   ├── auth.py                # Google OAuth only. Apple OAuth NOT built — mobile sprint not started
+│   │   │   ├── auth.py                # Google OAuth only. Apple OAuth NOT built — deferred with iOS
 │   │   │   ├── billing.py
 │   │   │   ├── coach.py
 │   │   │   ├── goals.py
@@ -189,9 +189,9 @@ onegoalpro/
 │   └── public/
 │       └── robots.txt                 # FIXED July 12 — was misnamed robot.txt (singular), search engines were ignoring it entirely
 ├── dead code/                         # Do not touch or import from here
-│                                       # NOTE: ios/ and android/ do NOT exist yet — mobile sprint
-│                                       # (Capacitor wrapper) has not started as of July 12, 2026.
-│                                       # They will appear in Week 1 of that sprint when it begins.
+│                                       # NOTE: there are no ios/ or android/ folders. The Android app
+│                                       # is a Trusted Web Activity (Bubblewrap), not Capacitor —
+│                                       # see MOBILE SPRINT. iOS is deferred.
 ├── docs/
 │   ├── commit_history_full.txt / commit_history_v1.txt / file_tree.txt
 │   └── agents/
@@ -204,7 +204,7 @@ onegoalpro/
 
 WHAT IS FULLY BUILT AND WORKING
 Core user journey (end-to-end)
-Landing page → Sign up / Login (email + Google OAuth, Apple OAuth in progress) → AI Discovery Interview
+Landing page → Sign up / Login (email + Google OAuth; Apple OAuth deferred with iOS) → AI Discovery Interview
 (V2) → Goal synthesis → Strategy preview → Activation (includes a 30+ character commitment-statement
 gate — a structural fix, not cosmetic, after diagnosing that most early churn was lack-of-commitment
 at entry rather than later disengagement; confirmed July 12 that only 3 of 99 registered users have
@@ -214,7 +214,7 @@ Settings → Upgrade → Stripe checkout → Billing success
 
 Backend systems (all live)
 
-JWT auth with token refresh; Google OAuth via Supabase; Apple OAuth (confirm shipped — mobile sprint)
+JWT auth with token refresh; Google OAuth via Supabase; Apple OAuth NOT built (deferred with iOS)
 Email verification + password reset
 AI Interview Engine V2 (psychological funnel, 3 phases, never announced to user)
 Goal synthesis from interview
@@ -233,10 +233,32 @@ Re-engagement email — reworked to drop specific missed-task counts; leads with
 ready. Start with that one." Confirmed firing daily via Sentry logs; the open problem is NOT delivery,
 it's that users aren't returning even when the email lands (see RETENTION section)
 Push notification system — LIVE for web push, and as of July 12 the 410/404 expiry-detection bug is
-FIXED (see INCIDENT LOG). Native push (APNs/FCM) via /push/native-subscribe is a mobile-sprint
-deliverable and the mobile sprint has not started. The ios/ and android/ folders referenced under
-REPOSITORY STRUCTURE do not exist yet.
+FIXED (see INCIDENT LOG). The Android TWA uses this same VAPID web push — no native push and no
+/push/native-subscribe endpoint is needed for Android (see MOBILE SPRINT).
 Stripe billing — checkout, webhooks, cancel, resume, invoices, verify-session
+
+MOBILE SPRINT — ANDROID TWA (status as of October 14, 2026)
+Started October 2026. Android first, built as a Trusted Web Activity (Bubblewrap) wrapping
+https://onegoalpro.app — NOT Capacitor. iOS is deferred.
+Because a TWA runs in real Chrome, Google OAuth, VAPID web push and Stripe web checkout all work
+unchanged. No native push and no /push/native-subscribe endpoint is needed for Android.
+Package name: app.onegoalpro (permanent — cannot be changed after publishing).
+One Goal Pro Ltd D-U-N-S number: 234708673.
+Google Play Console: organisation account created October 13, 2026, developer name "OneGoal Pro",
+owned by admin@onegoalpro.app (Cloudflare email routing). Organisation and identity verification
+completed October 14, 2026. Website verified via Search Console.
+Done: PWA readiness fixes shipped October 14, 2026 — offline fallback (frontend/public/offline.html
++ fetch handler in sw.js), manifest start_url /dashboard with separate any/maskable icon entries,
+and notification click now navigates an already-open app to the target URL.
+Still to do:
+- Bubblewrap build
+- /.well-known/assetlinks.json — must include the Play APP-SIGNING key SHA-256, not only the upload key
+- Account-deletion URL
+- Data safety form
+- Listing assets: feature graphic 1024x500, screenshots
+- v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
+OPEN QUESTION: the cookie banner says "no tracking or advertising cookies" while PostHog runs on the
+site. Check what PostHog stores before filling in the Play data safety form.
 
 Frontend / product additions (2026, post-v1.1)
 
