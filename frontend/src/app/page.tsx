@@ -870,6 +870,7 @@ export default function LandingPage() {
             <Link href="/signup" className="hover:text-[#7A6E65] transition-colors">Start the interview</Link>
             <Link href="/privacy" className="hover:text-[#7A6E65] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[#7A6E65] transition-colors">Terms</Link>
+            <Link href="/delete-account" className="hover:text-[#7A6E65] transition-colors">Delete account</Link>
           </div>
         </div>
         <div className="max-w-5xl mx-auto mt-6 pt-6 border-t border-white/5 text-center">
