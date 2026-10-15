@@ -1068,52 +1068,16 @@ async def run_behavioral_snapshots() -> None:
 
 
 async def run_data_purge() -> None:
-    """Permanently delete user data after grace period."""
+    """Permanently delete accounts whose deletion is due. See services/account_deletion.py."""
     from core.cache import acquire_lock, release_lock
-    from core.database import get_db_context
+    from services.account_deletion import run_purge
 
     lock_acquired = await acquire_lock("data_purge", ttl_seconds=3600)
     if not lock_acquired:
         return
 
     try:
-        async with get_db_context() as db:
-            from sqlalchemy import text
-            result = await db.execute(text("""
-                SELECT id, email FROM users
-                WHERE deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= NOW()
-                LIMIT 100
-            """))
-            users_to_purge = result.fetchall()
-
-            if not users_to_purge:
-                logger.info("no_users_to_purge")
-                return
-
-            purged_count = 0
-            for user_id, email in users_to_purge:
-                try:
-                    await db.execute(text("""
-                        UPDATE users SET
-                            email = CONCAT('deleted.', MD5(id::text), '@deleted.onegoal.pro'),
-                            display_name = NULL, hashed_password = 'DELETED',
-                            avatar_url = NULL, timezone = 'UTC', locale = 'en',
-                            is_active = FALSE, deletion_scheduled_at = NULL,
-                            deletion_completed_at = NOW()
-                        WHERE id = :user_id
-                    """), {"user_id": str(user_id)})
-                    await db.execute(text("DELETE FROM ai_coach_messages WHERE user_id = :user_id"), {"user_id": str(user_id)})
-                    await db.execute(text("DELETE FROM onboarding_interview_state WHERE user_id = :user_id"), {"user_id": str(user_id)})
-                    await db.execute(text("""
-                        UPDATE progress_metrics SET user_id = '00000000-0000-0000-0000-000000000000'
-                        WHERE user_id = :user_id
-                    """), {"user_id": str(user_id)})
-                    purged_count += 1
-                    logger.info("user_data_purged", user_id=str(user_id), original_email=email)
-                except Exception as e:
-                    logger.error("user_purge_failed", user_id=str(user_id), error=str(e))
-
-            logger.info("data_purge_complete", purged_count=purged_count, total_found=len(users_to_purge))
+        await run_purge()
     finally:
         await release_lock("data_purge")
 

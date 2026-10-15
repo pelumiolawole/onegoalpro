@@ -523,6 +523,16 @@ class ApiClient {
     getInvoices: () =>
       this.request<{ invoices: any[] }>('/billing/invoices'),
   }
+
+  // ── Account ─────────────────────────────────────────────────
+
+  account = {
+    delete: () =>
+      this.request<{ status: string; stripe_subscription: string }>('/settings/delete-account', {
+        method: 'POST',
+        body: JSON.stringify({ confirm: true }),
+      }),
+  }
 }
 
 export const api = new ApiClient()

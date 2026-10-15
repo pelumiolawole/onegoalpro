@@ -109,7 +109,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-[#E8E2DC] font-medium text-lg mb-3">6. Data retention</h2>
             <p className="text-[#7A6E65]">
-              We keep your data for as long as your account is active. Coach conversation history is retained to maintain coaching continuity — the coach cannot remember you without it. If you delete your account, all personal data is permanently deleted within 30 days.
+              We keep your data for as long as your account is active. Coach conversation history is retained to maintain coaching continuity — the coach cannot remember you without it. If you delete your account, any paid subscription is cancelled immediately, you are signed out, and your personal data is permanently deleted within 30 days. We keep a record that the deletion happened (your account ID and the dates, nothing else). Payment records are kept by Stripe for as long as UK tax law requires, generally 6 years. Copies in database backups expire on the backup schedule.
             </p>
           </section>
 
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
             <div className="space-y-2 text-[#7A6E65]">
               <p>You have the right to:</p>
               <p>— <span className="text-[#C4BBB5]">Access</span> all data we hold about you (available via Settings → Export data)</p>
-              <p>— <span className="text-[#C4BBB5]">Delete</span> your account and all associated data (available via Settings → Delete account)</p>
+              <p>— <span className="text-[#C4BBB5]">Delete</span> your account and all associated data (available via Settings → Delete account, or at <a href="/delete-account" className="text-[#F59E0B] hover:underline">onegoalpro.app/delete-account</a> if you can&apos;t sign in)</p>
               <p>— <span className="text-[#C4BBB5]">Correct</span> inaccurate information</p>
               <p>— <span className="text-[#C4BBB5]">Object</span> to processing for marketing purposes</p>
               <p className="mt-3">To exercise any of these rights, email <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">support@onegoalpro.app</a>.</p>

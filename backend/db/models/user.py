@@ -61,6 +61,8 @@ class User(Base):
     hashed_password: Mapped[str | None] = mapped_column(String(255))
 
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set when the user requests account deletion; the nightly purge deletes the row.
+    deletion_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

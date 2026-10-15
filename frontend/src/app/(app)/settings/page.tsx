@@ -77,6 +77,10 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     loadBillingData()
@@ -192,6 +196,22 @@ export default function SettingsPage() {
   function handleLogout() {
     clearAuth()
     router.replace('/login')
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteText !== 'DELETE') return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await api.account.delete()
+      clearAuth()
+      router.replace('/account-deleted')
+    } catch (err: any) {
+      setDeleteError(
+        typeof err?.detail === 'string' ? err.detail : "Your account wasn't deleted. Please try again."
+      )
+      setDeleting(false)
+    }
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -573,6 +593,64 @@ export default function SettingsPage() {
                   </button>
                   <button 
                     onClick={() => setShowLogoutConfirm(false)} 
+                    className="px-4 py-2 text-[#5C524A] text-sm hover:text-[#C4BBB5] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </section>
+
+          {/* ── Delete Account ─────────────────────────────────── */}
+          <section className="bg-[#141210] border border-red-500/15 rounded-2xl p-6">
+            <h2 className="text-lg font-medium text-[#F5F1ED] mb-2">Delete account</h2>
+            <p className="text-[#7A6E65] text-sm leading-relaxed mb-4">
+              Permanently delete your account and everything in it: your interview, goal, tasks,
+              reflections and coach conversations.
+            </p>
+
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2 border border-red-500/25 text-red-400 text-sm rounded-xl hover:bg-red-500/10 transition-all"
+              >
+                Delete account
+              </button>
+            ) : (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                <div className="text-[#C4BBB5] text-sm leading-relaxed space-y-2">
+                  <p>When you confirm:</p>
+                  <p>— Any paid subscription is cancelled now, so you won&apos;t be charged again.</p>
+                  <p>— You are signed out and can no longer sign in to this account.</p>
+                  <p>— All your data is permanently deleted within 30 days.</p>
+                  <p className="text-red-400">This cannot be undone.</p>
+                </div>
+                <label className="block">
+                  <span className="text-[#7A6E65] text-xs">Type DELETE to confirm</span>
+                  <input
+                    value={deleteText}
+                    onChange={e => setDeleteText(e.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    disabled={deleting}
+                    className="mt-1 w-full bg-[#0A0908] border border-white/10 rounded-xl px-3 py-2 text-[#F5F1ED] text-sm font-mono focus:outline-none focus:border-red-500/40"
+                  />
+                </label>
+                {deleteError && <p className="text-red-400 text-sm">{deleteError}</p>}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteText !== 'DELETE' || deleting}
+                    className="px-4 py-2 bg-red-500/15 border border-red-500/30 text-red-400 text-sm rounded-xl hover:bg-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {deleting && <Spinner small />}
+                    Permanently delete my account
+                  </button>
+                  <button
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); setDeleteError('') }}
+                    disabled={deleting}
                     className="px-4 py-2 text-[#5C524A] text-sm hover:text-[#C4BBB5] transition-colors"
                   >
                     Cancel

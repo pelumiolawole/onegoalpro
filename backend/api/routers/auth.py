@@ -409,6 +409,11 @@ async def oauth_callback(
             display_name=user.display_name
         )
     else:
+        if user.deletion_scheduled_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account has been deleted.",
+            )
         # Existing user — update provider info if needed
         if user.auth_provider_id != provider_id:
             user.auth_provider = provider

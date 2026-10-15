@@ -93,6 +93,12 @@ async def get_current_user(
             detail="User not found",
         )
 
+    if user.deletion_scheduled_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This account has been deleted.",
+        )
+
     return user
 
 

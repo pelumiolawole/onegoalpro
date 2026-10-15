@@ -28,18 +28,25 @@ export default function DeleteAccountPage() {
 
           <section>
             <h2 className="text-[#E8E2DC] font-medium text-lg mb-3">How to request deletion</h2>
-            <div className="space-y-3 text-[#7A6E65]">
-              <p>
-                Email <a href="mailto:support@onegoalpro.app?subject=Delete%20my%20account" className="text-[#F59E0B] hover:underline">support@onegoalpro.app</a> from
-                the email address registered to your account, with the subject line &quot;Delete my account&quot;.
-              </p>
-              <p>
-                You don&apos;t need to install the app or sign in. We will delete your account and confirm by
-                email within 30 days of your request.
-              </p>
-              <p>
-                Deletion requests are handled by email. There is no delete option inside the app.
-              </p>
+            <div className="space-y-4 text-[#7A6E65]">
+              <div className="border-l border-white/10 pl-4">
+                <p className="text-[#C4BBB5] font-medium mb-1">In the app or on the website</p>
+                <p>
+                  Sign in, open Settings, and choose &quot;Delete account&quot; at the bottom of the page. Type
+                  DELETE to confirm. Any paid subscription is cancelled straight away and you are signed out.
+                </p>
+              </div>
+              <div className="border-l border-white/10 pl-4">
+                <p className="text-[#C4BBB5] font-medium mb-1">By email</p>
+                <p>
+                  If you can&apos;t sign in, email{' '}
+                  <a href="mailto:support@onegoalpro.app?subject=Delete%20my%20account" className="text-[#F59E0B] hover:underline">support@onegoalpro.app</a>{' '}
+                  from the email address registered to your account, with the subject line &quot;Delete my
+                  account&quot;. You don&apos;t need to install the app. We will delete your account and confirm
+                  by email within 30 days of your request.
+                </p>
+              </div>
+              <p>Either way, your data is permanently deleted within 30 days, and deletion cannot be undone.</p>
             </div>
           </section>
 
@@ -47,7 +54,7 @@ export default function DeleteAccountPage() {
             <h2 className="text-[#E8E2DC] font-medium text-lg mb-3">What we delete</h2>
             <div className="space-y-2 text-[#7A6E65]">
               <p>Your account and the personal data linked to it:</p>
-              <p>— Account details: your name, email address, sign-in method and profile photo</p>
+              <p>— Account details: your name, email address, sign-in method (including a linked Google account) and profile photo</p>
               <p>— Your Discovery Interview answers, goal, identity traits and daily tasks</p>
               <p>— Your reflections, task history and progress scores</p>
               <p>— Your conversations with the AI coach</p>

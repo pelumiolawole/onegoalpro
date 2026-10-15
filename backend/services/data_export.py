@@ -353,41 +353,6 @@ class DataExportService:
             })
         return metrics
 
-    async def initiate_deletion(
-        self,
-        user_id: UUID | str,
-        db: AsyncSession,
-    ) -> dict:
-        """
-        Initiate account deletion (soft delete).
-        Data is marked for purge after 30 days.
-        """
-        uid = str(user_id)
-        
-        # Mark user for deletion
-        await db.execute(
-            text("""
-                UPDATE users
-                SET 
-                    is_active = FALSE,
-                    deletion_requested_at = NOW(),
-                    deletion_scheduled_at = NOW() + INTERVAL '30 days',
-                    email = CONCAT(email, '.inactive.', EXTRACT(EPOCH FROM NOW())::bigint)
-                WHERE id = :user_id
-            """),
-            {"user_id": uid},
-        )
-        
-        logger.info("user_deletion_initiated", user_id=uid, grace_period_days=30)
-        
-        return {
-            "status": "deletion_scheduled",
-            "user_id": uid,
-            "deletion_scheduled_at": (datetime.utcnow() + __import__('datetime').timedelta(days=30)).isoformat(),
-            "grace_period_days": 30,
-            "message": "Account deactivated. Data will be permanently deleted after 30 days. Contact support to cancel.",
-        }
-
 
 # Singleton instance
 data_export_service = DataExportService()
