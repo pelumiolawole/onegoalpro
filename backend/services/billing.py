@@ -5,15 +5,77 @@ Stripe billing integration for subscription management.
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
+import sentry_sdk
 import stripe
 import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
+
+
+class WebhookHandlerError(Exception):
+    """A verified Stripe event whose handler failed. The caller must return non-2xx so Stripe retries."""
+
+
+def _as_id(value) -> Optional[str]:
+    """Stripe fields can hold either an ID string or an expanded object."""
+    if not value:
+        return None
+    if isinstance(value, str):
+        return value
+    return value.get("id")
+
+
+def _invoice_subscription_id(invoice) -> Optional[str]:
+    """
+    Subscription ID from an invoice, across Stripe API versions.
+    API 2025-03-31 and later removed invoice.subscription; the ID moved to
+    invoice.parent.subscription_details.subscription and to each line item's parent.
+    """
+    sub_id = _as_id(invoice.get("subscription"))
+    if sub_id:
+        return sub_id
+
+    parent = invoice.get("parent") or {}
+    sub_id = _as_id((parent.get("subscription_details") or {}).get("subscription"))
+    if sub_id:
+        return sub_id
+
+    for line in (invoice.get("lines") or {}).get("data") or []:
+        sub_id = _as_id(line.get("subscription"))
+        if sub_id:
+            return sub_id
+        line_parent = line.get("parent") or {}
+        sub_id = _as_id((line_parent.get("subscription_item_details") or {}).get("subscription"))
+        if sub_id:
+            return sub_id
+
+    return None
+
+
+def _subscription_period(subscription) -> tuple[Optional[datetime], Optional[datetime]]:
+    """
+    Current billing period of a subscription, across Stripe API versions.
+    API 2025-03-31 and later moved current_period_start/end from the subscription
+    onto its items. Returns (None, None) if neither shape is present.
+    """
+    start = subscription.get("current_period_start")
+    end = subscription.get("current_period_end")
+
+    if start is None or end is None:
+        items = (subscription.get("items") or {}).get("data") or []
+        if items:
+            start = start if start is not None else items[0].get("current_period_start")
+            end = end if end is not None else items[0].get("current_period_end")
+
+    def to_dt(ts):
+        return datetime.fromtimestamp(ts, tz=timezone.utc) if ts else None
+
+    return to_dt(start), to_dt(end)
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -336,7 +398,14 @@ class BillingService:
         sig_header: str,
         db: AsyncSession,
     ) -> bool:
-        """Process Stripe webhook events."""
+        """
+        Process a Stripe webhook event.
+
+        Returns False if the payload or signature is invalid (caller returns 400).
+        Raises WebhookHandlerError if a handler fails, so the caller returns 500
+        and Stripe retries. Events already recorded in processed_webhook_events are
+        acknowledged without being processed again.
+        """
 
         try:
             event = self.stripe.Webhook.construct_event(
@@ -349,10 +418,11 @@ class BillingService:
             logger.error("stripe_webhook_invalid_signature")
             return False
 
+        event_id = event["id"]
         event_type = event["type"]
         data = event["data"]["object"]
 
-        logger.info("stripe_webhook_received", type=event_type)
+        logger.info("stripe_webhook_received", type=event_type, event_id=event_id)
 
         handlers = {
             "checkout.session.completed": self._handle_subscription_created,
@@ -363,18 +433,42 @@ class BillingService:
         }
 
         handler = handlers.get(event_type)
-        if handler:
-            try:
-                await handler(data, db)
-            except Exception as e:
-                logger.error(
-                    "webhook_handler_error",
-                    event_type=event_type,
-                    error=str(e),
-                    exc_info=True,
-                )
-                # Return True so Stripe doesn't retry — log the error for investigation
-                return True
+        if not handler:
+            return True
+
+        already = await db.execute(
+            text("SELECT 1 FROM processed_webhook_events WHERE stripe_event_id = :event_id"),
+            {"event_id": event_id},
+        )
+        if already.first():
+            logger.info("stripe_webhook_duplicate_skipped", type=event_type, event_id=event_id)
+            return True
+
+        try:
+            await handler(data, db)
+            await db.execute(
+                text("""
+                    INSERT INTO processed_webhook_events (stripe_event_id, event_type, processed_at)
+                    VALUES (:event_id, :event_type, NOW())
+                    ON CONFLICT (stripe_event_id) DO NOTHING
+                """),
+                {"event_id": event_id, "event_type": event_type},
+            )
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            logger.error(
+                "webhook_handler_error",
+                event_type=event_type,
+                event_id=event_id,
+                error=str(e),
+                exc_info=True,
+            )
+            sentry_sdk.capture_exception(
+                e,
+                tags={"stripe_event_type": event_type, "stripe_event_id": event_id},
+            )
+            raise WebhookHandlerError(f"{event_type} {event_id}: {e}") from e
 
         return True
 
@@ -401,6 +495,10 @@ class BillingService:
             metadata={"user_id": user_id},
         )
 
+    # Handlers below only execute statements. handle_webhook commits once, after the
+    # handler and the processed_webhook_events insert both succeed, so a failure
+    # leaves nothing half-written and the event is retried.
+
     async def _handle_subscription_created(
         self,
         session: dict,
@@ -415,14 +513,14 @@ class BillingService:
             logger.error("checkout_missing_metadata", session_id=session.get("id"))
             return
 
-        subscription_id = session.get("subscription")
-        customer_id = session.get("customer")
+        subscription_id = _as_id(session.get("subscription"))
+        customer_id = _as_id(session.get("customer"))
         subscription = self.stripe.Subscription.retrieve(subscription_id)
 
-        period_start = datetime.fromtimestamp(subscription.current_period_start)
-        period_end = datetime.fromtimestamp(subscription.current_period_end)
+        period_start, period_end = _subscription_period(subscription)
+        if period_end is None:
+            raise ValueError(f"No billing period found on subscription {subscription_id}")
 
-        # Update users table (existing behaviour)
         await db.execute(
             text("""
                 UPDATE users
@@ -447,7 +545,6 @@ class BillingService:
             },
         )
 
-        # Also write to subscriptions table
         await db.execute(
             text("""
                 INSERT INTO subscriptions (user_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_start, current_period_end, cancel_at_period_end)
@@ -472,73 +569,95 @@ class BillingService:
             },
         )
 
-        await db.commit()
-
         logger.info("subscription_activated", user_id=user_id, plan=plan)
 
-    async def _handle_invoice_paid(self, invoice: dict, db: AsyncSession) -> None:
-        """Handle successful recurring payment."""
+    async def _write_period(
+        self,
+        subscription_id: str,
+        period_start: Optional[datetime],
+        period_end: Optional[datetime],
+        status: str,
+        cancel_at_period_end: bool,
+        db: AsyncSession,
+    ) -> None:
+        """Write status and billing period to BOTH users and subscriptions (dual-write rule).
+        A missing period value leaves the stored one unchanged rather than nulling it."""
 
-        subscription_id = invoice.get("subscription")
-        if not subscription_id:
-            return
-
-        subscription = self.stripe.Subscription.retrieve(subscription_id)
-
-        period_start = datetime.fromtimestamp(subscription.current_period_start)
-        period_end = datetime.fromtimestamp(subscription.current_period_end)
+        params = {
+            "subscription_id": subscription_id,
+            "period_start": period_start,
+            "period_end": period_end,
+            "status": status,
+            "cancel_at_period_end": cancel_at_period_end,
+        }
 
         await db.execute(
             text("""
                 UPDATE users
                 SET
-                    current_period_start = :period_start,
-                    current_period_end = :period_end,
-                    subscription_status = 'active',
-                    cancel_at_period_end = false,
+                    current_period_start = COALESCE(:period_start, current_period_start),
+                    current_period_end = COALESCE(:period_end, current_period_end),
+                    subscription_status = :status,
+                    cancel_at_period_end = :cancel_at_period_end,
                     subscription_updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
-            {
-                "subscription_id": subscription_id,
-                "period_start": period_start,
-                "period_end": period_end,
-            },
+            params,
         )
 
         await db.execute(
             text("""
                 UPDATE subscriptions
                 SET
-                    current_period_start = :period_start,
-                    current_period_end = :period_end,
-                    status = 'active',
-                    cancel_at_period_end = false,
+                    current_period_start = COALESCE(:period_start, current_period_start),
+                    current_period_end = COALESCE(:period_end, current_period_end),
+                    status = :status,
+                    cancel_at_period_end = :cancel_at_period_end,
                     updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
-            {
-                "subscription_id": subscription_id,
-                "period_start": period_start,
-                "period_end": period_end,
-            },
+            params,
         )
 
-        await db.commit()
+    async def _handle_invoice_paid(self, invoice: dict, db: AsyncSession) -> None:
+        """Handle successful recurring payment."""
 
-        logger.info("subscription_renewed", subscription_id=subscription_id)
+        subscription_id = _invoice_subscription_id(invoice)
+        if not subscription_id:
+            # One-off invoices have no subscription. Log it so a payload-shape
+            # change can never again make renewals fail silently.
+            logger.warning("invoice_paid_without_subscription", invoice_id=invoice.get("id"))
+            return
+
+        subscription = self.stripe.Subscription.retrieve(subscription_id)
+        period_start, period_end = _subscription_period(subscription)
+        if period_end is None:
+            raise ValueError(f"No billing period found on subscription {subscription_id}")
+
+        await self._write_period(
+            subscription_id,
+            period_start,
+            period_end,
+            status="active",
+            cancel_at_period_end=bool(subscription.get("cancel_at_period_end")),
+            db=db,
+        )
+
+        logger.info("subscription_renewed", subscription_id=subscription_id, period_end=period_end.isoformat())
 
     async def _handle_payment_failed(self, invoice: dict, db: AsyncSession) -> None:
         """Handle failed payment — mark as ended."""
 
-        subscription_id = invoice.get("subscription")
+        subscription_id = _invoice_subscription_id(invoice)
         if not subscription_id:
+            logger.warning("payment_failed_without_subscription", invoice_id=invoice.get("id"))
             return
 
         await db.execute(
             text("""
                 UPDATE users
-                SET subscription_status = 'ended'
+                SET subscription_status = 'ended',
+                    subscription_updated_at = NOW()
                 WHERE stripe_subscription_id = :subscription_id
             """),
             {"subscription_id": subscription_id},
@@ -552,8 +671,6 @@ class BillingService:
             """),
             {"subscription_id": subscription_id},
         )
-
-        await db.commit()
 
         logger.warning("payment_failed", subscription_id=subscription_id)
 
@@ -594,8 +711,6 @@ class BillingService:
             {"subscription_id": subscription_id},
         )
 
-        await db.commit()
-
         logger.info("subscription_cancelled", subscription_id=subscription_id)
 
     async def _handle_subscription_updated(
@@ -603,57 +718,33 @@ class BillingService:
         subscription: dict,
         db: AsyncSession,
     ) -> None:
-        """Handle subscription changes (plan changes, cancel_at_period_end, etc.)."""
+        """Handle subscription changes, including the period roll-over Stripe sends on every renewal."""
 
         subscription_id = subscription.get("id")
-        stripe_status = subscription.get("status")
-        cancel_at_period_end = subscription.get("cancel_at_period_end", False)
-
         if not subscription_id:
             return
 
-        internal_status = self._normalize_subscription_status(stripe_status, cancel_at_period_end)
-
-        await db.execute(
-            text("""
-                UPDATE users
-                SET
-                    subscription_status = :status,
-                    cancel_at_period_end = :cancel_at_period_end,
-                    subscription_updated_at = NOW()
-                WHERE stripe_subscription_id = :subscription_id
-            """),
-            {
-                "subscription_id": subscription_id,
-                "status": internal_status,
-                "cancel_at_period_end": cancel_at_period_end,
-            },
+        cancel_at_period_end = bool(subscription.get("cancel_at_period_end", False))
+        internal_status = self._normalize_subscription_status(
+            subscription.get("status"), cancel_at_period_end
         )
+        period_start, period_end = _subscription_period(subscription)
 
-        await db.execute(
-            text("""
-                UPDATE subscriptions
-                SET
-                    status = :status,
-                    cancel_at_period_end = :cancel_at_period_end,
-                    updated_at = NOW()
-                WHERE stripe_subscription_id = :subscription_id
-            """),
-            {
-                "subscription_id": subscription_id,
-                "status": internal_status,
-                "cancel_at_period_end": cancel_at_period_end,
-            },
+        await self._write_period(
+            subscription_id,
+            period_start,
+            period_end,
+            status=internal_status,
+            cancel_at_period_end=cancel_at_period_end,
+            db=db,
         )
-
-        await db.commit()
 
         logger.info(
             "subscription_updated",
             subscription_id=subscription_id,
-            stripe_status=stripe_status,
             internal_status=internal_status,
             cancel_at_period_end=cancel_at_period_end,
+            period_end=period_end.isoformat() if period_end else None,
         )
 
     def check_quota(

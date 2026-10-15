@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from api.dependencies.auth import get_current_user
 from db.models.user import User
-from services.billing import billing_service
+from services.billing import WebhookHandlerError, billing_service
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -209,7 +209,14 @@ async def stripe_webhook(
             detail="Missing stripe-signature header",
         )
 
-    success = await billing_service.handle_webhook(payload, sig_header, db)
+    try:
+        success = await billing_service.handle_webhook(payload, sig_header, db)
+    except WebhookHandlerError:
+        # Already logged and sent to Sentry. A 5xx makes Stripe retry the event.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Webhook handler failed",
+        )
 
     if not success:
         raise HTTPException(
