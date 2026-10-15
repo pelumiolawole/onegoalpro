@@ -72,30 +72,37 @@ Stage: MVP, live, in active daily use.
 
 Confirmed user/revenue state (verified via direct Supabase query, as of 15 October 2026 —
 RE-QUERY before quoting any number in an external-facing context, e.g. investor
-conversations; these are exact counts, not estimates). "External" excludes four accounts
-confidently identified as Pelumi's own (olawolepelumisunday@gmail.com, pelumisolawole@gmail.com,
-pelumi.olawole@icloud.com, iicnetworksng@gmail.com). Other accounts were NOT excluded — a
-shared surname or company domain is not proof an account is internal.
+conversations; these are exact counts, not estimates). "External" excludes FIVE accounts
+confirmed as Pelumi's own: olawolepelumisunday@gmail.com, pelumisolawole@gmail.com,
+pelumi.olawole@icloud.com, iicnetworksng@gmail.com, and tomolawblog@gmail.com (the Forge
+subscriber; confirmed by Pelumi 15 October 2026, and confirmed in users/subscriptions to be the
+account holding the only active Forge subscription). Other accounts were NOT excluded — a shared
+surname or company domain is not proof an account is internal.
 
-100 total registered users (96 external). 96 have is_active = true.
-49 users have at least one goal (46 external). All 49 have a goal with status 'active';
+PAYING CUSTOMERS EXCLUDING INTERNAL ACCOUNTS: 0. There has never been an external paying
+subscriber. The only paying subscription (The Forge, tomolawblog@gmail.com, monthly; per Stripe,
+eight payments totalling £26.04 as of 15 October 2026) is Pelumi's own account. Any earlier
+statement in this file or elsewhere about "1 paying subscriber" or "the first paid subscriber"
+referred to Pelumi's own payments and must not be quoted as customer revenue.
+
+100 total registered users (95 external). 96 have is_active = true.
+49 users have at least one goal (45 external). All 49 have a goal with status 'active';
 3 goals are 'paused', all belonging to users who also have an active goal.
 3 users have passed the actual commitment gate (30+ character trimmed commitment statement);
 all 3 are external.
-Paying: 1 user on The Forge, plan and status agree in users and subscriptions ('forge' /
-'active'). Not internal. BUT current_period_end in both tables is 2026-05-06, five months stale,
-so "paying" is UNCONFIRMED from the database alone — check the Stripe dashboard. See INCIDENT
-LOG, 15 October 2026, for the webhook bug this exposed.
 Naming mismatch, not a disagreement: free users are 'spark' in users.subscription_plan but
 'free' in subscriptions.plan (10 rows).
-Task completions in the last 30 days: 0, by 0 users. Last 90 days: 2, by 1 user. Most recent
-completion anywhere: 9 September 2026. All-time: 204 (127 external).
+Task completions in the last 30 days: 0, by anyone. Last 90 days: 2, both by an internal account
+(0 external). Most recent completion anywhere: 9 September 2026. All-time: 204 (95 external).
 Signups: 1 since 12 July 2026; 0 in the last 30 days. Newest signup 19 September 2026.
-Historical (12 July 2026): 99 registered, 49 with a goal, 3 past the commitment gate, 1 paying.
+Historical (12 July 2026): 99 registered, 49 with a goal, 3 past the commitment gate, and the
+"1 paying" quoted then was Pelumi's own account (0 external).
 Retention is the core unsolved problem: most users complete 1–4 tasks in their first weeks and stop.
-As of 15 October 2026 nobody, internal or external, has completed a task in 30 days.
+As of 15 October 2026 nobody, internal or external, has completed a task in 30 days, and no
+external user has completed one in 90 days.
 A significant share completed the interview and goal-setting flow and never completed a single task.
-10 paying subscribers remains the milestone that unlocks a credible fundraising conversation (Zinc VC,
+10 paying subscribers remains the milestone that unlocks a credible fundraising conversation. The
+honest starting point for that conversation is 0 external paying subscribers (Zinc VC,
 Bethnal Green Ventures were identified as accelerator targets; BGV application status — STILL
 UNCONFIRMED, flagged overdue since mid-June, ask directly, do not assume).
 
@@ -389,7 +396,8 @@ tomorrow_signal back into task generation via progress context.
 
 RETENTION — THE ACTUAL UNSOLVED PROBLEM (do not let engineering polish substitute for this)
 As of last full audit: the large majority of active users have significant missed-task counts.
-Only 3 of 100 registered users (96 external) have passed the actual commitment gate (verified
+There are 0 external paying subscribers; the only subscription is Pelumi's own (see the
+user/revenue block). Only 3 of 100 registered users (95 external) have passed the actual commitment gate (verified
 15 October 2026; it was 3 of 99 on July 12, so no one has passed it in three months). As of
 15 October 2026 there have been ZERO task completions in the last 30 days, by anyone; the last
 completion was 9 September 2026. This is a sharper and more concerning number than "~44-45
@@ -462,7 +470,7 @@ telling a lapsed user something subtly false at the exact moment they're least e
 
 
 15 OCTOBER 2026 — Stripe renewal data is not being written (found during figure refresh, NOT
-yet fixed). The single Forge subscriber has current_period_end = 2026-05-06 in both users and
+yet fixed). The single Forge subscriber (Pelumi's own account, tomolawblog@gmail.com) has current_period_end = 2026-05-06 in both users and
 subscriptions, while subscriptions.updated_at = 2026-10-06, i.e. an event touched the row on the
 monthly renewal date five months later. Confirmed by reading services/billing.py:
 customer.subscription.updated writes only status and cancel_at_period_end, never the period;
@@ -473,8 +481,8 @@ change (newer versions moved invoice.subscription and the subscription-level
 current_period_start/end fields) would produce exactly this. Check Railway/Sentry for
 webhook_handler_error on invoice.paid, and the account's Stripe API version. Note: the invoices
 table has 0 rows ever, which is expected, not a bug: the in-app invoices list reads live from
-Stripe (Invoice.list in services/billing.py) and nothing writes to that table. Paying status of
-the one Forge user is unconfirmed until checked in the Stripe dashboard.
+Stripe (Invoice.list in services/billing.py) and nothing writes to that table. Pelumi confirmed
+from Stripe that the subscription is still billing monthly (eight payments, £26.04 total).
 15 OCTOBER 2026 — In-app account deletion does not work, and never has in this schema (found while
 building /delete-account, NOT yet fixed). Confirmed against the live schema and code:
 (1) There is no delete-account button anywhere in the frontend, although the privacy policy tells
@@ -572,9 +580,9 @@ DATABASE — KEY TABLES (not exhaustive — extensive AI/analytics schema exists
 Core
 
 users — subscription_plan, stripe_customer_id, stripe_subscription_id. COUNT(*) = 100 as of
-15 October 2026 (96 external).
+15 October 2026 (95 external).
 goals — refined_statement, required_identity, status (including approaching_completion).
-COUNT(DISTINCT user_id) = 49 as of 15 October 2026 (46 external); all 49 have an 'active' goal.
+COUNT(DISTINCT user_id) = 49 as of 15 October 2026 (45 external); all 49 have an 'active' goal.
 identity_profiles — transformation_score, streak, days_active, commitment_statement. Only 3 users
 have a commitment_statement of 30+ characters as of 15 October 2026 — this is the real activation
 number.
