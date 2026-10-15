@@ -32,7 +32,8 @@ have passed the actual commitment gate (30+ character commitment
 statement). The landing page claim has been corrected to match reality —
 see LANDING PAGE / MARKETING INTEGRITY below. Do not round these numbers
 up in future conversations without re-querying; "99" and "49" are exact
-as of July 12, not estimates.
+as of July 12, not estimates. (Historical note. Re-queried 15 October 2026:
+100 registered, 49 with a goal, 3 past the gate. See the user/revenue block.)
 
 STANDING INSTRUCTION — applies to every chat in this project, not just
 when invoked: "Act as a rigorous, honest mentor. Do not default to
@@ -69,15 +70,30 @@ GitHub: https://github.com/pelumiolawole/onegoalpro
 Legal entity: One Goal Pro Ltd (UK), Company No. 17127527
 Stage: MVP, live, in active daily use.
 
-Confirmed user/revenue state (verified via direct Supabase query, July 12, 2026 —
+Confirmed user/revenue state (verified via direct Supabase query, as of 15 October 2026 —
 RE-QUERY before quoting any number in an external-facing context, e.g. investor
-conversations; these are exact counts, not estimates, but they move daily):
+conversations; these are exact counts, not estimates). "External" excludes four accounts
+confidently identified as Pelumi's own (olawolepelumisunday@gmail.com, pelumisolawole@gmail.com,
+pelumi.olawole@icloud.com, iicnetworksng@gmail.com). Other accounts were NOT excluded — a
+shared surname or company domain is not proof an account is internal.
 
-99 total registered users
-49 users have set an active goal (i.e. completed onboarding through goal synthesis)
-3 users have passed the actual commitment gate (30+ character commitment statement)
-1 paying subscriber on The Forge tier
+100 total registered users (96 external). 96 have is_active = true.
+49 users have at least one goal (46 external). All 49 have a goal with status 'active';
+3 goals are 'paused', all belonging to users who also have an active goal.
+3 users have passed the actual commitment gate (30+ character trimmed commitment statement);
+all 3 are external.
+Paying: 1 user on The Forge, plan and status agree in users and subscriptions ('forge' /
+'active'). Not internal. BUT current_period_end in both tables is 2026-05-06, five months stale,
+so "paying" is UNCONFIRMED from the database alone — check the Stripe dashboard. See INCIDENT
+LOG, 15 October 2026, for the webhook bug this exposed.
+Naming mismatch, not a disagreement: free users are 'spark' in users.subscription_plan but
+'free' in subscriptions.plan (10 rows).
+Task completions in the last 30 days: 0, by 0 users. Last 90 days: 2, by 1 user. Most recent
+completion anywhere: 9 September 2026. All-time: 204 (127 external).
+Signups: 1 since 12 July 2026; 0 in the last 30 days. Newest signup 19 September 2026.
+Historical (12 July 2026): 99 registered, 49 with a goal, 3 past the commitment gate, 1 paying.
 Retention is the core unsolved problem: most users complete 1–4 tasks in their first weeks and stop.
+As of 15 October 2026 nobody, internal or external, has completed a task in 30 days.
 A significant share completed the interview and goal-setting flow and never completed a single task.
 10 paying subscribers remains the milestone that unlocks a credible fundraising conversation (Zinc VC,
 Bethnal Green Ventures were identified as accelerator targets; BGV application status — STILL
@@ -95,6 +111,11 @@ frontend/src/app/page.tsx and will drift stale exactly like every other unmonito
 in this file has. Re-verify it periodically, or better: wire it to a live query instead of
 hardcoded text next time this page is touched. Never restore "100+" or any number that
 hasn't been freshly queried against Supabase.
+15 October 2026: the page still says "99". The exact registered count is now 100, but 4 of
+those are Pelumi's own accounts (96 external), and the July "99" included them too. "And
+counting." is also no longer accurate: 1 signup since July 12, 0 in the last 30 days. Left
+unchanged pending Pelumi's decision: 100 (literal) or 96 (external people), and whether to
+drop "And counting."
 
 
 TECH STACK — PRODUCTION
@@ -207,7 +228,7 @@ Core user journey (end-to-end)
 Landing page → Sign up / Login (email + Google OAuth; Apple OAuth deferred with iOS) → AI Discovery Interview
 (V2) → Goal synthesis → Strategy preview → Activation (includes a 30+ character commitment-statement
 gate — a structural fix, not cosmetic, after diagnosing that most early churn was lack-of-commitment
-at entry rather than later disengagement; confirmed July 12 that only 3 of 99 registered users have
+at entry rather than later disengagement; confirmed 15 October 2026 that only 3 of 100 registered users have
 actually passed this gate, so activation remains the single biggest drop-off point in the funnel) →
 Dashboard → Daily tasks → AI Coach (Coach PO) → Progress → Evolution (identity progression page) →
 Settings → Upgrade → Stripe checkout → Billing success
@@ -359,8 +380,11 @@ tomorrow_signal back into task generation via progress context.
 
 RETENTION — THE ACTUAL UNSOLVED PROBLEM (do not let engineering polish substitute for this)
 As of last full audit: the large majority of active users have significant missed-task counts.
-Only 3 of 99 registered users have passed the actual commitment gate (verified July 12) — this is a
-sharper and more concerning number than "~44-45 active users" suggested, and reframes where the
+Only 3 of 100 registered users (96 external) have passed the actual commitment gate (verified
+15 October 2026; it was 3 of 99 on July 12, so no one has passed it in three months). As of
+15 October 2026 there have been ZERO task completions in the last 30 days, by anyone; the last
+completion was 9 September 2026. This is a sharper and more concerning number than "~44-45
+active users" suggested, and reframes where the
 biggest leak in the funnel actually is: entry/commitment, not later-stage task quality. The
 activation re-engagement email fires once per user (throttled by activation_reengagement_sent_at)
 and is not repeated — correct behaviour, not a bug, but it means one email is the entire
@@ -369,7 +393,7 @@ intervention for someone who never activated.
 Three distinct failure modes exist and likely need different fixes:
 
 Never activated — completed onboarding, zero tasks ever. Re-engagement email fired once, no
-further intervention exists. Given only 3/99 pass the commitment gate, THIS is probably the
+further intervention exists. Given only 3/100 pass the commitment gate, THIS is probably the
 largest lever in the entire product right now, larger than task-generator quality.
 Activated once, then stopped — 1–4 tasks completed then silence. Task repetition/quality was
 the leading hypothesis here; the task generator rewrites (see AI SYSTEMS, Stages 3-5) target this
@@ -380,8 +404,8 @@ Active but inconsistent — the small group of engaged users, still below the co
 for the product's own retention math to work.
 
 Do not treat "we improved the task generator" as "we solved retention." It's a necessary condition,
-not sufficient — and as of July 12 the sharper diagnosis is that the commitment gate (3/99) is the
-biggest unsolved leak, ahead of task quality.
+not sufficient — and as of 15 October 2026 the sharper diagnosis is that the commitment gate
+(3/100, unchanged since July) is the biggest unsolved leak, ahead of task quality.
 
 INCIDENT LOG (keep this section, it prevents repeat mistakes)
 
@@ -426,6 +450,22 @@ task recently (a large share of the user base, per RETENTION above), the page wo
 label an old date as "Today." Fixed to only show "Today" when the date genuinely matches the
 current date, otherwise showing "Most recent." Same family of harm as the UI failure-framing audit:
 telling a lapsed user something subtly false at the exact moment they're least engaged.
+
+
+15 OCTOBER 2026 — Stripe renewal data is not being written (found during figure refresh, NOT
+yet fixed). The single Forge subscriber has current_period_end = 2026-05-06 in both users and
+subscriptions, while subscriptions.updated_at = 2026-10-06, i.e. an event touched the row on the
+monthly renewal date five months later. Confirmed by reading services/billing.py:
+customer.subscription.updated writes only status and cancel_at_period_end, never the period;
+invoice.paid is the only renewal handler that writes the new period, and it evidently has not
+succeeded since May. Handler exceptions are caught, logged as webhook_handler_error, and Stripe
+is told 200, so any failure there is silent. Inferred, not confirmed: a Stripe API version
+change (newer versions moved invoice.subscription and the subscription-level
+current_period_start/end fields) would produce exactly this. Check Railway/Sentry for
+webhook_handler_error on invoice.paid, and the account's Stripe API version. Note: the invoices
+table has 0 rows ever, which is expected, not a bug: the in-app invoices list reads live from
+Stripe (Invoice.list in services/billing.py) and nothing writes to that table. Paying status of
+the one Forge user is unconfirmed until checked in the Stripe dashboard.
 
 
 ENGINEERING RULES — NEVER VIOLATE THESE
@@ -502,11 +542,13 @@ This has not been acted on — noting it here so it isn't lost, not because a de
 DATABASE — KEY TABLES (not exhaustive — extensive AI/analytics schema exists beyond this list)
 Core
 
-users — subscription_plan, stripe_customer_id, stripe_subscription_id. COUNT(*) = 99 as of July 12.
+users — subscription_plan, stripe_customer_id, stripe_subscription_id. COUNT(*) = 100 as of
+15 October 2026 (96 external).
 goals — refined_statement, required_identity, status (including approaching_completion).
-COUNT(DISTINCT user_id) = 49 as of July 12.
+COUNT(DISTINCT user_id) = 49 as of 15 October 2026 (46 external); all 49 have an 'active' goal.
 identity_profiles — transformation_score, streak, days_active, commitment_statement. Only 3 users
-have a commitment_statement of 30+ characters as of July 12 — this is the real activation number.
+have a commitment_statement of 30+ characters as of 15 October 2026 — this is the real activation
+number.
 daily_tasks — task_type: becoming / identity_anchor / micro_action / challenge; generation_context
 JSONB column stores domain, momentum_state, streak, is_fallback at generation time. Fallback tasks
 created via the main nightly path do NOT currently get a "reason" key (see AI SYSTEMS observability
