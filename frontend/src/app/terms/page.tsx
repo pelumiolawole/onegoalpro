@@ -48,8 +48,8 @@ export default function TermsOfServicePage() {
             </p>
             <p className="text-[#C8C2BB]">
               If you have any questions about these Terms, contact us at:{" "}
-              <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                hello@onegoalpro.app
+              <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                support@onegoalpro.app
               </a>
             </p>
           </section>
@@ -86,8 +86,8 @@ export default function TermsOfServicePage() {
               <li>Keep your account credentials secure and not share them with anyone</li>
               <li>
                 Notify us immediately at{" "}
-                <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                  hello@onegoalpro.app
+                <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                  support@onegoalpro.app
                 </a>{" "}
                 if you suspect unauthorised access to your account
               </li>
@@ -178,8 +178,8 @@ export default function TermsOfServicePage() {
             <p className="text-[#C8C2BB] mb-3">
               All payments are non-refundable except where required by applicable law. If you
               believe you have been charged in error, contact us at{" "}
-              <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                hello@onegoalpro.app
+              <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                support@onegoalpro.app
               </a>{" "}
               within 14 days of the charge and we will investigate.
             </p>
@@ -283,8 +283,8 @@ export default function TermsOfServicePage() {
             <p className="text-[#C8C2BB]">
               We are committed to complying with UK GDPR and applicable data protection laws. To
               exercise your data rights, contact us at{" "}
-              <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                hello@onegoalpro.app
+              <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                support@onegoalpro.app
               </a>
               .
             </p>
@@ -413,8 +413,8 @@ export default function TermsOfServicePage() {
             </p>
             <p className="text-[#C8C2BB]">
               Before bringing any formal legal claim, we encourage you to contact us at{" "}
-              <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                hello@onegoalpro.app
+              <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                support@onegoalpro.app
               </a>{" "}
               to attempt to resolve the dispute informally.
             </p>
@@ -457,8 +457,8 @@ export default function TermsOfServicePage() {
               <p>United Kingdom</p>
               <p className="pt-2">
                 Email:{" "}
-                <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">
-                  hello@onegoalpro.app
+                <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">
+                  support@onegoalpro.app
                 </a>
               </p>
               <p>
