@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.onegoalpro",
+      "sha256_cert_fingerprints": [
+        "75:7B:28:C5:BE:E4:5A:1E:B6:36:A1:EF:51:2A:81:BC:EE:B1:79:16:46:48:C8:7B:B9:0A:91:DF:59:EB:CC:7C",
+        "B1:31:EB:A4:AD:FB:B4:BE:1A:89:4B:4F:28:21:02:5B:4E:A4:F5:4F:D5:A3:F0:FE:33:D3:AA:4A:08:B4:8A:41"
+      ]
+    }
+  }
+]
