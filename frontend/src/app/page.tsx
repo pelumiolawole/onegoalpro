@@ -692,14 +692,11 @@ export default function LandingPage() {
               transition={{ duration: 0.3 }}
               className="p-10 rounded-2xl border border-white/8 bg-[#141210]"
             >
-              <div className="text-5xl font-display text-[#F59E0B] mb-6">99</div>
+              <div className="text-5xl font-display text-[#F59E0B] mb-6">95</div>
               <p className="text-[#C4BBB5] text-lg leading-relaxed mb-6">
-                people have started their transformation. And counting.
+                people have started their transformation.
               </p>
               <div className="w-px h-8 bg-[#F59E0B]/20 mx-auto mb-6" />
-              <p className="text-[#7A6E65] text-base leading-relaxed mb-4">
-                The first paid subscriber signed up within 72 hours of launch.
-              </p>
               <p className="text-[#5C524A] text-sm leading-relaxed italic">
                 Most apps collect goals. This one changes who you are while you pursue them.
               </p>

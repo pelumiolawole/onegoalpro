@@ -118,11 +118,13 @@ frontend/src/app/page.tsx and will drift stale exactly like every other unmonito
 in this file has. Re-verify it periodically, or better: wire it to a live query instead of
 hardcoded text next time this page is touched. Never restore "100+" or any number that
 hasn't been freshly queried against Supabase.
-15 October 2026: the page still says "99". The exact registered count is now 100, but 4 of
-those are Pelumi's own accounts (96 external), and the July "99" included them too. "And
-counting." is also no longer accurate: 1 signup since July 12, 0 in the last 30 days. Left
-unchanged pending Pelumi's decision: 100 (literal) or 96 (external people), and whether to
-drop "And counting."
+CURRENT (15 October 2026): the page says "95 people have started their transformation."
+Definition: registered accounts (COUNT(*) FROM users) EXCLUDING the five internal accounts
+listed in the user/revenue block, freshly queried 15 October 2026 12:30 UTC. "And counting."
+was removed because there has been 1 signup since July 12 and 0 in the last 30 days. The July
+"99" had counted Pelumi's own accounts. Also removed the same day: "The first paid subscriber
+signed up within 72 hours of launch." That subscriber is Pelumi's own account
+(tomolawblog@gmail.com), so the line was internal activity presented as customer social proof.
 
 
 TECH STACK — PRODUCTION
