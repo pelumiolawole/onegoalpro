@@ -2,7 +2,7 @@
 # Version: 2.1 — Post-Security Hardening Edition
 # Date: April 6, 2026
 # Owner: Pelumi Olawole, One Goal Pro Ltd (Company No. 17127527)
-# Status: MVP live. 78 registered users. 1 paying subscriber. MRR: £3.74.
+# Status: MVP live. 78 registered users. 0 external paying subscribers. (Corrected 15 October 2026: the "1 paying subscriber, £3.74 MRR" originally stated here was the founder's own account, tomolawblog@gmail.com, not a customer.)
 
 ---
 
@@ -550,7 +550,7 @@ See Section 4.8 for full tier differentiation framework.
 - 14-day money-back guarantee on all paid plans
 
 ### 10.3 Growth Targets (Revised)
-- **Now:** 1 paying subscriber, £3.74 MRR, 78 registered users
+- **Now:** 0 external paying subscribers, 78 registered users (corrected 15 October 2026: the one paid subscription is the founder's own account)
 - **Near-term:** 10 paying subscribers (key milestone for funding readiness)
 - **Funding readiness:** 10 paying subscribers + one clear organic acquisition story + 30-day retention data
 
