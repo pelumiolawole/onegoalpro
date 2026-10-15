@@ -256,7 +256,7 @@ Traits timeline + weekly review generation
 Reflection submission + analysis
 Avatar upload (Supabase Storage)
 Invite/share flow
-GDPR data export + account deletion
+GDPR data export + account deletion (deletion rebuilt 15 October 2026, see INCIDENT LOG)
 Admin endpoints + safety flag review
 Daily task email — subject line IS the identity_focus statement directly, no framing wrapper
 Re-engagement email — reworked to drop specific missed-task counts; leads with "Today's task is
@@ -290,26 +290,37 @@ B1:31:EB:...:8A:41 (full values in frontend/public/.well-known/assetlinks.json).
 password are held by Pelumi outside the repo. NEVER commit them.
 Done: assetlinks.json published at /.well-known/assetlinks.json (frontend/public/.well-known/) with
 both fingerprints — app signing key for Play installs, upload key for the locally built APK.
-Done: Account-deletion URL https://onegoalpro.app/delete-account (October 15, 2026). Public,
-signed-out, linked from the landing page footer. Offers deletion BY EMAIL ONLY
-(support@onegoalpro.app, subject "Delete my account", within 30 days), because in-app deletion is
-broken and has no UI (see INCIDENT LOG, 15 October 2026). Every deletion request must be carried
-out manually until that is fixed.
-Data safety: audit complete; form answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md. Decision on
-PostHog consent (gate init on banner consent, cookieless mode, or wording change) pending with
-Pelumi; the "App interactions: optional?" answer depends on it.
-Still to do:
-- Submit the data safety form (after the PostHog decision)
-- Listing assets: feature graphic 1024x500, screenshots
-- v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
+PURPOSE (Pelumi's decision, 15 October 2026): the Android app is intended as the re-engagement
+point for dormant users.
+Done: Account deletion works in-app and via the web (15 October 2026). In-app: Settings > Delete
+account, type DELETE. Web/email: https://onegoalpro.app/delete-account (public, signed out, linked
+from the landing footer), which offers the in-app route and support@onegoalpro.app. Design and
+table-by-table plan: docs/ACCOUNT_DELETION.md. Verified: unit tests of the request and purge logic,
+supabase-py and stripe-python call signatures checked against the pinned versions, and a test
+account (deletion-test-20261015@example.com, id f4d4f6f8-1cdb-491d-a312-7b2cdebe9ab2) set up in
+production with rows in 22 tables and marked for deletion. NOT YET verified: the purge itself
+running in production. The test account is due, so the 03:00 UTC purge on 16 October 2026 should
+delete it; check that every table has zero rows for that id. The full sign-up-to-deletion flow
+through the live API also still needs one manual run on a phone (this session could not reach
+api.onegoalpro.app).
+Done: Analytics consent (15 October 2026). PostHog loads only after "Accept analytics"; Decline
+loads nothing; "Cookie settings" (landing footer, privacy policy, Settings) lets users withdraw,
+which removes the PostHog cookie and storage. Verified in Chromium against a production build with
+the live key, and the deployed bundle was checked. Email is no longer sent to PostHog from the
+browser or the backend. Cookie banner and privacy policy rewritten to match.
+Done: Stripe renewal webhook fixed (see INCIDENT LOG). Backfill of Pelumi's subscription period
+pending a resend of the latest invoice.paid event from the Stripe dashboard.
+Data safety: answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md, updated for consent. One open gap:
+the backend still sends user_signed_up / user_logged_in / verified events to PostHog by user ID
+regardless of browser consent. Remove those three calls, or declare them, before submitting.
+Remaining before Play production:
+- Store listing text, screenshots, feature graphic 1024x500
 - Monochrome notification icon. monochromeIconUrl was left blank, so Android notification small icons
   will probably render as a plain square.
-- Advertising ID declaration in Play Console (answer: No).
-- Testing on a physical Android device.
-ANSWERED (October 15, 2026, see docs/PLAY_DATA_SAFETY_AUDIT.md): the cookie banner's "No tracking or
-advertising cookies" is false. PostHog (US region) sets a ph_<key>_posthog cookie on page load before
-any choice, Decline does nothing, and identify() sends users' email to PostHog. The privacy policy's
-Cookies section has the same problem.
+- Advertising ID declaration in Play Console (answer: No)
+- Physical-device test (also run one real in-app account deletion on a test account there)
+- Submit the data safety form (after resolving the server-side PostHog gap above)
+- v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
 
 Frontend / product additions (2026, post-v1.1)
 
@@ -471,8 +482,22 @@ current date, otherwise showing "Most recent." Same family of harm as the UI fai
 telling a lapsed user something subtly false at the exact moment they're least engaged.
 
 
-15 OCTOBER 2026 — Stripe renewal data is not being written (found during figure refresh, NOT
-yet fixed). The single Forge subscriber (Pelumi's own account, tomolawblog@gmail.com) has current_period_end = 2026-05-06 in both users and
+15 OCTOBER 2026 — Stripe renewal data is not being written. FIXED IN CODE 15 October 2026 (commit
+6368d2c); backfill pending. Root cause (INFERRED from code and data; Stripe, Railway and Sentry logs
+were not reachable): the repo's billing code has not changed since 12 April, the April renewal was
+recorded, and from May onwards renewals were not. Newer Stripe API versions (2025-03-31 and later)
+stopped sending invoice.subscription (moved to invoice.parent.subscription_details) and moved
+current_period_start/end onto subscription items. If the webhook endpoint's API version changed in
+that window, invoice.paid got no subscription ID and returned early, writing and logging nothing.
+Confirm by checking the webhook endpoint's API version in Stripe. FIX: subscription ID and period
+are now read from both payload shapes; customer.subscription.updated also writes the period, so a
+renewal lands even if invoice.paid is not delivered; handler failures roll back, go to Sentry with
+the event ID and type, and return 500 so Stripe retries (they used to return 200);
+processed_webhook_events (which existed but was never written) now de-duplicates retries.
+BACKFILL: after Railway deploys, resend the latest invoice.paid (or customer.subscription.updated)
+event for this subscription from Stripe → Developers → Events, then confirm current_period_end
+moves to November 2026 in both tables. Original finding below.
+Original finding (15 October 2026): The single Forge subscriber (Pelumi's own account, tomolawblog@gmail.com) has current_period_end = 2026-05-06 in both users and
 subscriptions, while subscriptions.updated_at = 2026-10-06, i.e. an event touched the row on the
 monthly renewal date five months later. Confirmed by reading services/billing.py:
 customer.subscription.updated writes only status and cancel_at_period_end, never the period;
@@ -485,26 +510,21 @@ webhook_handler_error on invoice.paid, and the account's Stripe API version. Not
 table has 0 rows ever, which is expected, not a bug: the in-app invoices list reads live from
 Stripe (Invoice.list in services/billing.py) and nothing writes to that table. Pelumi confirmed
 from Stripe that the subscription is still billing monthly (eight payments, £26.04 total).
-15 OCTOBER 2026 — In-app account deletion does not work, and never has in this schema (found while
-building /delete-account, NOT yet fixed). Confirmed against the live schema and code:
-(1) There is no delete-account button anywhere in the frontend, although the privacy policy tells
-users to use "Settings → Delete account". (2) POST /api/settings/delete-account
-(services/data_export.py initiate_deletion) writes users.deletion_requested_at, which does not
-exist; only deletion_scheduled_at exists. The request fails with a database error. No user has the
-".inactive." email suffix a successful request would leave, and deletion_requests has 0 rows.
-(3) The nightly purge (services/scheduler.py run_data_purge) writes users.deletion_completed_at,
-which also does not exist, so it would fail for every user too. (4) Even with the columns fixed, the
-purge only anonymises the users row and deletes ai_coach_messages and onboarding_interview_state.
-It leaves goals, daily_tasks, reflections, identity_profiles (including commitment statements),
-identity_traits, objectives, coach_sessions, coach_moments, coach_patterns, coach_interventions,
-coach_safety_flags, ai_coach_sessions, ai_interactions, user_embeddings, weekly_reviews,
-behavioral_patterns/snapshots, engagement_events, push_subscriptions, notification_queue,
-subscriptions and more (34 tables have a user_id column). It never cancels the Stripe
-subscription (a deleted user would keep being charged), never deletes the avatar from the PUBLIC
-Supabase "avatars" bucket, and never deletes the PostHog person. The users row is never removed,
-so ON DELETE CASCADE foreign keys never fire. Until fixed, process every deletion request
-manually: cancel the Stripe subscription, delete the avatar object, delete the user's rows (or the
-users row if FKs cascade), delete the PostHog person, then confirm by email.
+15 OCTOBER 2026 — In-app account deletion never worked. RESOLVED 15 October 2026 (commits
+ea0139f, c49ef0e). The bug: there was no delete button anywhere, although the privacy policy pointed
+users to one; the endpoint and the nightly purge wrote two columns that did not exist
+(deletion_requested_at, deletion_completed_at), so both failed on every call; and even with the
+columns fixed, the purge only anonymised the users row and deleted 2 of 31 user-data tables. It
+never cancelled Stripe, never deleted avatars from the public bucket, and never removed the
+Supabase Auth user. The fix: Settings > Delete account (type DELETE) cancels Stripe first, then
+deactivates the account, deletes push subscriptions and revokes sessions; the nightly purge
+(services/account_deletion.py) deletes avatars and the Supabase Auth user, then hard-deletes the
+users row so ON DELETE CASCADE clears the other 29 tables. ai_interactions is anonymised and
+deletion_requests is kept as the record (migration 012 removed its cascading foreign key). The
+PostHog person still has to be deleted by hand (no personal API key configured); the purge logs
+posthog_person_delete_manual with the user ID. Full plan: docs/ACCOUNT_DELETION.md.
+LESSON: a feature listed as "built" in this file (GDPR account deletion) had never once worked.
+Listing something as built needs a production check, not a read of the code.
 
 
 ENGINEERING RULES — NEVER VIOLATE THESE
