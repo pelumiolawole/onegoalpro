@@ -1,5 +1,9 @@
 # Play data safety audit: PostHog and third-party data
 
+> **Update, 15 October 2026 (after the audit):** option (b) shipped. PostHog in the browser now loads only after "Accept analytics". Decline loads nothing, and withdrawing via "Cookie settings" removes the PostHog cookie and storage. This was verified in Chromium against a production build using the live PostHog project key. Email is no longer sent to PostHog from the browser or the backend; only the internal user ID is used. The cookie banner and the privacy policy's Cookies section were rewritten to match. Sections 1 to 4 below describe the state **before** this change and are kept as the record of what was found. The data safety table in section 6 reflects the state **after** it.
+>
+> **Remaining gap:** the backend still sends `user_signed_up`, `user_logged_in` and a `verified` identify call to PostHog, keyed by user ID, whether or not the user accepted analytics in the browser. The backend cannot see the browser's choice. Either remove these three server-side calls, or describe them as required analytics in the form. Until one of those is done, "App interactions: optional" is true for the browser but not for these three server-side events.
+
 Prepared 15 October 2026. Report only. No code was changed for this audit.
 
 Evidence labels used throughout:
@@ -96,18 +100,18 @@ Play's definition: transferring data to a service provider that processes it on 
 | Data type (Play category) | Collected | Shared | Purpose | Optional | Evidence |
 |---|---|---|---|---|---|
 | Name | Yes (display name) | No | App functionality, Account management, Personalisation (used in AI coaching) | Required | Confirmed (code) |
-| Email address | Yes | No | Account management, App functionality, Developer communications (task and re-engagement emails), **Analytics** (sent to PostHog) | Required | Confirmed (code) |
+| Email address | Yes | No | Account management, App functionality, Developer communications (task and re-engagement emails). No longer sent to analytics (15 October 2026). | Required | Confirmed (code) |
 | User IDs | Yes (internal user ID) | No | App functionality, Analytics | Required | Confirmed (code) |
 | Photos | Yes, only if the user uploads an avatar | No | App functionality | **Optional** | Confirmed (code, Supabase avatars bucket) |
-| App interactions | Yes (PostHog pageviews, autocapture, custom events) | No | Analytics | Required today. **Optional only if option (b) ships first.** | Confirmed (code and live) |
+| App interactions | Yes, only with consent (PostHog pageviews, autocapture, custom events) | No | Analytics | **Optional**: PostHog loads only after "Accept analytics" (shipped 15 October 2026). See the note on server-side events below. | Confirmed (code and browser test) |
 | In-app search history | No (the app has no search) | n/a | n/a | n/a | Confirmed (code) |
 | Other user-generated content (interview answers, coach messages, reflections, goal and commitment statements) | Yes | No (OpenAI is a processor) | App functionality, Personalisation | Required: the product cannot work without it | Confirmed (code) |
 | Purchase history (subscription plan and status) | Yes | No | App functionality, Account management | Only for paying users | Confirmed (code) |
 | Financial info (card details) | No. Collected by Stripe on Stripe's hosted page, never by our app or servers | n/a | n/a | n/a | Confirmed (code) |
 | Crash logs | Yes (Sentry, frontend and backend) | No | App functionality, Analytics | Required | Confirmed (code) |
 | Diagnostics (performance traces) | Yes (Sentry tracing 10% frontend, 5% backend) | No | App functionality, Analytics | Required | Confirmed (code) |
-| Device or other IDs | Yes: PostHog anonymous device ID (cookie/localStorage), push subscription endpoint | No | Analytics, App functionality (notifications) | Push is optional; the PostHog ID is required today | Confirmed (code) for push; library default for the PostHog ID |
-| Approximate location (derived from IP) | Probably yes, through PostHog GeoIP, unless "Discard client IP data" is enabled in the PostHog project | No | Analytics | Required today | **Assumed:** check the PostHog project settings |
+| Device or other IDs | Yes: PostHog anonymous device ID (cookie/localStorage, only after consent), push subscription endpoint | No | Analytics, App functionality (notifications) | Optional (both) | Confirmed (code and browser test) |
+| Approximate location (derived from IP) | Probably yes, through PostHog GeoIP, unless "Discard client IP data" is enabled in the PostHog project. Browser-side only after consent; see the server-side note below. | No | Analytics | Optional for browser analytics | **Assumed:** check the PostHog project settings |
 | Precise location | No | n/a | n/a | n/a | Confirmed (code): no geolocation API use, and the Permissions-Policy header blocks it |
 
 **Is data encrypted in transit? Yes.**

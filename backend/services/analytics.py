@@ -15,15 +15,12 @@ posthog = Posthog(
 )
 
 
-def identify_user(user_id: str, email: str, properties: dict = None):
-    """Identify a user in PostHog"""
+def identify_user(user_id: str, properties: dict = None):
+    """Identify a user in PostHog by internal user ID. Never send email, name or other direct identifiers."""
     if not settings.posthog_api_key:
         return
-    
-    props = properties or {}
-    props["email"] = email
-    
-    posthog.identify(user_id, props)
+
+    posthog.identify(user_id, properties or {})
 
 
 def track_event(user_id: str, event: str, properties: dict = None):
@@ -34,22 +31,22 @@ def track_event(user_id: str, event: str, properties: dict = None):
     posthog.capture(user_id, event, properties or {})
 
 
-def track_signup(user_id: str, email: str, provider: str = "email"):
+def track_signup(user_id: str, provider: str = "email"):
     """Track user signup"""
-    identify_user(user_id, email, {"signup_provider": provider})
+    identify_user(user_id, {"signup_provider": provider})
     track_event(user_id, "user_signed_up", {"provider": provider})
 
 
-def track_login(user_id: str, email: str):
+def track_login(user_id: str):
     """Track user login"""
     track_event(user_id, "user_logged_in")
 
 
-def track_goal_created(user_id: str, goal_title: str):
+def track_goal_created(user_id: str):
     """Track goal creation"""
-    track_event(user_id, "goal_created", {"goal_title": goal_title})
+    track_event(user_id, "goal_created")
 
 
-def track_task_completed(user_id: str, task_title: str):
+def track_task_completed(user_id: str):
     """Track task completion"""
-    track_event(user_id, "task_completed", {"task_title": task_title})
+    track_event(user_id, "task_completed")

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { useRouter } from 'next/navigation'
+import CookieSettingsLink from '@/components/CookieSettingsLink'
 import { 
   CreditCard, 
   Calendar, 
@@ -530,9 +531,16 @@ export default function SettingsPage() {
                 <p className="text-[#5C524A] text-sm font-mono">Version</p>
                 <p className="text-[#3D3630] text-sm font-mono">0.1.0 — MVP</p>
               </div>
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-3 border-b border-white/5">
                 <p className="text-[#5C524A] text-sm font-mono">Philosophy</p>
                 <p className="text-[#C4BBB5] text-sm italic">One goal. Full commitment.</p>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <p className="text-[#5C524A] text-sm font-mono">Privacy</p>
+                <div className="flex items-center gap-4 text-sm">
+                  <CookieSettingsLink className="text-[#C4BBB5] hover:text-[#F59E0B] transition-colors" />
+                  <a href="/privacy" className="text-[#C4BBB5] hover:text-[#F59E0B] transition-colors">Privacy policy</a>
+                </div>
               </div>
             </div>
           </section>

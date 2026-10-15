@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
 import OneGoalLogo from '@/components/OneGoalLogo'
+import CookieSettingsLink from '@/components/CookieSettingsLink'
 
 // ── Fade-in-on-scroll wrapper ──────────────────────────────────
 function Reveal({
@@ -868,6 +869,7 @@ export default function LandingPage() {
             <Link href="/privacy" className="hover:text-[#7A6E65] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[#7A6E65] transition-colors">Terms</Link>
             <Link href="/delete-account" className="hover:text-[#7A6E65] transition-colors">Delete account</Link>
+            <CookieSettingsLink className="hover:text-[#7A6E65] transition-colors" />
           </div>
         </div>
         <div className="max-w-5xl mx-auto mt-6 pt-6 border-t border-white/5 text-center">

@@ -1,3 +1,5 @@
+import CookieSettingsLink from '@/components/CookieSettingsLink'
+
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0A0908] text-[#C4BBB5]">
@@ -14,7 +16,7 @@ export default function PrivacyPage() {
         <div className="mb-12">
           <p className="text-[#F59E0B] text-xs uppercase tracking-widest font-mono mb-4">Legal</p>
           <h1 className="font-display text-4xl text-[#F5F1ED] mb-4">Privacy Policy</h1>
-          <p className="text-[#5C524A] text-sm font-mono">Last updated: March 31, 2026</p>
+          <p className="text-[#5C524A] text-sm font-mono">Last updated: October 15, 2026</p>
         </div>
 
         <div className="space-y-10 text-[15px] leading-relaxed">
@@ -28,7 +30,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-[#E8E2DC] font-medium text-lg mb-3">1. Who we are</h2>
             <p className="text-[#7A6E65]">
-              OneGoal Pro is operated by One Goal Pro Ltd, a company registered in England and Wales (company number 17127527). We are registered with the Information Commissioner’s Office as a data controller (registration reference: ZC117422). If you have questions about this policy, contact us at <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">hello@onegoalpro.app</a>.
+              OneGoal Pro is operated by One Goal Pro Ltd, a company registered in England and Wales (company number 17127527). We are registered with the Information Commissioner’s Office as a data controller (registration reference: ZC117422). If you have questions about this policy, contact us at <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">support@onegoalpro.app</a>.
             </p>
           </section>
 
@@ -53,7 +55,7 @@ export default function PrivacyPage() {
               </div>
               <div className="border-l border-white/10 pl-4">
                 <p className="text-[#C4BBB5] font-medium mb-1">Usage data</p>
-                <p>Session activity, feature usage, and error logs. Used to improve the product. Collected via PostHog (analytics) and Sentry (error tracking).</p>
+                <p>Error logs, collected via Sentry (error tracking). If you accept analytics, we also record pages viewed and features used, via PostHog. If you decline, the analytics code does not run in your browser. Separately, when you create an account or sign in, our servers record that event in PostHog against your account ID only, never your name or email address.</p>
               </div>
               <div className="border-l border-white/10 pl-4">
                 <p className="text-[#C4BBB5] font-medium mb-1">Payment information</p>
@@ -97,7 +99,7 @@ export default function PrivacyPage() {
                 <p><span className="text-[#C4BBB5]">OpenAI</span> — AI interview and coaching</p>
                 <p><span className="text-[#C4BBB5]">Stripe</span> — payment processing</p>
                 <p><span className="text-[#C4BBB5]">Resend</span> — transactional email</p>
-                <p><span className="text-[#C4BBB5]">PostHog</span> — product analytics</p>
+                <p><span className="text-[#C4BBB5]">PostHog</span> — product analytics, processed in the United States under its data processing agreement</p>
                 <p><span className="text-[#C4BBB5]">Sentry</span> — error monitoring</p>
                 <p><span className="text-[#C4BBB5]">Vercel / Railway</span> — hosting infrastructure</p>
               </div>
@@ -119,15 +121,25 @@ export default function PrivacyPage() {
               <p>— <span className="text-[#C4BBB5]">Delete</span> your account and all associated data (available via Settings → Delete account)</p>
               <p>— <span className="text-[#C4BBB5]">Correct</span> inaccurate information</p>
               <p>— <span className="text-[#C4BBB5]">Object</span> to processing for marketing purposes</p>
-              <p className="mt-3">To exercise any of these rights, email <a href="mailto:hello@onegoalpro.app" className="text-[#F59E0B] hover:underline">hello@onegoalpro.app</a>.</p>
+              <p className="mt-3">To exercise any of these rights, email <a href="mailto:support@onegoalpro.app" className="text-[#F59E0B] hover:underline">support@onegoalpro.app</a>.</p>
             </div>
           </section>
 
           <section>
             <h2 className="text-[#E8E2DC] font-medium text-lg mb-3">8. Cookies</h2>
-            <p className="text-[#7A6E65]">
-              We use only functional cookies required for authentication and session management. We do not use advertising cookies or third-party tracking cookies.
-            </p>
+            <div className="space-y-3 text-[#7A6E65]">
+              <p>
+                To keep you signed in, we store your session in your browser&apos;s local storage. This is necessary for the app to work and does not need your consent. We do not use advertising cookies.
+              </p>
+              <p>
+                Analytics is optional. We only load PostHog after you choose &quot;Accept analytics&quot;. PostHog then sets a first-party cookie and a local storage entry (both named starting with &quot;ph_&quot;) to recognise your browser between visits. Analytics data is processed by PostHog in the United States, under its data processing agreement. We never send your name or email address to PostHog.
+              </p>
+              <p>
+                If you choose &quot;Decline&quot;, PostHog does not load and nothing is stored. You can change your choice at any time from{' '}
+                <CookieSettingsLink className="text-[#F59E0B] hover:underline" />{' '}
+                or from Settings in the app. Withdrawing consent stops analytics and removes the PostHog cookie and storage from your browser.
+              </p>
+            </div>
           </section>
 
           <section>
@@ -146,7 +158,7 @@ export default function PrivacyPage() {
 
           <section className="border-t border-white/5 pt-8">
             <p className="text-[#3D3630] text-sm">
-              Questions? Email <a href="mailto:hello@onegoalpro.app" className="text-[#5C524A] hover:text-[#F59E0B] transition-colors">hello@onegoalpro.app</a>
+              Questions? Email <a href="mailto:support@onegoalpro.app" className="text-[#5C524A] hover:text-[#F59E0B] transition-colors">support@onegoalpro.app</a>
             </p>
           </section>
 
