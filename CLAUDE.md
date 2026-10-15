@@ -281,17 +281,26 @@ B1:31:EB:...:8A:41 (full values in frontend/public/.well-known/assetlinks.json).
 password are held by Pelumi outside the repo. NEVER commit them.
 Done: assetlinks.json published at /.well-known/assetlinks.json (frontend/public/.well-known/) with
 both fingerprints — app signing key for Play installs, upload key for the locally built APK.
+Done: Account-deletion URL https://onegoalpro.app/delete-account (October 15, 2026). Public,
+signed-out, linked from the landing page footer. Offers deletion BY EMAIL ONLY
+(support@onegoalpro.app, subject "Delete my account", within 30 days), because in-app deletion is
+broken and has no UI (see INCIDENT LOG, 15 October 2026). Every deletion request must be carried
+out manually until that is fixed.
+Data safety: audit complete; form answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md. Decision on
+PostHog consent (gate init on banner consent, cookieless mode, or wording change) pending with
+Pelumi; the "App interactions: optional?" answer depends on it.
 Still to do:
-- Account-deletion URL
-- Data safety form
+- Submit the data safety form (after the PostHog decision)
 - Listing assets: feature graphic 1024x500, screenshots
 - v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
 - Monochrome notification icon. monochromeIconUrl was left blank, so Android notification small icons
   will probably render as a plain square.
 - Advertising ID declaration in Play Console (answer: No).
 - Testing on a physical Android device.
-OPEN QUESTION: the cookie banner says "no tracking or advertising cookies" while PostHog runs on the
-site. Check what PostHog stores before filling in the Play data safety form.
+ANSWERED (October 15, 2026, see docs/PLAY_DATA_SAFETY_AUDIT.md): the cookie banner's "No tracking or
+advertising cookies" is false. PostHog (US region) sets a ph_<key>_posthog cookie on page load before
+any choice, Decline does nothing, and identify() sends users' email to PostHog. The privacy policy's
+Cookies section has the same problem.
 
 Frontend / product additions (2026, post-v1.1)
 
@@ -466,6 +475,26 @@ webhook_handler_error on invoice.paid, and the account's Stripe API version. Not
 table has 0 rows ever, which is expected, not a bug: the in-app invoices list reads live from
 Stripe (Invoice.list in services/billing.py) and nothing writes to that table. Paying status of
 the one Forge user is unconfirmed until checked in the Stripe dashboard.
+15 OCTOBER 2026 — In-app account deletion does not work, and never has in this schema (found while
+building /delete-account, NOT yet fixed). Confirmed against the live schema and code:
+(1) There is no delete-account button anywhere in the frontend, although the privacy policy tells
+users to use "Settings → Delete account". (2) POST /api/settings/delete-account
+(services/data_export.py initiate_deletion) writes users.deletion_requested_at, which does not
+exist; only deletion_scheduled_at exists. The request fails with a database error. No user has the
+".inactive." email suffix a successful request would leave, and deletion_requests has 0 rows.
+(3) The nightly purge (services/scheduler.py run_data_purge) writes users.deletion_completed_at,
+which also does not exist, so it would fail for every user too. (4) Even with the columns fixed, the
+purge only anonymises the users row and deletes ai_coach_messages and onboarding_interview_state.
+It leaves goals, daily_tasks, reflections, identity_profiles (including commitment statements),
+identity_traits, objectives, coach_sessions, coach_moments, coach_patterns, coach_interventions,
+coach_safety_flags, ai_coach_sessions, ai_interactions, user_embeddings, weekly_reviews,
+behavioral_patterns/snapshots, engagement_events, push_subscriptions, notification_queue,
+subscriptions and more (34 tables have a user_id column). It never cancels the Stripe
+subscription (a deleted user would keep being charged), never deletes the avatar from the PUBLIC
+Supabase "avatars" bucket, and never deletes the PostHog person. The users row is never removed,
+so ON DELETE CASCADE foreign keys never fire. Until fixed, process every deletion request
+manually: cancel the Stripe subscription, delete the avatar object, delete the user's rows (or the
+users row if FKs cascade), delete the PostHog person, then confirm by email.
 
 
 ENGINEERING RULES — NEVER VIOLATE THESE
