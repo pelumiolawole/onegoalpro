@@ -182,7 +182,6 @@ onegoalpro/
 │   │   ├── task.py
 │   │   └── user.py
 │   ├── services/
-│   │   ├── analytics.py
 │   │   ├── billing.py                 # Dual-writes to users + subscriptions tables
 │   │   ├── data_export.py
 │   │   ├── email.py                   # send_daily_task_email, send_reengagement_email
@@ -306,20 +305,20 @@ api.onegoalpro.app).
 Done: Analytics consent (15 October 2026). PostHog loads only after "Accept analytics"; Decline
 loads nothing; "Cookie settings" (landing footer, privacy policy, Settings) lets users withdraw,
 which removes the PostHog cookie and storage. Verified in Chromium against a production build with
-the live key, and the deployed bundle was checked. Email is no longer sent to PostHog from the
-browser or the backend. Cookie banner and privacy policy rewritten to match.
-Done: Stripe renewal webhook fixed (see INCIDENT LOG). Backfill of Pelumi's subscription period
-pending a resend of the latest invoice.paid event from the Stripe dashboard.
-Data safety: answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md, updated for consent. One open gap:
-the backend still sends user_signed_up / user_logged_in / verified events to PostHog by user ID
-regardless of browser consent. Remove those three calls, or declare them, before submitting.
+the live key, and the deployed bundle was checked. Email is no longer sent to PostHog, and the
+backend no longer sends PostHog anything. Cookie banner and privacy policy rewritten to match.
+Done: Stripe renewal webhook fixed and verified in production, root cause confirmed (see INCIDENT
+LOG).
+Data safety: answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md, updated for consent. The backend's
+three PostHog calls (sign-up, sign-in, verified) were removed 15 October 2026, so the backend sends
+nothing to PostHog and all analytics depend on browser consent.
 Remaining before Play production:
 - Store listing text, screenshots, feature graphic 1024x500
 - Monochrome notification icon. monochromeIconUrl was left blank, so Android notification small icons
   will probably render as a plain square.
 - Advertising ID declaration in Play Console (answer: No)
 - Physical-device test (also run one real in-app account deletion on a test account there)
-- Submit the data safety form (after resolving the server-side PostHog gap above)
+- Submit the data safety form
 - v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
 
 Frontend / product additions (2026, post-v1.1)
@@ -482,21 +481,24 @@ current date, otherwise showing "Most recent." Same family of harm as the UI fai
 telling a lapsed user something subtly false at the exact moment they're least engaged.
 
 
-15 OCTOBER 2026 — Stripe renewal data is not being written. FIXED IN CODE 15 October 2026 (commit
-6368d2c); backfill pending. Root cause (INFERRED from code and data; Stripe, Railway and Sentry logs
-were not reachable): the repo's billing code has not changed since 12 April, the April renewal was
-recorded, and from May onwards renewals were not. Newer Stripe API versions (2025-03-31 and later)
-stopped sending invoice.subscription (moved to invoice.parent.subscription_details) and moved
-current_period_start/end onto subscription items. If the webhook endpoint's API version changed in
-that window, invoice.paid got no subscription ID and returned early, writing and logging nothing.
-Confirm by checking the webhook endpoint's API version in Stripe. FIX: subscription ID and period
-are now read from both payload shapes; customer.subscription.updated also writes the period, so a
-renewal lands even if invoice.paid is not delivered; handler failures roll back, go to Sentry with
-the event ID and type, and return 500 so Stripe retries (they used to return 200);
-processed_webhook_events (which existed but was never written) now de-duplicates retries.
-BACKFILL: after Railway deploys, resend the latest invoice.paid (or customer.subscription.updated)
-event for this subscription from Stripe → Developers → Events, then confirm current_period_end
-moves to November 2026 in both tables. Original finding below.
+15 OCTOBER 2026 — Stripe renewal data was not being written. FIXED AND VERIFIED 15 October 2026
+(commit 6368d2c). ROOT CAUSE, CONFIRMED: the Stripe webhook endpoint runs API version
+2025-04-30.basil (confirmed by Pelumi in Stripe Workbench, 15 October 2026). From 2025-03-31 onwards
+Stripe no longer sends invoice.subscription; the ID moved to invoice.parent.subscription_details.
+The old invoice.paid handler read invoice.get("subscription"), got None, returned early, and the
+webhook route answered 200 "success" on every renewal while writing and logging nothing. (Not
+established: when the endpoint moved to this version. The April renewal was recorded and May's was
+not, so it happened in between.) FIX: subscription ID and period are read from both payload shapes;
+customer.subscription.updated also writes the period; handler failures roll back, go to Sentry with
+the event ID and type, and return 500 so Stripe retries; processed_webhook_events de-duplicates.
+VERIFIED: Pelumi resent invoice.paid evt_1UNfrBBlzu2MykMGOhoqJjzq (the 6 October renewal) after
+the fix deployed. processed_webhook_events recorded it at 2026-10-15 14:23:37 UTC, and in the same
+transaction both users and subscriptions moved to current_period_start 2026-10-06 20:23:30 UTC and
+current_period_end 2026-11-06 20:23:30 UTC, status active. Railway logs for the request were not
+reachable from that session; the database row is the evidence, because only the new handler writes
+processed_webhook_events and only after the handler succeeds. LESSON: a webhook route that returns
+200 when it did nothing hides payload-shape changes for months. Unknown or unusable payloads must log
+a warning, and handler failures must return non-2xx.
 Original finding (15 October 2026): The single Forge subscriber (Pelumi's own account, tomolawblog@gmail.com) has current_period_end = 2026-05-06 in both users and
 subscriptions, while subscriptions.updated_at = 2026-10-06, i.e. an event touched the row on the
 monthly renewal date five months later. Confirmed by reading services/billing.py:
