@@ -1,5 +1,5 @@
 OneGoal Pro — Master Claude Skill File
-Version: 2.2 | Last updated: July 12, 2026
+Version: 2.3 | Last updated: 15 October 2026
 READ THIS ENTIRE FILE BEFORE DOING ANYTHING ELSE IN THIS SESSION
 
 CHANGE NOTE 1: v1.1 (March 25, 2026) was stale — pasted into FOUR separate
@@ -237,7 +237,7 @@ FIXED (see INCIDENT LOG). The Android TWA uses this same VAPID web push — no n
 /push/native-subscribe endpoint is needed for Android (see MOBILE SPRINT).
 Stripe billing — checkout, webhooks, cancel, resume, invoices, verify-session
 
-MOBILE SPRINT — ANDROID TWA (status as of October 14, 2026)
+MOBILE SPRINT — ANDROID TWA (status as of October 15, 2026)
 Started October 2026. Android first, built as a Trusted Web Activity (Bubblewrap) wrapping
 https://onegoalpro.app — NOT Capacitor. iOS is deferred.
 Because a TWA runs in real Chrome, Google OAuth, VAPID web push and Stripe web checkout all work
@@ -250,13 +250,25 @@ completed October 14, 2026. Website verified via Search Console.
 Done: PWA readiness fixes shipped October 14, 2026 — offline fallback (frontend/public/offline.html
 + fetch handler in sw.js), manifest start_url /dashboard with separate any/maskable icon entries,
 and notification click now navigates an already-open app to the target URL.
+Done: Bubblewrap project built October 15, 2026 on Pelumi's Windows laptop (outside the repo).
+minSdkVersion raised from 21 to 24 because androidbrowserhelper 2.7.4 requires it. JDK at C:\jdk17
+and Android SDK at C:\android_sdk — paths without spaces, because the Windows username contains a
+space, which breaks the Android tooling.
+Done: Release 1.0.0 (version code 1) live on the internal testing track October 15, 2026.
+Done: Play App Signing enabled. App signing key SHA-256 75:7B:28:...:CC:7C. Upload key SHA-256
+B1:31:EB:...:8A:41 (full values in frontend/public/.well-known/assetlinks.json). The keystore and its
+password are held by Pelumi outside the repo. NEVER commit them.
+Done: assetlinks.json published at /.well-known/assetlinks.json (frontend/public/.well-known/) with
+both fingerprints — app signing key for Play installs, upload key for the locally built APK.
 Still to do:
-- Bubblewrap build
-- /.well-known/assetlinks.json — must include the Play APP-SIGNING key SHA-256, not only the upload key
 - Account-deletion URL
 - Data safety form
 - Listing assets: feature graphic 1024x500, screenshots
 - v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
+- Monochrome notification icon. monochromeIconUrl was left blank, so Android notification small icons
+  will probably render as a plain square.
+- Advertising ID declaration in Play Console (answer: No).
+- Testing on a physical Android device.
 OPEN QUESTION: the cookie banner says "no tracking or advertising cookies" while PostHog runs on the
 site. Check what PostHog stores before filling in the Play data safety form.
 
