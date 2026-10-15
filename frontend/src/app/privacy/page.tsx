@@ -55,7 +55,7 @@ export default function PrivacyPage() {
               </div>
               <div className="border-l border-white/10 pl-4">
                 <p className="text-[#C4BBB5] font-medium mb-1">Usage data</p>
-                <p>Error logs, collected via Sentry (error tracking). If you accept analytics, we also record pages viewed and features used, via PostHog. If you decline, the analytics code does not run in your browser. Separately, when you create an account or sign in, our servers record that event in PostHog against your account ID only, never your name or email address.</p>
+                <p>Error logs, collected via Sentry (error tracking). If you accept analytics, we also record pages viewed and features used, via PostHog. If you decline, the analytics code does not run in your browser.</p>
               </div>
               <div className="border-l border-white/10 pl-4">
                 <p className="text-[#C4BBB5] font-medium mb-1">Payment information</p>

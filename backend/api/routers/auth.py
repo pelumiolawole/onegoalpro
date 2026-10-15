@@ -14,7 +14,6 @@ Authentication endpoints:
     GET  /auth/verify-email    — NEW: Verify email with token
     POST /auth/resend-verification — NEW: Resend verification email
 """
-from services.analytics import track_signup, track_login
 from datetime import datetime, timedelta, timezone
 import secrets
 
@@ -126,7 +125,6 @@ async def signup(
     await db.flush()
 
     logger.info("user_signed_up", user_id=str(user.id))
-    track_signup(str(user.id), "email")
 
     # Send verification email (plaintext token in URL — hash is in DB)
     verification_url = f"{settings.frontend_url}/verify-email?token={verification_token}"
@@ -202,8 +200,6 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
     )
     
     logger.info("email_verified", user_id=str(user.id))
-    from services.analytics import identify_user
-    identify_user(str(user.id), {"verified": True})
     
     return {
         "message": "Email verified successfully",
@@ -331,7 +327,6 @@ async def login(
     await store_refresh_token(str(user.id), tokens["refresh_token"])
 
     logger.info("user_logged_in", user_id=str(user.id))
-    track_login(str(user.id))
 
     return TokenResponse(
         access_token=tokens["access_token"],
