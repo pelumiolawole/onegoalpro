@@ -297,11 +297,13 @@ from the landing footer), which offers the in-app route and support@onegoalpro.a
 table-by-table plan: docs/ACCOUNT_DELETION.md. Verified: unit tests of the request and purge logic,
 supabase-py and stripe-python call signatures checked against the pinned versions, and a test
 account (deletion-test-20261015@example.com, id f4d4f6f8-1cdb-491d-a312-7b2cdebe9ab2) set up in
-production with rows in 22 tables and marked for deletion. NOT YET verified: the purge itself
-running in production. The test account is due, so the 03:00 UTC purge on 16 October 2026 should
-delete it; check that every table has zero rows for that id. The full sign-up-to-deletion flow
-through the live API also still needs one manual run on a phone (this session could not reach
-api.onegoalpro.app).
+production with rows in 22 tables and marked for deletion. VERIFIED IN PRODUCTION 16 October 2026: the
+03:00 UTC purge ran (deletion_requests.completed_at 2026-10-16 03:00:00 UTC, status completed); the
+users row is gone; every one of the 31 user_id tables has 0 rows for that id; the ai_interactions row
+was anonymised (user_id, error_message and request_hash all NULL); no Supabase Auth row remains; no
+other user is marked for deletion and users still totals 100 (the test account was the 101st). Still
+to do: one sign-up-to-deletion run through the live app on a phone, including an avatar upload, to
+cover the steps this test did not (the Settings button, Stripe cancellation and avatar removal).
 Done: Analytics consent (15 October 2026). PostHog loads only after "Accept analytics"; Decline
 loads nothing; "Cookie settings" (landing footer, privacy policy, Settings) lets users withdraw,
 which removes the PostHog cookie and storage. Verified in Chromium against a production build with
@@ -525,6 +527,10 @@ users row so ON DELETE CASCADE clears the other 29 tables. ai_interactions is an
 deletion_requests is kept as the record (migration 012 removed its cascading foreign key). The
 PostHog person still has to be deleted by hand (no personal API key configured); the purge logs
 posthog_person_delete_manual with the user ID. Full plan: docs/ACCOUNT_DELETION.md.
+VERIFIED 16 October 2026: the production purge deleted the test account
+(f4d4f6f8-1cdb-491d-a312-7b2cdebe9ab2) from all 31 user tables and marked its deletion record
+completed. Avatar removal and Stripe cancellation were covered by unit tests only, because the test
+account had neither; the phone test in MOBILE SPRINT covers them.
 LESSON: a feature listed as "built" in this file (GDPR account deletion) had never once worked.
 Listing something as built needs a production check, not a read of the code.
 
