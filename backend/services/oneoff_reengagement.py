@@ -49,7 +49,7 @@ TEST_N = 6
 THROTTLE_SECONDS = 0.6
 MAX_ATTEMPTS_PER_PROCESS = 3
 
-# Pelumi's own accounts and two personal contacts he will message himself.
+# Pelumi's own accounts and one personal contact he will message himself.
 EXCLUDED_EMAILS = frozenset({
     "olawolepelumisunday@gmail.com",
     "pelumisolawole@gmail.com",
@@ -57,7 +57,6 @@ EXCLUDED_EMAILS = frozenset({
     "pelumi.olawole@icloud.com",
     "tomolawblog@gmail.com",
     "olawoleromeo@gmail.com",
-    "busayo@simpletest.ai",
 })
 
 SUBJECTS = {
