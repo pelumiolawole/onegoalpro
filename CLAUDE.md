@@ -322,6 +322,10 @@ Remaining before Play production:
 - Physical-device test (also run one real in-app account deletion on a test account there)
 - Submit the data safety form
 - v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
+- EMAIL OPT-OUT (blocks any further bulk email): there is no opt-out mechanism. The October 2026
+  campaign told recipients to reply "stop", and those replies are recorded only manually by Pelumi.
+  Build an email_opt_out flag on users, respected by every email job (daily task, re-engagement,
+  weekly digest, any one-off), plus an unsubscribe link in every non-transactional email.
 
 Frontend / product additions (2026, post-v1.1)
 
@@ -437,6 +441,22 @@ for the product's own retention math to work.
 Do not treat "we improved the task generator" as "we solved retention." It's a necessary condition,
 not sufficient — and as of 15 October 2026 the sharper diagnosis is that the commitment gate
 (3/100, unchanged since July) is the biggest unsolved leak, ahead of task quality.
+
+RE-ENGAGEMENT EMAIL, OCTOBER 2026 (founder-voice, plain text, asking why people stopped and
+inviting them to the Android early-access group). Recipients: every external user who had ever
+completed a task (active, email verified, not deletion-scheduled), minus Pelumi's five accounts and
+one personal contact (olawoleromeo@gmail.com). busayo@simpletest.ai was initially excluded, then
+included at Pelumi's request. Greetings supplied by Pelumi.
+- Segment A (5+ completed tasks): 6 sent, 0 failed, 18 October 2026 at about 18:05 London.
+- Segment B (1-4 completed tasks): 22 sent, 0 failed, 19 October 2026 at about 18:05 London.
+- Test sends: 2 to pelumi@onegoalpro.app on 18 October, approved by Pelumi; replies to
+  pelumi@onegoalpro.app confirmed arriving (Cloudflare routing to info.one1goal@gmail.com).
+- Sent from "Pelumi <pelumi@onegoalpro.app>", replies to the same address.
+Record of every send: table oneoff_email_sends (campaigns reengagement_2026_10_A / _B / _test).
+The temporary job was removed in commit 6e40038. Replies are the measurement of this campaign:
+record who replied, why they stopped, and who asked for Android access, before drawing conclusions.
+STILL TO DO: drop table oneoff_email_greetings (holds recipient names; the DROP needed Pelumi's
+approval in the Supabase connector and was not run). SQL: DROP TABLE oneoff_email_greetings;
 
 INCIDENT LOG (keep this section, it prevents repeat mistakes)
 
@@ -579,6 +599,14 @@ the moment that block exits, even if you're still inside the same function. Do n
 usable in code that runs after the `with` block closes (e.g. inside a loop that follows it) — open
 a fresh context for any work that needs to happen after the original query's block has exited.
 
+One-off bulk emails — must run as a scheduled backend job or an admin-authenticated endpoint,
+NEVER an open endpoint. The March 2026 bulk send used an endpoint with no authentication (commits
+5b83384 and 7b0d7e1, reverted in 42e0576). Every one-off send needs: duplicate protection recorded
+in the database (a row per accepted email, checked before sending); a test send to Pelumi first,
+with the real send held until after it; a kill switch read at run time; recipients selected by
+query, never addresses committed to the repo; and removal of the job after use. The October 2026
+re-engagement job (see RETENTION) is the reference implementation (git history, commit ccec081).
+No further bulk email until the email opt-out mechanism exists (see MOBILE SPRINT, Remaining).
 
 DEPLOYMENT PROCEDURE
 Backend (Railway)
