@@ -102,15 +102,6 @@ async def start_scheduler() -> AsyncIOScheduler:
         id="interview_nudge_72h", name="Interview nudge - 72h",
         replace_existing=True, max_instances=1, misfire_grace_time=3600)
 
-    # TEMPORARY: one-off re-engagement email, October 2026. Remove after Segment B is sent.
-    from datetime import datetime, timedelta, timezone
-    from apscheduler.triggers.interval import IntervalTrigger
-    from services.oneoff_reengagement import run_oneoff_reengagement
-    scheduler.add_job(func=run_oneoff_reengagement, trigger=IntervalTrigger(minutes=15),
-        next_run_time=datetime.now(timezone.utc) + timedelta(minutes=1),
-        id="oneoff_reengagement_2026_10", name="One-off re-engagement email (October 2026)",
-        replace_existing=True, max_instances=1, coalesce=True, misfire_grace_time=900)
-
     scheduler.start()
     logger.info("scheduler_started", job_count=len(scheduler.get_jobs()))
     return scheduler
