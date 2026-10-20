@@ -46,6 +46,9 @@ class TaskGeneratorEngine(BaseAIEngine):
         "environment",
     ]
 
+    # Values of the task_type enum on daily_tasks (checked 20 Oct 2026).
+    VALID_TASK_TYPES = frozenset({"becoming", "identity_anchor", "micro_action", "reflection_prompt", "challenge"})
+
     # Fallback template tasks when AI generation fails.
     # Each carries an explicit domain so rotation math sees what the user
     # actually experienced. Without this, a user stuck in a fallback loop
@@ -1050,6 +1053,20 @@ class TaskGeneratorEngine(BaseAIEngine):
             ),
         }
 
+        # The prompt lists the allowed task types, but the model sometimes returns a
+        # domain name instead (20 Oct 2026: "reflection"). daily_tasks.task_type is a
+        # Postgres enum, so an unknown value fails the insert and the user gets a
+        # template fallback instead of the AI task. Coerce here rather than lose it.
+        task_type = (task_data.get("task_type") or "").lower().strip()
+        if task_type not in self.VALID_TASK_TYPES:
+            logger.warning(
+                "task_type_coerced",
+                user_id=user_id,
+                returned_task_type=task_data.get("task_type"),
+                coerced_to="becoming",
+            )
+            task_type = "becoming"
+
         result = await db.execute(
             text("""
                 INSERT INTO daily_tasks (
@@ -1072,7 +1089,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                 "goal_id": goal_id,
                 "objective_id": str(obj_id) if obj_id else None,
                 "date": task_date,
-                "task_type": task_data.get("task_type", "becoming"),
+                "task_type": task_type,
                 "identity_focus": task_data.get("identity_focus", ""),
                 "title": task_data.get("title", ""),
                 "description": task_data.get("description", ""),
