@@ -274,3 +274,41 @@ async def dry_run_initial_tasks(
             for t in tasks
         ],
     }
+
+
+@router.post(
+    "/dry-run/interview-extraction/{user_id}",
+    summary="Re-run interview profile extraction on a stored transcript without saving",
+)
+async def dry_run_interview_extraction(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Before/after for the interview extractor: returns what is stored for this
+    user's interview and what the current extractor reads from the same
+    transcript, plus the essential fields each leaves empty. Writes nothing
+    (OpenAI usage is still recorded in ai_interactions as normal).
+    """
+    from ai.engines.interview import InterviewEngine
+
+    row = (await db.execute(
+        text("SELECT messages, extracted_data FROM onboarding_interview_state WHERE user_id = CAST(:uid AS uuid)"),
+        {"uid": user_id},
+    )).first()
+    if not row or not row[0]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No interview transcript for this user")
+
+    engine = InterviewEngine()
+    stored = {k: v for k, v in (row[1] or {}).items() if not k.startswith("_")}
+    new = engine._merge_extractions({}, await engine._extract_data(messages=row[0], current_extracted={}, user_id=user_id))
+    await db.rollback()
+    logger.info("dry_run_interview_extraction", admin_id=str(current_user.id), user_id=user_id)
+    return {
+        "user_id": user_id,
+        "before": stored,
+        "before_missing_essentials": engine._missing_essentials(stored),
+        "after": new,
+        "after_missing_essentials": engine._missing_essentials(new),
+    }

@@ -77,6 +77,42 @@ REQUIRED_QUALITY_FIELDS = ["personal_vision", "identity_anchor", "resistance_tri
 # Guards against one-word extractions like {"identity_anchor": "leader"}.
 QUALITY_MIN_LENGTH = 10
 
+# Coverage gate (20 Oct 2026). The fields the coach and task generator read
+# (context_builder.format_for_prompt), checked in code before the interview may
+# conclude. Fill rates across 50 profiles with a goal: life_direction 43,
+# motivation_style 34, obstacle (resistance_triggers or weaknesses) 46,
+# core_values 11. Time is asked separately (identity_profiles.daily_minutes).
+ESSENTIAL_FIELDS = ["life_direction", "motivation_style", "obstacle", "core_values"]
+
+# What to explore for each missing field. Injected into one interview turn as
+# an instruction, so the question comes in the coach's own voice.
+COVERAGE_HINTS = {
+    "life_direction": (
+        "where their life is right now: their work, their days, what a normal week "
+        "looks like and how this goal fits into it"
+    ),
+    "motivation_style": (
+        "what actually moves them when they do follow through: going after something "
+        "they want, getting away from something they fear, living up to something they "
+        "believe in, or proving something to themselves"
+    ),
+    "obstacle": (
+        "what usually gets in the way when they try, in their own words: the moment "
+        "it tends to fall apart"
+    ),
+    "core_values": (
+        "what this goal is really in service of: the two or three things that matter "
+        "most to them underneath it"
+    ),
+}
+
+MAX_COVERAGE_QUESTIONS = 3   # extra questions in total, then conclude anyway
+MAX_DEPTH_PROMPTS = 2        # quality-gate prompts before concluding anyway
+
+VALID_MOTIVATION_STYLES = {"aspiration_driven", "fear_driven", "values_driven", "achievement_driven"}
+
+COMPLETION_PHRASE = "let's define your one goal"
+
 # Message injected by the engine when the completion phrase fires but quality
 # fails. Written in Coach PO's voice — not a system error message.
 # "needs_more_depth" in the response signals the frontend to display this
@@ -168,35 +204,65 @@ class InterviewEngine(BaseAIEngine):
         # Build the prompt
         system_prompt = get_prompt("interview")
 
+        # Coverage gate: near the end, if an essential field is still empty,
+        # this turn explores it (one area, one question). Capped, so the user
+        # is never kept in the interview.
+        coverage = dict(extracted.get("_coverage") or {})
+        coverage.setdefault("asked", 0)
+        coverage.setdefault("fields", [])
+        coverage.setdefault("depth_prompts", 0)
+        missing = self._missing_essentials(extracted)
+        user_turns = sum(1 for m in messages if m.get("role") == "user")
+        near_end = current_phase in ("crystallise", "summary") or user_turns >= 7
+        # Each area is asked about once; if the answer didn't fill it, move on.
+        unasked = [f for f in missing if f not in coverage["fields"]]
+        coverage_field = None
+        if unasked and near_end and coverage["asked"] < MAX_COVERAGE_QUESTIONS:
+            coverage_field = unasked[0]
+
         # Keep last 20 messages for context
         context_messages = messages[-20:] if len(messages) > 20 else messages
 
-        prompt_messages = [
-            {"role": "system", "content": system_prompt},
-            *context_messages,
-        ]
+        async def respond(field: str | None) -> str:
+            prompt = system_prompt + (self._coverage_instruction(field) if field else "")
+            return await self._complete(
+                messages=[{"role": "system", "content": prompt}, *context_messages],
+                user_id=uid,
+                temperature=0.8,
+                max_tokens=300,  # shorter responses -- the prompt enforces 2-4 sentences
+            )
 
-        # Get AI response
-        ai_response = await self._complete(
-            messages=prompt_messages,
-            user_id=uid,
-            temperature=0.8,
-            max_tokens=300,  # shorter responses -- the prompt enforces 2-4 sentences
-        )
+        ai_response = await respond(coverage_field)
+
+        # The model may still try to conclude. If essentials are missing and the
+        # cap allows, ask it again for the coverage question instead.
+        if COMPLETION_PHRASE in ai_response.lower() and coverage["asked"] < MAX_COVERAGE_QUESTIONS:
+            field = coverage_field or (unasked[0] if unasked else None)
+            if field:
+                retry = await respond(field)
+                if COMPLETION_PHRASE not in retry.lower():
+                    ai_response = retry
+                    coverage_field = field
+                else:
+                    coverage_field = None  # it insists; let it conclude (never trap the user)
+
+        if coverage_field and COMPLETION_PHRASE not in ai_response.lower():
+            coverage["asked"] += 1
+            coverage["fields"].append(coverage_field)
+            logger.info("interview_coverage_question", user_id=uid, field=coverage_field,
+                        asked=coverage["asked"], missing=missing)
 
         # Add AI response to history
         messages.append({"role": "assistant", "content": ai_response})
 
         # Extract structured data from this exchange
         new_extractions = await self._extract_data(
-            user_message=clean_message,
-            ai_response=ai_response,
+            messages=messages,
             current_extracted=extracted,
-            current_phase=current_phase,
-            db=db,
             user_id=uid,
         )
-        extracted.update(new_extractions)
+        extracted = self._merge_extractions(extracted, new_extractions)
+        extracted["_coverage"] = coverage
 
         # Determine if phase should advance
         next_phase = self._determine_phase(current_phase, ai_response, extracted, messages)
@@ -206,6 +272,19 @@ class InterviewEngine(BaseAIEngine):
         is_complete = completion_result["is_complete"]
         needs_more_depth = completion_result["needs_more_depth"]
         missing_fields = completion_result["missing_fields"]
+
+        # Never trap the user: after MAX_DEPTH_PROMPTS quality-gate prompts the
+        # interview concludes with what it has.
+        if needs_more_depth and coverage["depth_prompts"] >= MAX_DEPTH_PROMPTS:
+            logger.warning("interview_quality_gate_capped", user_id=uid, missing_fields=missing_fields)
+            is_complete, needs_more_depth = True, False
+        elif needs_more_depth:
+            coverage["depth_prompts"] += 1
+
+        if is_complete:
+            still_missing = self._missing_essentials(extracted)
+            logger.info("interview_completed_coverage", user_id=uid,
+                        missing_essentials=still_missing, coverage_questions=coverage["asked"])
 
         # If completion fired but quality failed, inject the depth prompt.
         # The AI response is replaced with Coach PO's voice asking for more.
@@ -245,52 +324,124 @@ class InterviewEngine(BaseAIEngine):
 
     async def _extract_data(
         self,
-        user_message: str,
-        ai_response: str,
+        messages: list,
         current_extracted: dict,
-        current_phase: str,
-        db: AsyncSession,
         user_id: str,
     ) -> dict:
         """
-        Silently extract structured profile data from a conversation turn.
-        Uses a separate AI call with lower temperature for accuracy.
+        Read the whole conversation so far and return the current best reading
+        of each profile field (merged by _merge_extractions).
+
+        Changed 20 Oct 2026. It used to see only the latest exchange and was told
+        to extract only what was "explicitly stated", so short answers produced
+        almost nothing. In the reviewer account's interview, "No proper routine
+        and structure" and "I'm busy" became the trigger "previous attempts to
+        change fitness and health", and life direction, values and motivation
+        were never filled.
         """
-        extraction_prompt = f"""Extract any new profile information from this conversation exchange.
-Only extract what was explicitly stated or clearly implied by the user.
-Return ONLY a JSON object with any of these fields that were discussed:
+        transcript = "\n".join(
+            f"{'User' if m.get('role') == 'user' else 'Coach'}: {m.get('content', '')}"
+            for m in messages[-24:]
+        )
+        known = {k: v for k, v in (current_extracted or {}).items() if not k.startswith("_")}
+        extraction_prompt = f"""You keep a person's profile up to date from their coaching interview.
+Read the whole conversation and return your best current reading of each field.
+
+Rules:
+- Short answers count. "I'm busy" is a resistance trigger. "Fit, healthy, sharp and confident" tells you what they value.
+- Use their own words where you can.
+- If a later answer refines an earlier one, use the later one.
+- Infer motivation_style and core_values when the conversation gives reasonable signal, even if they never named them.
+- Leave a field out only when there is genuinely no signal. Never invent facts they didn't give you.
+
+Return ONLY a JSON object with any of these fields:
 {{
-  "life_direction": "where they are in life right now -- their current situation",
+  "life_direction": "where they are in life right now -- their current situation, in a sentence",
   "personal_vision": "where they want to be -- their real goal beneath the stated one",
-  "identity_anchor": "how they described themselves when this is solved -- their identity statement",
-  "core_values": ["values they expressed or implied"],
+  "identity_anchor": "who they will be when this is solved, ideally their own final wording",
+  "core_values": ["2-4 values the goal serves, expressed or clearly implied"],
   "self_reported_strengths": ["strengths they mentioned"],
-  "self_reported_weaknesses": ["weaknesses, fears, or resistance patterns they revealed"],
-  "resistance_triggers": ["what has stopped them before -- specific patterns"],
-  "motivation_style": "aspiration_driven|fear_driven|values_driven|achievement_driven",
+  "self_reported_weaknesses": ["weaknesses or fears they revealed"],
+  "resistance_triggers": ["what has stopped them before, in their words"],
+  "motivation_style": "one of: aspiration_driven, fear_driven, values_driven, achievement_driven",
   "lifestyle_context": {{"workStyle": "remote|office|hybrid", "familyStatus": "..."}}
 }}
 
-Conversation turn:
-User: {user_message}
-AI: {ai_response}
+Profile so far: {json.dumps(known, indent=2)}
 
-Already extracted: {json.dumps(current_extracted, indent=2)}
-
-Return only NEW or UPDATED fields. Return empty object {{}} if nothing new was stated.
-Focus especially on: resistance_triggers, identity_anchor, personal_vision -- these are most valuable.
+Conversation:
+{transcript}
 """
         try:
             raw = await self._complete(
                 messages=[{"role": "user", "content": extraction_prompt}],
                 user_id=user_id,
                 temperature=0.1,
-                max_tokens=400,
+                max_tokens=700,
             )
             return self._parse_json(raw, fallback={})
         except Exception as e:
             logger.warning("extraction_failed", error=str(e))
             return {}
+
+    @staticmethod
+    def _merge_extractions(current: dict, new: dict) -> dict:
+        """
+        The extractor reads the whole conversation, so a non-empty new value
+        replaces the old one. Empty or invalid values never erase what exists.
+        motivation_style must be one of the four allowed values (checked here,
+        not trusted to the prompt).
+        """
+        merged = dict(current or {})
+        for key, value in (new or {}).items():
+            if key.startswith("_"):
+                continue
+            if key == "motivation_style":
+                value = (value or "").strip().lower() if isinstance(value, str) else None
+                if value not in VALID_MOTIVATION_STYLES:
+                    continue
+            if isinstance(value, str):
+                if value.strip():
+                    merged[key] = value.strip()
+            elif isinstance(value, list):
+                items = [str(v).strip() for v in value if isinstance(v, (str, int, float)) and str(v).strip()]
+                if items:
+                    merged[key] = items[:8]
+            elif isinstance(value, dict):
+                if value:
+                    merged[key] = value
+        return merged
+
+    @staticmethod
+    def _missing_essentials(extracted: dict) -> list[str]:
+        """Essential fields still empty, in ESSENTIAL_FIELDS order."""
+        def filled(v) -> bool:
+            if isinstance(v, str):
+                return len(v.strip()) >= 3
+            if isinstance(v, list):
+                return any(str(x).strip() for x in v)
+            return bool(v)
+
+        missing = []
+        for field in ESSENTIAL_FIELDS:
+            if field == "obstacle":
+                ok = filled(extracted.get("resistance_triggers")) or filled(extracted.get("self_reported_weaknesses"))
+            else:
+                ok = filled(extracted.get(field))
+            if not ok:
+                missing.append(field)
+        return missing
+
+    @staticmethod
+    def _coverage_instruction(field: str) -> str:
+        return (
+            "\n\nFOR THIS TURN ONLY (from the system, never mention it): before this "
+            "conversation can conclude, you still need to understand "
+            f"{COVERAGE_HINTS[field]}. Reflect briefly on what they just said, then ask "
+            "ONE natural question that explores this, in your usual voice. It must feel "
+            "like the next step in the conversation, not a form or a checklist. Do not "
+            "conclude the interview in this message and do not use the closing line."
+        )
 
     def _determine_phase(
         self,
@@ -355,7 +506,7 @@ Focus especially on: resistance_triggers, identity_anchor, personal_vision -- th
 
         This guards against one-word extractions being treated as valid data.
         """
-        completion_signal = "let's define your one goal" in ai_response.lower()
+        completion_signal = COMPLETION_PHRASE in ai_response.lower()
 
         if not completion_signal:
             return {
