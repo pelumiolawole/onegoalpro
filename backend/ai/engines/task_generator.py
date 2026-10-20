@@ -198,7 +198,6 @@ class TaskGeneratorEngine(BaseAIEngine):
                 WHERE user_id = :user_id
                   AND scheduled_date < CURRENT_DATE
                   AND status = 'pending'
-                  AND task_type = 'becoming'
             """),
             {"user_id": user_id},
         )
@@ -295,6 +294,10 @@ class TaskGeneratorEngine(BaseAIEngine):
         task_date = target_date or date.today() + timedelta(days=1)
 
         async def _run(db: AsyncSession):
+            # Any task on that date counts, whatever its type. This used to look
+            # for 'becoming' only, which was fine while nearly every task was
+            # 'becoming'; with typed activation slots it would let activation's
+            # extra "today" call add a second task for today.
             if dry_run:
                 existing = None
             else:
@@ -303,7 +306,6 @@ class TaskGeneratorEngine(BaseAIEngine):
                         SELECT id FROM daily_tasks
                         WHERE user_id = :user_id
                           AND scheduled_date = :date
-                          AND task_type = 'becoming'
                     """),
                     {"user_id": uid, "date": task_date},
                 )
