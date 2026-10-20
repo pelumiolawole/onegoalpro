@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import TimeBudgetPicker from '@/components/TimeBudgetPicker'
 
 export default function ActivatePage() {
   const router = useRouter()
@@ -12,6 +13,14 @@ export default function ActivatePage() {
   const [activating, setActivating] = useState(false)
   const [done, setDone] = useState(false)
   const [commitmentStatement, setCommitmentStatement] = useState('')
+  // Step 1: daily time budget (required, sizes the first tasks). Step 2: commitment.
+  const [step, setStep] = useState<'loading' | 'time' | 'commit'>('loading')
+
+  useEffect(() => {
+    api.profile.getTimeBudget()
+      .then(b => setStep(b.daily_minutes && b.preferred_time ? 'commit' : 'time'))
+      .catch(() => setStep('time'))
+  }, [])
 
   async function handleActivate() {
     if (activating) return
@@ -21,7 +30,8 @@ export default function ActivatePage() {
       setDone(true)
       await refreshUser()
       setTimeout(() => router.push('/dashboard'), 2000)
-    } catch {
+    } catch (err: any) {
+      if (err?.detail?.code === 'time_budget_required') setStep('time')
       setActivating(false)
     }
   }
@@ -62,6 +72,22 @@ export default function ActivatePage() {
   }
 
   const isReady = commitmentStatement.trim().length >= 30
+
+  if (step === 'loading') return null
+
+  if (step === 'time') {
+    return (
+      <div className="max-w-lg mx-auto w-full">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <h1 className="font-display text-4xl text-[#F5F1ED] mb-3 leading-tight text-center">Your daily time.</h1>
+          <p className="text-[#A09690] text-base leading-relaxed mb-10 text-center">
+            Every task is sized to fit. Pick what's true on a normal day, not your best one.
+          </p>
+          <TimeBudgetPicker submitLabel="Continue" onSaved={() => setStep('commit')} />
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-lg mx-auto w-full text-center">

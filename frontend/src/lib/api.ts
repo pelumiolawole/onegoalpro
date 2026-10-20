@@ -39,6 +39,13 @@ export interface UserSummary {
   is_active: boolean
 }
 
+export type DailyMinutes = 10 | 20 | 30 | 45 | 60
+export type PreferredTime = 'morning' | 'midday' | 'evening' | 'varies'
+export interface TimeBudget {
+  daily_minutes: DailyMinutes | null
+  preferred_time: PreferredTime | null
+}
+
 export interface DashboardData {
   today: string
   today_task: TodayTask | null
@@ -449,6 +456,15 @@ class ApiClient {
   // ── Profile ──────────────────────────────────────────────────
 
   profile = {
+    getTimeBudget: () =>
+      this.request<TimeBudget>('/profile/time-budget'),
+
+    saveTimeBudget: (data: { daily_minutes: DailyMinutes; preferred_time: PreferredTime }) =>
+      this.request<TimeBudget>('/profile/time-budget', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
     get: () =>
       this.request<{
         user_id: string

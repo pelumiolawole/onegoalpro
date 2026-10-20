@@ -6,19 +6,46 @@
  * once the user answers.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { validateDisplayName, cleanDisplayName, apiErrorMessage } from '@/lib/names'
+import TimeBudgetPicker from '@/components/TimeBudgetPicker'
 
 export default function ProfileGapCard() {
   const user = useAuthStore(s => s.user)
   const refreshUser = useAuthStore(s => s.refreshUser)
 
+  // null = not checked yet; only fetched once the name is answered (one card at a time)
+  const [needsTime, setNeedsTime] = useState<boolean | null>(null)
+  const hasName = !!(user?.display_name || '').trim()
+
+  useEffect(() => {
+    if (!user || !hasName || needsTime !== null) return
+    api.profile.getTimeBudget()
+      .then(b => setNeedsTime(!b.daily_minutes || !b.preferred_time))
+      .catch(() => setNeedsTime(false))
+  }, [user, hasName, needsTime])
+
   if (!user) return null
-  if (!(user.display_name || '').trim()) return <NameCard onSaved={refreshUser} />
+  if (!hasName) return <NameCard onSaved={refreshUser} />
+  if (needsTime) return <TimeCard onSaved={() => setNeedsTime(false)} />
   return null
+}
+
+function TimeCard({ onSaved }: { onSaved: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 rounded-2xl border border-[#F59E0B]/20 bg-[#141210] p-5"
+    >
+      <p className="font-display text-xl text-[#F5F1ED] mb-1">Your daily time</p>
+      <p className="text-[#7A6E65] text-sm mb-4">Your tasks will be sized to fit. Pick what's true on a normal day.</p>
+      <TimeBudgetPicker compact onSaved={onSaved} />
+    </motion.div>
+  )
 }
 
 function NameCard({ onSaved }: { onSaved: () => Promise<void> }) {

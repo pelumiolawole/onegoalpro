@@ -33,14 +33,16 @@ class IdentityProfile(Base):
     core_values: Mapped[list | None] = mapped_column(ARRAY(String))
     self_reported_strengths: Mapped[list | None] = mapped_column(ARRAY(String))
     self_reported_weaknesses: Mapped[list | None] = mapped_column(ARRAY(String))
-    time_availability: Mapped[dict | None] = mapped_column(JSONB)   # {morning: 30, evening: 60, weekend: 120}
+    time_availability: Mapped[dict | None] = mapped_column(JSONB)   # SUPERSEDED 2026-10-20 by daily_minutes
+    daily_minutes: Mapped[int | None] = mapped_column(Integer)      # 10|20|30|45|60, asked in onboarding
+    preferred_time: Mapped[str | None] = mapped_column(String(10))  # morning|midday|evening|varies
     lifestyle_context: Mapped[dict | None] = mapped_column(JSONB)   # {workStyle, familyStatus, ...}
 
     # ── Layer 2: Behavioral Baseline ──────────────────────────────────
     consistency_pattern: Mapped[str | None] = mapped_column(String(50))   # daily_consistent|burst_worker|...
     motivation_style: Mapped[str | None] = mapped_column(String(50))      # aspiration_driven|fear_driven|...
     execution_style: Mapped[str | None] = mapped_column(String(50))       # planner|spontaneous|structured|...
-    peak_performance_time: Mapped[str | None] = mapped_column(String(30)) # early_morning|afternoon|...
+    peak_performance_time: Mapped[str | None] = mapped_column(String(30)) # SUPERSEDED 2026-10-20 by preferred_time
     resistance_triggers: Mapped[list | None] = mapped_column(ARRAY(String))
     social_context: Mapped[str | None] = mapped_column(String(50))        # self_driven|accountability_seeker|...
 

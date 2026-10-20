@@ -3,6 +3,7 @@
 'use client'
 
 import NameField from '@/components/settings/NameField'
+import TimeBudgetSection from '@/components/settings/TimeBudgetSection'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
@@ -344,6 +345,8 @@ export default function SettingsPage() {
               </div>
             )}
           </section>
+
+          <TimeBudgetSection />
 
           {/* ── Subscription Section ──────────────────────────────── */}
           <section className="bg-[#141210] border border-white/5 rounded-2xl p-6">

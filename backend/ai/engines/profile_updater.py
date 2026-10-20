@@ -234,7 +234,8 @@ class ProfileUpdaterEngine(BaseAIEngine):
             "consistency_pattern": "consistency_pattern",
             "motivation_style": "motivation_style",
             "execution_style": "execution_style",
-            "peak_performance_time": "peak_performance_time",
+            # peak_performance_time: superseded 2026-10-20 by identity_profiles.preferred_time,
+            # which the user sets directly. Not written by AI any more.
         }
 
         update_parts = []

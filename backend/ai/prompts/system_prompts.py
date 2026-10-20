@@ -889,7 +889,6 @@ OUTPUT must be a JSON object:
   "consistency_pattern": "updated pattern or null if no change",
   "motivation_style": "updated or null",
   "execution_style": "updated or null",
-  "peak_performance_time": "updated or null",
   "resistance_triggers": ["updated list -- cumulative, not replacement"],
   "new_behavioral_patterns": [
     {{

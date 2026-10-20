@@ -11,7 +11,7 @@ Profile management endpoints.
 """
 
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -216,6 +216,36 @@ async def save_timezone(
     )
     await db.commit()
     return {"status": "ok"}
+
+
+class TimeBudgetRequest(BaseModel):
+    daily_minutes: Literal[10, 20, 30, 45, 60]
+    preferred_time: Literal["morning", "midday", "evening", "varies"]
+
+
+@router.get("/time-budget", response_model=dict)
+async def get_time_budget_endpoint(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Daily minutes and preferred time. Both null until the user answers."""
+    from core.time_budget import get_time_budget
+    return await get_time_budget(str(current_user.id), db)
+
+
+@router.put("/time-budget", response_model=dict)
+async def save_time_budget_endpoint(
+    payload: TimeBudgetRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set daily minutes (10/20/30/45/60) and preferred time. Used in onboarding, Settings and the dashboard card."""
+    from core.time_budget import save_time_budget
+    await save_time_budget(str(current_user.id), payload.daily_minutes, payload.preferred_time, db)
+    await db.commit()
+    logger.info("time_budget_saved", user_id=str(current_user.id),
+                daily_minutes=payload.daily_minutes, preferred_time=payload.preferred_time)
+    return {"daily_minutes": payload.daily_minutes, "preferred_time": payload.preferred_time}
 
 
 @router.post("/bio/generate", response_model=BioResponse)

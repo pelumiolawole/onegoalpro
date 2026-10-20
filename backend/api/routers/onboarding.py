@@ -585,6 +585,19 @@ async def activate_account(
             },
         )
 
+    # Daily time budget is required before activation: the first tasks are
+    # sized to it. Asked on the activate screen (structured, not the interview).
+    from core.time_budget import get_time_budget
+    budget = await get_time_budget(str(current_user.id), db)
+    if budget["daily_minutes"] is None or budget["preferred_time"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "time_budget_required",
+                "message": "Tell us how much time you have each day before activating.",
+            },
+        )
+
     initial_tasks = await task_generator.generate_initial_tasks(
         user_id=current_user.id,
         db=db,

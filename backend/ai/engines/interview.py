@@ -268,8 +268,7 @@ Return ONLY a JSON object with any of these fields that were discussed:
   "self_reported_weaknesses": ["weaknesses, fears, or resistance patterns they revealed"],
   "resistance_triggers": ["what has stopped them before -- specific patterns"],
   "motivation_style": "aspiration_driven|fear_driven|values_driven|achievement_driven",
-  "lifestyle_context": {{"workStyle": "remote|office|hybrid", "familyStatus": "..."}},
-  "peak_performance_time": "early_morning|late_morning|afternoon|evening"
+  "lifestyle_context": {{"workStyle": "remote|office|hybrid", "familyStatus": "..."}}
 }}
 
 Conversation turn:
@@ -475,7 +474,6 @@ Focus especially on: resistance_triggers, identity_anchor, personal_vision -- th
                     lifestyle_context = COALESCE(:lifestyle_context, lifestyle_context),
                     resistance_triggers = COALESCE(:resistance_triggers, resistance_triggers),
                     motivation_style = COALESCE(:motivation_style, motivation_style),
-                    peak_performance_time = COALESCE(:peak_time, peak_performance_time),
                     last_ai_update = NOW()
                 WHERE user_id = :user_id
             """),
@@ -489,7 +487,6 @@ Focus especially on: resistance_triggers, identity_anchor, personal_vision -- th
                 "lifestyle_context": json.dumps(extracted.get("lifestyle_context")) if extracted.get("lifestyle_context") else None,
                 "resistance_triggers": extracted.get("resistance_triggers"),
                 "motivation_style": extracted.get("motivation_style"),
-                "peak_time": extracted.get("peak_performance_time"),
             },
         )
 

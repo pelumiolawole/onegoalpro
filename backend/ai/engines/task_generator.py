@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ai.base import BaseAIEngine
 from ai.memory.context_builder import context_builder
 from ai.prompts.system_prompts import get_prompt
+from core.time_budget import DEFAULT_DAILY_MINUTES, PREFERRED_TIME_LABELS, get_time_budget
 
 logger = structlog.get_logger()
 
@@ -56,11 +57,11 @@ class TaskGeneratorEngine(BaseAIEngine):
     # same user hit domain-saturation double-failure 3 consecutive days).
     FALLBACK_TASKS = [
         {
-            "title": "15-Minute Identity Anchor",
-            "description": "Spend 15 minutes on one action that reinforces who you're becoming. No perfection required—just presence.",
+            "title": "{m}-Minute Identity Anchor",
+            "description": "Spend {m} minutes on one action that reinforces who you're becoming. No perfection required—just presence.",
             "identity_focus": "Today you are someone who shows up, even when it's hard.",
-            "execution_guidance": "Set a timer for 15 minutes. Work on one small thing related to your goal. When the timer ends, you're done.",
-            "guidance": "Pick one specific action connected to your goal — not planning it, doing it. Set a timer for 15 minutes. Start before you feel ready. Stop when it ends.",
+            "execution_guidance": "Set a timer for {m} minutes. Work on one small thing related to your goal. When the timer ends, you're done.",
+            "guidance": "Pick one specific action connected to your goal — not planning it, doing it. Set a timer for {m} minutes. Start before you feel ready. Stop when it ends.",
             "time_estimate_minutes": 15,
             "difficulty_level": 3,
             "task_type": "identity_anchor",
@@ -81,8 +82,8 @@ class TaskGeneratorEngine(BaseAIEngine):
             "title": "Reflection in Action",
             "description": "Take one small step toward your goal, then pause to notice how it felt.",
             "identity_focus": "Today you are someone who learns by doing, not just planning.",
-            "execution_guidance": "Spend 10 minutes on your goal. Then write one sentence about what you noticed.",
-            "guidance": "Do 10 minutes of actual work on your goal — not thinking about it, doing it. Immediately after, write one honest sentence: what did you notice about yourself while you were doing it?",
+            "execution_guidance": "Spend {w} minutes on your goal. Then write one sentence about what you noticed.",
+            "guidance": "Do {w} minutes of actual work on your goal — not thinking about it, doing it. Immediately after, write one honest sentence: what did you notice about yourself while you were doing it?",
             "time_estimate_minutes": 15,
             "difficulty_level": 3,
             "task_type": "becoming",
@@ -236,7 +237,9 @@ class TaskGeneratorEngine(BaseAIEngine):
         db: AsyncSession,
     ) -> None:
         fallback_index = task_date.day % len(self.FALLBACK_TASKS)
-        fallback = self.FALLBACK_TASKS[fallback_index]
+        budget = await get_time_budget(user_id, db)
+        daily_minutes = budget["daily_minutes"] or DEFAULT_DAILY_MINUTES
+        fallback = self._size_fallback(self.FALLBACK_TASKS[fallback_index], daily_minutes)
 
         await db.execute(
             text("""
@@ -267,6 +270,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                     "fallback": True,
                     "reason": "ai_generation_failed",
                     "domain": fallback.get("domain", "uncategorised"),
+                    "time_budget": daily_minutes,
                 }),
             }
         )
@@ -316,14 +320,13 @@ class TaskGeneratorEngine(BaseAIEngine):
             context = await context_builder.get_context(uid, db, force_refresh=True)
             context_str = context_builder.format_for_prompt(context)
 
-            identity = context.get("identity", {})
-            time_avail = identity.get("time_availability") or {}
-            day_name = task_date.strftime("%A").lower()
-            if day_name in ("saturday", "sunday"):
-                time_available = time_avail.get("weekend", 45)
-            else:
-                time_available = time_avail.get("weekday", 30)
-            time_available = max(15, min(120, time_available or 30))
+            # Daily time budget: a hard cap, asked in onboarding (core/time_budget.py).
+            # Replaces identity.time_availability, which the generator read with
+            # keys the interview never wrote, so every task got a 30-minute default.
+            budget = await get_time_budget(uid, db)
+            daily_minutes = budget["daily_minutes"] or DEFAULT_DAILY_MINUTES
+            preferred_time = budget["preferred_time"]
+            time_available = daily_minutes
 
             task_history_str = await self._get_task_history(uid, db)
             reflection_history_str = await self._get_reflection_history(uid, db)
@@ -355,6 +358,8 @@ class TaskGeneratorEngine(BaseAIEngine):
                     f"Today's task MUST NOT be in '{dominant_domain}'. "
                     f"Choose from one of these domains instead: {alternatives}."
                 )
+
+            system_prompt += self._time_budget_block(daily_minutes, preferred_time)
 
             if batch is not None:
                 system_prompt += self._batch_prompt_block(batch, required_task_type)
@@ -394,6 +399,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                 rejection = await self._validate_task(
                     uid, task_data, dominant_domain, db,
                     batch=batch, required_task_type=required_task_type,
+                    daily_minutes=daily_minutes,
                 )
                 if rejection:
                     reason_code, rejection_reason = rejection
@@ -437,6 +443,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                     retry_rejection = await self._validate_task(
                         uid, retry_data, dominant_domain, db,
                         batch=batch, required_task_type=required_task_type,
+                        daily_minutes=daily_minutes,
                     )
                     if retry_rejection:
                         retry_code, retry_reason = retry_rejection
@@ -478,12 +485,22 @@ class TaskGeneratorEngine(BaseAIEngine):
 
             except Exception as e:
                 logger.error("ai_task_generation_failed", user_id=uid, date=str(task_date), error=str(e))
-                task_data = self._pick_fallback(task_date, batch, required_task_type)
+                task_data = self._size_fallback(
+                    self._pick_fallback(task_date, batch, required_task_type), daily_minutes
+                )
                 task_data["fallback"] = True
                 task_data["fallback_reason"] = (rejection_log[-1] if rejection_log else "ai_error")
 
             if rejection_log:
                 task_data["rejected_reasons"] = list(rejection_log)
+
+            # Last line of defence: never ship a task over the user's budget.
+            estimate = self._as_minutes(task_data.get("time_estimate_minutes"))
+            if estimate is None or estimate > daily_minutes:
+                logger.warning("time_estimate_clamped", user_id=uid, title=task_data.get("title"),
+                               estimate=task_data.get("time_estimate_minutes"), daily_minutes=daily_minutes)
+                task_data["time_estimate_minutes"] = daily_minutes
+            task_data["time_budget"] = daily_minutes
 
             if dry_run:
                 logger.info("task_dry_run", user_id=uid, date=str(task_date), title=task_data.get("title"))
@@ -650,6 +667,17 @@ class TaskGeneratorEngine(BaseAIEngine):
                 "who they are becoming (reflection)."
             )
 
+        if reason_code == "over_time_budget":
+            limit = self._budget_from_reason(rejection_reason)
+            return header + (
+                f"This user has at most {limit} minutes a day. The task must take {limit} minutes "
+                f"or less, all in, and must not mention any longer duration. "
+                f"Set \"time_estimate_minutes\" to {limit} or less. "
+                f"Keep the idea but shrink it: for example, '{limit} minutes' of the same activity, "
+                "one set instead of a full session, the first page instead of the chapter, "
+                "one paragraph instead of the draft, laying out what's needed for tomorrow's longer session."
+            )
+
         if reason_code == "task_type" and required_task_type:
             return header + (
                 f"Keep the same idea if it fits, but the task_type MUST be '{required_task_type}' "
@@ -810,6 +838,7 @@ class TaskGeneratorEngine(BaseAIEngine):
         db: AsyncSession,
         batch: list[dict] | None = None,
         required_task_type: str | None = None,
+        daily_minutes: int | None = None,
     ) -> tuple[str, str] | None:
         """
         Run all deterministic checks on a generated task.
@@ -849,6 +878,11 @@ class TaskGeneratorEngine(BaseAIEngine):
                 f"Tasks must be executable alone, immediately, without another person's "
                 f"agreement or an event existing. Generate a solo, real-world action instead.",
             )
+
+        if daily_minutes:
+            over = self._over_time_budget(task_data, daily_minutes)
+            if over:
+                return ("over_time_budget", over)
 
         if await self._is_title_duplicate(user_id, title, db):
             return (
@@ -988,6 +1022,66 @@ class TaskGeneratorEngine(BaseAIEngine):
             pick = (typed or candidates or [self.FALLBACK_TASKS[index]])[0]
             return pick.copy()
         return self.FALLBACK_TASKS[index].copy()
+
+    @staticmethod
+    def _as_minutes(value) -> int | None:
+        try:
+            return int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _durations_in_text(text_value: str) -> list[int]:
+        """Minute counts mentioned in text: '20-minute', '15 mins', '1 hour', '90 min'."""
+        import re
+        found = []
+        for num, unit in re.findall(r"(\d+(?:\.\d+)?)\s*-?\s*(minutes?|mins?|hours?|hrs?)\b", (text_value or "").lower()):
+            n = float(num)
+            found.append(int(round(n * 60)) if unit.startswith("h") else int(round(n)))
+        return found
+
+    def _over_time_budget(self, task_data: dict, daily_minutes: int) -> str | None:
+        """Reason string if the task's estimate, or any duration in its text, exceeds the budget."""
+        estimate = self._as_minutes(task_data.get("time_estimate_minutes"))
+        if estimate is None:
+            return f"time_estimate_minutes is missing. Budget: {daily_minutes} minutes."
+        if estimate > daily_minutes:
+            return f"time_estimate_minutes is {estimate} but the user's budget is {daily_minutes} minutes."
+        for field in ("title", "description", "guidance", "execution_guidance"):
+            for minutes in self._durations_in_text(task_data.get(field) or ""):
+                if minutes > daily_minutes:
+                    return (f"The {field} mentions {minutes} minutes but the user's budget is "
+                            f"{daily_minutes} minutes.")
+        return None
+
+    @staticmethod
+    def _budget_from_reason(reason: str) -> str:
+        import re
+        m = re.search(r"budget is (\d+)|Budget: (\d+)", reason or "")
+        return (m.group(1) or m.group(2)) if m else "the user's"
+
+    def _time_budget_block(self, daily_minutes: int, preferred_time: str | None) -> str:
+        when = PREFERRED_TIME_LABELS.get(preferred_time or "", "")
+        lines = [
+            "\n\nTIME BUDGET (the user's own answer, checked in code, mandatory):",
+            f"This user has {daily_minutes} minutes a day for their goal"
+            + (f", usually {when}." if when else "."),
+            f"time_estimate_minutes MUST be {daily_minutes} or less, and no duration in the title, "
+            f"description or guidance may exceed {daily_minutes} minutes. Tasks over budget are rejected.",
+        ]
+        if preferred_time in ("morning", "midday", "evening"):
+            lines.append(f"Design the task so it fits {when}.")
+        return "\n".join(lines)
+
+    def _size_fallback(self, fallback: dict, daily_minutes: int) -> dict:
+        """Fill a template's {m} (total minutes) and {w} (work minutes) to fit the budget."""
+        m = min(fallback.get("time_estimate_minutes", daily_minutes), daily_minutes)
+        w = max(5, m - 5)
+        sized = {}
+        for k, v in fallback.items():
+            sized[k] = v.replace("{m}", str(m)).replace("{w}", str(w)) if isinstance(v, str) else v
+        sized["time_estimate_minutes"] = m
+        return sized
 
     async def _is_title_duplicate(
         self, user_id: str, title: str, db: AsyncSession
@@ -1258,7 +1352,9 @@ class TaskGeneratorEngine(BaseAIEngine):
             "top_trait_gap": (context.get("traits") or [{}])[0].get("name") if context.get("traits") else None,
             "is_fallback": task_data.get("fallback", False),
             **({"reason": task_data["fallback_reason"]} if task_data.get("fallback_reason") else {}),
-            **({"rejected_reasons": task_data["rejected_reasons"]} if task_data.get("rejected_reasons") else {}),
+            **({"rejected_reasons": task_data["rejected_reasons"],
+                "rejected_reason": task_data["rejected_reasons"][0]} if task_data.get("rejected_reasons") else {}),
+            **({"time_budget": task_data["time_budget"]} if task_data.get("time_budget") else {}),
             "domain": (
                 (task_data.get("domain") or "").lower().strip()
                 or self._infer_domain_from_title(task_data.get("title", ""))
