@@ -24,6 +24,11 @@ export default function InterviewPage() {
   const [phase, setPhase]       = useState('tension')
   const [started, setStarted]   = useState(false)
   const [preAnswer, setPreAnswer] = useState<string | null>(null)
+  // Interview finished: keep the closing message on screen, continue on tap.
+  const [complete, setComplete] = useState(false)
+  const [showContinue, setShowContinue] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const navigating = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -41,6 +46,7 @@ export default function InterviewPage() {
           setMessages(state.messages)
           setStarted(true)
           setPhase(state.current_phase)
+          if (state.is_complete) setComplete(true)
         }
       } catch {}
     }
@@ -59,7 +65,7 @@ export default function InterviewPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, showContinue])
 
   async function startInterview() {
     setStarted(true)
@@ -118,8 +124,8 @@ export default function InterviewPage() {
 
       if (res.is_complete) {
         trackEvent('interview_completed')
-        await refreshUser()
-        setTimeout(() => router.push('/goal-setup'), 1200)
+        setComplete(true)
+        refreshUser().catch(() => {})
       }
     } catch (err: any) {
       if (err?.status === 400) {
@@ -137,6 +143,20 @@ export default function InterviewPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // The button appears only after the closing message has finished its
+  // entrance animation (0.35s), plus a beat to start reading.
+  useEffect(() => {
+    if (!complete) return
+    const t = setTimeout(() => setShowContinue(true), 900)
+    return () => clearTimeout(t)
+  }, [complete])
+
+  function continueToGoal() {
+    if (navigating.current) return  // a double tap must not navigate twice
+    navigating.current = true
+    setLeaving(true)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -189,7 +209,13 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] max-w-2xl mx-auto w-full">
+    <motion.div
+      className="flex flex-col h-[calc(100vh-100px)] max-w-2xl mx-auto w-full"
+      initial={false}
+      animate={{ opacity: leaving ? 0 : 1 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      onAnimationComplete={() => { if (leaving) router.push('/goal-setup') }}
+    >
       <div className="flex-1 overflow-y-auto space-y-6 pb-6 pr-2">
         <AnimatePresence initial={false}>
           {messages.map((msg, i) => (
@@ -225,8 +251,21 @@ export default function InterviewPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        {complete && showContinue && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex justify-center pt-2"
+          >
+            <button onClick={continueToGoal} disabled={leaving} className="btn btn-primary px-8 h-12 text-base">
+              See my goal →
+            </button>
+          </motion.div>
+        )}
         <div ref={bottomRef} />
       </div>
+      {!complete && (
       <div className="border-t border-white/5 pt-4">
         <div className="flex items-end gap-3 bg-[#141210] border border-white/7 rounded-2xl px-4 py-3 focus-within:border-[#F59E0B]/30 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] transition-all">
           <TextareaAutosize value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
@@ -239,7 +278,8 @@ export default function InterviewPage() {
         </div>
         <p className="text-[#3D3630] text-xs text-center mt-2">Press Enter to send · Shift+Enter for new line</p>
       </div>
-    </div>
+      )}
+    </motion.div>
   )
 }
 
