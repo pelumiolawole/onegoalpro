@@ -29,6 +29,7 @@ import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.names import first_name
 from ai.base import BaseAIEngine
 from ai.memory.context_builder import context_builder
 from ai.memory.retrieval import memory_retrieval
@@ -147,7 +148,7 @@ class CoachEngine(BaseAIEngine):
 
         # ── Build system prompt ─────────────────────────────────────
         system_prompt = get_prompt("coach").format(
-            user_name=context.get("display_name", "the user"),
+            user_name=first_name(context.get("display_name")) or "not given (do not address them by name)",
             goal_statement=context.get("goal", {}).get("statement", "not set"),
             identity_anchor=context.get("identity", {}).get("life_direction", "not set"),
             momentum_state=context.get("scores", {}).get("momentum_state", "holding"),

@@ -16,8 +16,14 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 class SignUpRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    display_name: str | None = Field(default=None, min_length=1, max_length=100)
+    display_name: str = Field(min_length=1, max_length=100)
     timezone: str = "UTC"
+
+    @field_validator("display_name")
+    @classmethod
+    def valid_display_name(cls, v: str) -> str:
+        from core.names import clean_display_name
+        return clean_display_name(v)
 
     @field_validator("password")
     @classmethod

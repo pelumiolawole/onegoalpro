@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import OneGoalLogo from '@/components/OneGoalLogo'
+import { validateDisplayName, cleanDisplayName, apiErrorMessage } from '@/lib/names'
 
 const SUPABASE_URL = 'https://guqlwplztxxiseyenbye.supabase.co'
 const REDIRECT_URL = 'https://onegoalpro.app/auth/callback'
@@ -43,6 +44,12 @@ export default function SignupPage() {
     e.preventDefault()
     setError('')
 
+    const nameError = validateDisplayName(form.display_name)
+    if (nameError) {
+      setError(nameError)
+      return
+    }
+
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match.')
       return
@@ -58,16 +65,13 @@ export default function SignupPage() {
       const data = await api.auth.signup({
         email: form.email,
         password: form.password,
-        display_name: form.display_name || undefined,
+        display_name: cleanDisplayName(form.display_name),
         timezone,
       })
       setAuth(data)
       setShowVerificationMessage(true)
     } catch (err: any) {
-      const detail = err.detail
-      if (typeof detail === 'string') setError(detail)
-      else if (Array.isArray(detail)) setError(detail[0]?.message || 'Signup failed.')
-      else setError('Signup failed. Please try again.')
+      setError(apiErrorMessage(err, 'Signup failed. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -184,14 +188,18 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[#A09690] text-sm mb-1.5">
-              Your name <span className="text-[#5C524A]">(optional)</span>
+            <label htmlFor="display_name" className="block text-[#A09690] text-sm mb-1.5">
+              What should we call you?
             </label>
             <input
+              id="display_name"
               type="text"
               value={form.display_name}
               onChange={e => update('display_name', e.target.value)}
-              placeholder="What should we call you?"
+              placeholder="Your first name, or the name you go by"
+              autoComplete="given-name"
+              maxLength={50}
+              required
               className="input-base"
             />
           </div>

@@ -105,11 +105,19 @@ async def get_coach_greeting(
         }
     """
     from datetime import datetime
+    import pytz
+    from core.names import first_name as get_first_name
 
     uid = str(current_user.id)
-    first_name = (current_user.display_name or "").split()[0] or "there"
+    # No name: the greeting reads "Good morning." rather than "Good morning there."
+    name = get_first_name(current_user.display_name)
+    name_part = f" {name}" if name else ""
 
-    hour = datetime.utcnow().hour
+    # Greet by the user's local time, not the server's.
+    try:
+        hour = datetime.now(pytz.timezone(current_user.timezone or "UTC")).hour
+    except Exception:
+        hour = datetime.utcnow().hour
     if hour < 12:
         time_greeting = "Good morning"
     elif hour < 17:
@@ -139,7 +147,7 @@ async def get_coach_greeting(
             "task_title": None,
             "guidance": None,
             "greeting": (
-                f"{time_greeting} {first_name}, your task for today is being prepared. "
+                f"{time_greeting}{name_part}. Your task for today is being prepared. "
                 "While you wait, what's on your mind?"
             ),
         }
@@ -154,7 +162,7 @@ async def get_coach_greeting(
         guidance_line = ""
 
     greeting = (
-        f"{time_greeting} {first_name}. Your task today is: {task_title}.{guidance_line}"
+        f"{time_greeting}{name_part}. Your task today is: {task_title}.{guidance_line}"
         f"\n\nHow can I help you with today's task, or is there something else on your mind?"
     )
 

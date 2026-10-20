@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Zap } from 'lucide-react'
 import { useIsAndroidApp, APP_LIMIT_MESSAGE } from '@/lib/platform'
 import ReportContent from '@/components/ReportContent'
+import { firstName } from '@/lib/names'
 
 interface Message {
   id: string
@@ -272,7 +273,7 @@ export default function CoachPage() {
     }
   }
 
-  const name = user?.display_name?.split(' ')[0] || 'you'
+  const name = firstName(user?.display_name)
 
   // Starters: task-specific first (highlighted), then generic
   const starters = [
@@ -491,7 +492,7 @@ export default function CoachPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`What's on your mind, ${name}?`}
+                placeholder={name ? `What's on your mind, ${name}?` : "What's on your mind?"}
                 minRows={1}
                 maxRows={6}
                 disabled={streaming || !sessionId}

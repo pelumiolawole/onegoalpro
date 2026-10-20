@@ -268,7 +268,8 @@ async def generate_share_message(
     goal_title = row[3] if row else None
 
     goal_area = _extract_goal_area(goal_title)
-    first_name = (current_user.display_name or "").split()[0] or "Someone"
+    from core.names import first_name as get_first_name
+    first_name = get_first_name(current_user.display_name) or "Someone"
 
     prompt = f"""You write short, personal transformation share messages for social invites.
 

@@ -2,6 +2,7 @@
 
 'use client'
 
+import NameField from '@/components/settings/NameField'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
@@ -315,8 +316,8 @@ export default function SettingsPage() {
               </div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
 
-              <div>
-                <p className="text-[#E8E2DC] text-base font-medium">{displayName || 'No name set'}</p>
+              <div className="min-w-0 flex-1">
+                <NameField displayName={displayName} />
                 <p className="text-[#5C524A] text-sm">{email}</p>
                 <p className="text-[#3D3630] text-xs mt-0.5">Click photo to change</p>
               </div>

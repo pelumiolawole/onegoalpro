@@ -12,6 +12,7 @@ from typing import Optional
 
 import resend
 from core.config import settings
+from core.names import first_name as first_name_of
 
 logger = structlog.get_logger()
 
@@ -139,7 +140,8 @@ class EmailService:
             logger.warning("daily_task_email_disabled", email=to_email)
             return False
 
-        name = display_name or "there"
+        # Standalone opening line: "Ada," with a name, "Hi there," without.
+        name = first_name_of(display_name) or "Hi there"
         dashboard_url = f"{app_url}/dashboard"
 
         try:
@@ -255,7 +257,8 @@ class EmailService:
             logger.warning("reengagement_email_disabled", email=to_email)
             return False
 
-        name = display_name or "there"
+        # Standalone opening line: "Ada," with a name, "Hi there," without.
+        name = first_name_of(display_name) or "Hi there"
         dashboard_url = f"{app_url}/dashboard"
 
         try:
@@ -351,7 +354,8 @@ class EmailService:
         if not self.enabled:
             return False
 
-        first_name = (display_name or to_email).split()[0].capitalize()
+        # Never derive a name from the email address.
+        first_name = first_name_of(display_name) or "Hi there"
         dashboard_url = f"{app_url}/dashboard"
 
         commitment_block = ""
@@ -468,7 +472,8 @@ class EmailService:
         if not self.enabled:
             return False
 
-        first_name = (display_name or to_email).split()[0].capitalize()
+        # Never derive a name from the email address.
+        first_name = first_name_of(display_name) or "Hi there"
         dashboard_url = f"{app_url}/dashboard"
 
         excerpt_block = ""
@@ -493,7 +498,7 @@ class EmailService:
             response = resend.Emails.send({
                 "from": self.from_header,
                 "to": to_email,
-                "subject": f"You said this, {first_name}",
+                "subject": f"You said this, {first_name_of(display_name)}" if first_name_of(display_name) else "You said this",
                 "html": f"""
                 <!DOCTYPE html>
                 <html>
@@ -588,7 +593,8 @@ class EmailService:
         if not self.enabled:
             return False
 
-        first_name = (display_name or to_email).split()[0].capitalize()
+        # Never derive a name from the email address.
+        first_name = first_name_of(display_name) or "Hi there"
         dashboard_url = f"{app_url}/dashboard"
         settings_url = f"{app_url}/settings"
 
@@ -669,7 +675,8 @@ class EmailService:
             logger.warning("weekly_digest_email_disabled", email=to_email)
             return False
 
-        name = display_name or "there"
+        fn = first_name_of(display_name)
+        week_heading = f"Your week, {fn}." if fn else "Your week."
         dashboard_url = f"{app_url}/dashboard"
 
         letter_paragraphs = "".join(
@@ -704,7 +711,7 @@ class EmailService:
                                     <tr>
                                         <td style="padding: 32px 40px 0 40px;">
                                             <p style="margin: 0 0 4px 0; font-size: 12px; color: #5C524A; letter-spacing: 0.08em; text-transform: uppercase;">{week_label}</p>
-                                            <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #F5F1ED; font-weight: 600;">Your week, {name}.</h1>
+                                            <h1 style="margin: 0 0 24px 0; font-size: 22px; color: #F5F1ED; font-weight: 600;">{week_heading}</h1>
                                         </td>
                                     </tr>
                                     <tr>
@@ -779,7 +786,7 @@ class EmailService:
             logger.warning("welcome_email_disabled", email=to_email)
             return False
 
-        name = display_name or "there"
+        name = first_name_of(display_name) or "there"  # "Hi there," as an opening is fine
 
         try:
             response = resend.Emails.send({
@@ -1046,7 +1053,7 @@ class EmailService:
         if not self.enabled:
             return False
 
-        first_name = (display_name or user_email).split()[0].capitalize()
+        first_name = first_name_of(display_name) or "A new user (no name given)"
         commitment_line = (
             f"\n\nWhat they wrote:\n{commitment_statement}"
             if commitment_statement

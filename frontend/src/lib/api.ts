@@ -213,7 +213,7 @@ class ApiClient {
         body: JSON.stringify(data),
       }, false),
 
-    signup: (data: { email: string; password: string; display_name?: string; timezone?: string }) =>
+    signup: (data: { email: string; password: string; display_name: string; timezone?: string }) =>
       this.request<TokenResponse>('/auth/signup', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -230,6 +230,12 @@ class ApiClient {
 
     me: () =>
       this.request<UserSummary>('/auth/me'),
+
+    updateMe: (data: { display_name?: string; timezone?: string }) =>
+      this.request<UserSummary>('/auth/me', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
 
     refresh: (refresh_token: string) =>
       this.request<TokenResponse>('/auth/refresh', {

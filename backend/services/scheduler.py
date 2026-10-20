@@ -657,7 +657,8 @@ async def run_activation_reengagement_day7() -> None:
                 logger.error("activation_reengagement_day7_failed", user_id=user_id, error=str(e))
 
             if endpoint and p256dh and auth:
-                first_name = (display_name or "").split()[0].capitalize() if display_name else "there"
+                from core.names import first_name as get_first_name
+                first_name = get_first_name(display_name)
                 push_body = (
                     f"You said: \"{interview_excerpt[:80]}{'...' if len(interview_excerpt) > 80 else ''}\""
                     if interview_excerpt
@@ -665,7 +666,7 @@ async def run_activation_reengagement_day7() -> None:
                 )
                 push_result = send_push_notification(
                     endpoint=endpoint, p256dh=p256dh, auth=auth,
-                    title=f"You said this, {first_name}",
+                    title=f"You said this, {first_name}" if first_name else "You said this",
                     body=push_body,
                     url="/dashboard",
                 )
@@ -842,12 +843,13 @@ async def send_verification_reminders() -> None:
                 User.email_reminder_sent_at.is_(None)
             ))
             users = result.scalars().all()
+            from core.names import first_name as get_first_name
 
             for user in users:
                 try:
                     verification_url = f"{settings.frontend_url}/verify-email?token={user.email_verification_token}"
                     await email_service.send_verification_reminder(
-                        to_email=user.email, first_name=user.display_name,
+                        to_email=user.email, first_name=get_first_name(user.display_name),
                         verification_url=verification_url)
                     user.email_reminder_sent_at = datetime.now(timezone.utc)
                     await db.commit()
@@ -1184,7 +1186,8 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
     expired_ids = []
 
     for user in users:
-        first_name = (user.display_name or user.email).split()[0].capitalize()
+        from core.names import first_name as get_first_name
+        first_name = get_first_name(user.display_name) or "there"  # "Hey there," opening; never the email
         try:
             await send_interview_nudge_email(to_email=user.email, first_name=first_name, attempt=attempt)
             logger.info("interview_nudge_email_sent", user_id=str(user.id), attempt=attempt)

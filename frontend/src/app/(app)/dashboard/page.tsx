@@ -1,5 +1,7 @@
 'use client'
 
+import ProfileGapCard from '@/components/ProfileGapCard'
+import { firstName } from '@/lib/names'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -33,7 +35,7 @@ export default function DashboardPage() {
   const scores = data?.scores
 
   const greeting = getGreeting()
-  const name     = user?.display_name?.split(' ')[0] || 'there'
+  const name     = firstName(user?.display_name) || 'Welcome back'
 
   // Task completion now happens inside ReflectionModal after reflection submits.
   // This handler just closes the modal and refreshes the dashboard.
@@ -56,6 +58,7 @@ export default function DashboardPage() {
   return (
     <div className="p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto">
 
+      <ProfileGapCard />
       <InstallBanner />
 
       {/* Header */}

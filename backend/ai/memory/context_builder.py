@@ -540,7 +540,7 @@ class ContextBuilder:
 
         lines = [
             "USER CONTEXT",
-            f"Name: {context.get('display_name', 'the user')}",
+            f"Name: {context.get('display_name') or 'not given (do not address them by name)'}",
             f"Days active: {days_active} | Current streak: {streak} days | Momentum: {momentum_state}",
             "",
             "IDENTITY",

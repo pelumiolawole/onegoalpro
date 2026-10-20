@@ -45,6 +45,7 @@ from core.cache import (
 )
 from core.config import settings
 from core.database import get_db
+from core.names import clean_display_name, name_from_oauth_metadata, valid_display_name_or_none
 from core.security import (
     create_token_pair,
     decode_token,
@@ -378,10 +379,11 @@ async def oauth_callback(
 
     if user is None:
         # New user — create account (auto-verified via OAuth)
+        # Given name from Google. If none is usable the user is asked for one
+        # on the dashboard (frontend NameCard), so never fall back to the email.
         display_name = (
-            payload.display_name
-            or user_metadata.get("full_name")
-            or user_metadata.get("name")
+            valid_display_name_or_none(payload.display_name)
+            or name_from_oauth_metadata(user_metadata)
         )
         user = User(
             email=email.lower(),
@@ -413,6 +415,8 @@ async def oauth_callback(
         if user.auth_provider_id != provider_id:
             user.auth_provider = provider
             user.auth_provider_id = provider_id
+        if not (user.display_name or "").strip():
+            user.display_name = name_from_oauth_metadata(user_metadata)
         user.last_seen_at = datetime.now(timezone.utc)
         logger.info("oauth_user_logged_in", user_id=str(user.id))
 
@@ -557,6 +561,12 @@ async def update_me(
     """
     allowed_fields = {"display_name", "timezone", "locale"}
     updates = {k: v for k, v in payload.items() if k in allowed_fields}
+
+    if "display_name" in updates:
+        try:
+            updates["display_name"] = clean_display_name(updates["display_name"])
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     if not updates:
         raise HTTPException(
