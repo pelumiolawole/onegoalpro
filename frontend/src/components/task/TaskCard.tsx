@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReportContent from '@/components/ReportContent'
 
 interface Task {
   id: string
@@ -214,6 +215,15 @@ export default function TaskCard({ task, onComplete, onSkip, onReflect }: Props)
         {isSkipped && (
           <p className="text-[#5C524A] text-sm">Skipped today. Tomorrow is new.</p>
         )}
+
+        <div className="mt-4 text-right">
+          <ReportContent
+            source="task"
+            referenceId={task.id}
+            label="Report this task"
+            content={[task.identity_focus, task.title, task.description, guidanceText].filter(Boolean).join('\n\n')}
+          />
+        </div>
       </div>
     </div>
   )

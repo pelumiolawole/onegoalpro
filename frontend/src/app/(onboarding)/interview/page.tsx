@@ -7,6 +7,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { trackEvent } from '@/lib/posthog'
+import ReportContent from '@/components/ReportContent'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -199,12 +200,17 @@ export default function InterviewPage() {
                   <span className="text-[#F59E0B] text-xs">&#10022;</span>
                 </div>
               )}
-              <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[0.9375rem] leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
-                  : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
-              }`}>
-                {msg.content}
+              <div className={`max-w-[85%] ${msg.role === 'assistant' ? 'flex flex-col items-start gap-1' : ''}`}>
+                <div className={`px-4 py-3 rounded-2xl text-[0.9375rem] leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/15 text-[#E8E2DC] rounded-tr-sm'
+                    : 'bg-[#1E1B18] border border-white/5 text-[#C4BBB5] rounded-tl-sm'
+                }`}>
+                  {msg.content}
+                </div>
+                {msg.role === 'assistant' && msg.content.trim() && (
+                  <ReportContent source="interview" content={msg.content} referenceId={`message-${i}`} className="ml-1" />
+                )}
               </div>
             </motion.div>
           ))}

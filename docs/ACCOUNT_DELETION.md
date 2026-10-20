@@ -21,10 +21,11 @@ Written 15 October 2026, before implementation. Mapped against the live schema (
 
 Steps 1 to 3 run before the database delete. If any of them fails, that user is skipped, the error goes to Sentry, and the purge retries the next night. Every step tolerates already-deleted state, so the purge is safe to re-run.
 
-## Table by table (31 tables and 3 views with a `user_id` column)
+## Table by table (32 tables and 3 views with a `user_id` column)
 
 | Table | Foreign key to users | Action | Reason |
 |---|---|---|---|
+| ai_content_reports | CASCADE | Delete | User reports of AI content, with an excerpt of up to 1,000 characters (added 20 October 2026, migration 014) |
 | ai_coach_messages | CASCADE | Delete | Coach conversation content |
 | ai_coach_sessions | CASCADE | Delete | Coach sessions |
 | ai_safety_flags | CASCADE | Delete | Personal content |

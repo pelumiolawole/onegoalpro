@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { Zap } from 'lucide-react'
 import { useIsAndroidApp, APP_LIMIT_MESSAGE } from '@/lib/platform'
+import ReportContent from '@/components/ReportContent'
 
 interface Message {
   id: string
@@ -376,6 +377,11 @@ export default function CoachPage() {
                         </div>
                       </motion.div>
                     ))}
+                    {msg.content.trim() && (
+                      <div className="pl-[38px]">
+                        <ReportContent source="coach" content={msg.content} referenceId={sessionId} />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   // User messages and in-flight streaming — single bubble

@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         <div className="mb-12">
           <p className="text-[#F59E0B] text-xs uppercase tracking-widest font-mono mb-4">Legal</p>
           <h1 className="font-display text-4xl text-[#F5F1ED] mb-4">Privacy Policy</h1>
-          <p className="text-[#5C524A] text-sm font-mono">Last updated: October 15, 2026</p>
+          <p className="text-[#5C524A] text-sm font-mono">Last updated: October 20, 2026</p>
         </div>
 
         <div className="space-y-10 text-[15px] leading-relaxed">
@@ -86,6 +86,9 @@ export default function PrivacyPage() {
             </p>
             <p className="text-[#7A6E65]">
               We do not use your personal data to train any AI model. Your goal, your story, and your conversations are yours.
+            </p>
+            <p className="text-[#7A6E65] mt-3">
+              You can report any coach reply, interview message or daily task using the Report link beside it. When you do, we store the reported text, the reason you chose and any note you add, and we review reported content to improve safety. Reports are deleted with your account.
             </p>
           </section>
 

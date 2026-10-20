@@ -202,6 +202,7 @@ def _register_routers(app: FastAPI) -> None:
     from api.routers.settings import router as settings_router
     from api.routers.billing import router as billing_router
     from api.routers.push import router as push_router
+    from api.routers.reports import router as reports_router
 
     API_PREFIX = "/api"
 
@@ -216,6 +217,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(admin_router,       prefix=API_PREFIX)
     app.include_router(settings_router,    prefix=API_PREFIX)
     app.include_router(billing_router,     prefix=API_PREFIX)
+    app.include_router(reports_router,     prefix=API_PREFIX)
     app.include_router(push_router)  # prefix="/api/push" is set on the router itself
 
 

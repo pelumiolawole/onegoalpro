@@ -533,6 +533,22 @@ class ApiClient {
         body: JSON.stringify({ confirm: true }),
       }),
   }
+
+  // ── Reports ─────────────────────────────────────────────────
+
+  reports = {
+    aiContent: (data: {
+      source: 'coach' | 'interview' | 'task'
+      reason: 'offensive' | 'inaccurate' | 'inappropriate_advice' | 'other'
+      content: string
+      reference_id?: string
+      details?: string
+    }) =>
+      this.request<{ status: string; report_id: string }>('/reports/ai-content', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  }
 }
 
 export const api = new ApiClient()
