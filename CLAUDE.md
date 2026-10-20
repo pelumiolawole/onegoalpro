@@ -1,5 +1,5 @@
 OneGoal Pro — Master Claude Skill File
-Version: 2.3 | Last updated: 15 October 2026
+Version: 2.4 | Last updated: 20 October 2026
 READ THIS ENTIRE FILE BEFORE DOING ANYTHING ELSE IN THIS SESSION
 
 CHANGE NOTE 1: v1.1 (March 25, 2026) was stale — pasted into FOUR separate
@@ -47,7 +47,7 @@ WHO YOU ARE WORKING WITH
 Name: Pelumi Olawole
 Role: Founder, IIC Networks (Influence, Impact, Change) | Author | Coach | Day job: E.ON Next (UK)
 Book: Petty Little Things: 50 Habits Quietly Ruining Your Life and How to Fix Them
-Working environment: Windows, VS Code, Git Bash / PowerShell. Mac mini (M4, 16GB, 512GB) acquired for iOS builds — iOS is deferred; Android ships first (see MOBILE SPRINT).
+Working environment: Windows, VS Code, Git Bash / PowerShell. Mac mini: not yet bought (planned: used M2, 16GB/512GB). iOS deferred until then. Android ships first (see MOBILE SPRINT).
 Skill level: Rebuilding development skills — needs explicit step-by-step terminal instructions.
 Note: multi-line commit messages with embedded quotes break in PowerShell
 (it doesn't parse them like bash). Use `git commit -F message.txt` for any
@@ -314,14 +314,42 @@ LOG).
 Data safety: answers drafted in docs/PLAY_DATA_SAFETY_AUDIT.md, updated for consent. The backend's
 three PostHog calls (sign-up, sign-in, verified) were removed 15 October 2026, so the backend sends
 nothing to PostHog and all analytics depend on browser consent.
-Remaining before Play production:
-- Store listing text, screenshots, feature graphic 1024x500
-- Monochrome notification icon. monochromeIconUrl was left blank, so Android notification small icons
-  will probably render as a plain square.
-- Advertising ID declaration in Play Console (answer: No)
-- Physical-device test (also run one real in-app account deletion on a test account there)
-- Submit the data safety form
-- v1 payments decision. Recommendation: hide in-app upgrade entry points and keep subscriptions on the web.
+Done: Monochrome notification icon (20 October 2026, commit d1745c5). frontend/public/icon-monochrome.png
+(512x512, white anchor on transparent), manifest entry with purpose "monochrome", sw.js badge uses it,
+CACHE_VERSION onegoal-offline-v2. Live in production (200, image/png). Generated in-session from the
+favicon anchor because no file was attached; replace with Pelumi's own file if preferred.
+Done: Android detection and hidden purchase paths (20 October 2026, commit 101c226), for Play's
+payments policy. frontend/src/lib/platform.ts: the app is detected by ?source=android or a referrer
+starting android-app://app.onegoalpro; the parameter is stripped from the URL. The flag is stored in
+sessionStorage (key ogp_platform), NOT localStorage as the brief said: a TWA shares Chrome's storage,
+so a localStorage flag would also hide upgrades in ordinary Chrome on the same phone. Trade-off: a new
+app session that opens without either signal (for example from a notification tap) may show web
+mode. Check this on the phone. In the app: landing pricing, Settings upgrade/resume buttons, the coach
+upgrade offer, locked-pattern upsell and re-interview offer are hidden; /settings/upgrade,
+/settings/subscription and /billing/cancel show "This isn't available in the app."; the coach limit
+reads "You've reached today's coach message limit. It resets tomorrow." Plan name and Cancel stay.
+Web is unchanged (16 Playwright checks, both modes).
+Done: Report AI content (20 October 2026, commit 11c3264), for Play's AI-generated content policy.
+Report link under every coach reply and interview AI message, "Report this task" on the task card.
+Reasons: Offensive or harmful, Inaccurate, Inappropriate advice, Other (optional note). Stored in
+ai_content_reports (migration 014, applied 20 October 2026, cascades on user delete). Endpoint POST
+/api/reports/ai-content, 20 per user per hour. Sentry gets "ai_content_reported" with report ID and
+source only. Privacy policy updated. Nobody reviews reports automatically: check the table
+(WHERE NOT reviewed) regularly.
+PENDING FROM PELUMI: build 2 of the TWA with start URL /dashboard?source=android (build 1 opens
+/dashboard with no parameter, so the purchase-path hiding only works from build 2).
+PENDING: reviewer demo account review@onegoalpro.app (Pelumi creates it; then add to the internal
+accounts list and verify goal, commitment gate and today's task).
+Remaining before Play production, in order:
+- Upload build 2 (start URL /dashboard?source=android)
+- Phone checklist on a physical device: purchase paths hidden (including after a notification tap),
+  Report flows, notification icon, Google sign-in, push, one real in-app account deletion on a test
+  account
+- Screenshots and feature graphic 1024x500
+- Store listing text
+- App content declarations: data safety form (docs/PLAY_DATA_SAFETY_AUDIT.md), Advertising ID (No),
+  AI-generated content, reviewer login details (review@onegoalpro.app)
+- Then submit for production review
 - EMAIL OPT-OUT (blocks any further bulk email): there is no opt-out mechanism. The October 2026
   campaign told recipients to reply "stop", and those replies are recorded only manually by Pelumi.
   Build an email_opt_out flag on users, respected by every email job (daily task, re-engagement,
@@ -553,6 +581,15 @@ completed. Avatar removal and Stripe cancellation were covered by unit tests onl
 account had neither; the phone test in MOBILE SPRINT covers them.
 LESSON: a feature listed as "built" in this file (GDPR account deletion) had never once worked.
 Listing something as built needs a production check, not a read of the code.
+20 OCTOBER 2026 — Sentry ONEGOAL-BACKEND-6F, task generation insert failed on an enum. FIXED (commit
+13a19e8). Postgres log 00:03:10 UTC: invalid input value for enum task_type: "reflection". The model
+returned a domain name as the task type; daily_tasks.task_type is an enum, so the insert failed and the
+user (e0204512...) got a template fallback. Nothing in code checked the prompt's allowed values. Fix:
+_persist_task coerces unknown task_type to "becoming" and logs task_type_coerced. Not caused by the
+week's deletion, scheduler or job-removal changes (task_generator.py unchanged since 17 July). Diagnosed
+from Supabase postgres logs; Sentry was not authorised in that session. ONEGOAL-BACKEND-6E ("Retry
+also failed validation") still recurs at a low rate: main-path fallbacks were 2, 1, 0, 0, 3, 0, 1, 1
+of 46 tasks a day for 13–20 October.
 
 
 ENGINEERING RULES — NEVER VIOLATE THESE
