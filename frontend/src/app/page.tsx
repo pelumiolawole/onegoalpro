@@ -7,6 +7,7 @@ import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'fra
 import { useAuthStore } from '@/stores/auth'
 import OneGoalLogo from '@/components/OneGoalLogo'
 import CookieSettingsLink from '@/components/CookieSettingsLink'
+import { useIsAndroidApp } from '@/lib/platform'
 
 // ── Fade-in-on-scroll wrapper ──────────────────────────────────
 function Reveal({
@@ -269,6 +270,7 @@ export default function LandingPage() {
   const { isAuthenticated, user } = useAuthStore()
   const router = useRouter()
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  const isAndroidApp = useIsAndroidApp()
   // CHANGE 2: track hook focus to dim orbs
   const [hookFocused, setHookFocused] = useState(false)
 
@@ -711,113 +713,119 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Pricing ───────────────────────────────────────── */}
-      <section className="px-6 py-24">
-        <div className="max-w-5xl mx-auto">
-          <Reveal className="text-center mb-12">
-            <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">Pricing</p>
-            <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED] mb-6">
-              Choose your level of{' '}
-              <span className="italic text-[#F59E0B]">commitment</span>
-            </h2>
+      {/* ── Pricing (hidden inside the Android app: Google Play payments policy) ── */}
+      {isAndroidApp === false && (
+        <>
+        {/* ── Pricing ───────────────────────────────────────── */}
+        <section className="px-6 py-24">
+          <div className="max-w-5xl mx-auto">
+            <Reveal className="text-center mb-12">
+              <p className="text-[#F59E0B] text-xs tracking-widest uppercase mb-4">Pricing</p>
+              <h2 className="font-display text-4xl md:text-5xl text-[#F5F1ED] mb-6">
+                Choose your level of{' '}
+                <span className="italic text-[#F59E0B]">commitment</span>
+              </h2>
 
-            <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-[#141210]">
-              <button
-                onClick={() => setBilling('monthly')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  billing === 'monthly'
-                    ? 'bg-[#F59E0B] text-[#0A0908]'
-                    : 'text-[#5C524A] hover:text-[#A09690]'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBilling('annual')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  billing === 'annual'
-                    ? 'bg-[#F59E0B] text-[#0A0908]'
-                    : 'text-[#5C524A] hover:text-[#A09690]'
-                }`}
-              >
-                Annual
-                <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#0A0908]/20' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
-                  Save up to 20% on paid plans
-                </span>
-              </button>
-            </div>
-          </Reveal>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <AnimatePresence mode="wait">
-              {activePlans.map((plan, i) => (
-                <motion.div
-                  key={`${billing}-${plan.name}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.35, delay: i * 0.07 }}
-                  className={`relative p-6 rounded-2xl border flex flex-col ${
-                    plan.highlight
-                      ? 'border-[#F59E0B]/35 bg-[#141210]'
-                      : 'border-white/5 bg-[#141210]'
+              <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-white/10 bg-[#141210]">
+                <button
+                  onClick={() => setBilling('monthly')}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    billing === 'monthly'
+                      ? 'bg-[#F59E0B] text-[#0A0908]'
+                      : 'text-[#5C524A] hover:text-[#A09690]'
                   }`}
                 >
-                  {plan.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#F59E0B] text-[#0A0908] text-xs font-semibold whitespace-nowrap">
-                      Most Popular
-                    </div>
-                  )}
-                  {'savings' in plan && plan.savings && (
-                    <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-[#4ADE80]/20 border border-[#4ADE80]/30 text-[#4ADE80] text-xs font-medium">
-                      {plan.savings}
-                    </div>
-                  )}
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBilling('annual')}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    billing === 'annual'
+                      ? 'bg-[#F59E0B] text-[#0A0908]'
+                      : 'text-[#5C524A] hover:text-[#A09690]'
+                  }`}
+                >
+                  Annual
+                  <span className={`text-xs px-1.5 py-0.5 rounded-md ${billing === 'annual' ? 'bg-[#0A0908]/20' : 'bg-[#F59E0B]/10 text-[#F59E0B]'}`}>
+                    Save up to 20% on paid plans
+                  </span>
+                </button>
+              </div>
+            </Reveal>
 
-                  <div className="mb-6">
-                    <h3 className="font-display text-xl text-[#F5F1ED] mb-1">{plan.name}</h3>
-                    <p className="text-[#5C524A] text-sm mb-4">{plan.tagline}</p>
-
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-mono text-4xl font-bold text-[#F5F1ED] tracking-tight">{plan.price}</span>
-                      <span className="text-[#5C524A] text-sm">{plan.period}</span>
-                    </div>
-
-                    {'annualPrice' in plan && plan.annualPrice && (
-                      <p className="mt-2 text-sm text-[#7A6E65]">
-                        Billed as {plan.annualPrice}/year
-                      </p>
-                    )}
-                  </div>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm">
-                        <span className="text-[#F59E0B] mt-0.5 shrink-0">✓</span>
-                        <span className="text-[#7A6E65]">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href="/signup"
-                    className={`w-full py-3 rounded-xl text-sm font-medium text-center transition-all hover:scale-[1.02] active:scale-[0.98] ${
+            <div className="grid md:grid-cols-3 gap-6">
+              <AnimatePresence mode="wait">
+                {activePlans.map((plan, i) => (
+                  <motion.div
+                    key={`${billing}-${plan.name}`}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, delay: i * 0.07 }}
+                    className={`relative p-6 rounded-2xl border flex flex-col ${
                       plan.highlight
-                        ? 'bg-[#F59E0B] text-[#0A0908] hover:bg-[#D97706]'
-                        : 'border border-white/10 text-[#A09690] hover:border-white/25 hover:text-[#F5F1ED]'
+                        ? 'border-[#F59E0B]/35 bg-[#141210]'
+                        : 'border-white/5 bg-[#141210]'
                     }`}
                   >
-                    {plan.cta}
-                  </Link>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                    {plan.highlight && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#F59E0B] text-[#0A0908] text-xs font-semibold whitespace-nowrap">
+                        Most Popular
+                      </div>
+                    )}
+                    {'savings' in plan && plan.savings && (
+                      <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-[#4ADE80]/20 border border-[#4ADE80]/30 text-[#4ADE80] text-xs font-medium">
+                        {plan.savings}
+                      </div>
+                    )}
+
+                    <div className="mb-6">
+                      <h3 className="font-display text-xl text-[#F5F1ED] mb-1">{plan.name}</h3>
+                      <p className="text-[#5C524A] text-sm mb-4">{plan.tagline}</p>
+
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-mono text-4xl font-bold text-[#F5F1ED] tracking-tight">{plan.price}</span>
+                        <span className="text-[#5C524A] text-sm">{plan.period}</span>
+                      </div>
+
+                      {'annualPrice' in plan && plan.annualPrice && (
+                        <p className="mt-2 text-sm text-[#7A6E65]">
+                          Billed as {plan.annualPrice}/year
+                        </p>
+                      )}
+                    </div>
+
+                    <ul className="space-y-3 mb-8 flex-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm">
+                          <span className="text-[#F59E0B] mt-0.5 shrink-0">✓</span>
+                          <span className="text-[#7A6E65]">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link
+                      href="/signup"
+                      className={`w-full py-3 rounded-xl text-sm font-medium text-center transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                        plan.highlight
+                          ? 'bg-[#F59E0B] text-[#0A0908] hover:bg-[#D97706]'
+                          : 'border border-white/10 text-[#A09690] hover:border-white/25 hover:text-[#F5F1ED]'
+                      }`}
+                    >
+                      {plan.cta}
+                    </Link>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            <p className="text-center text-[#3D3630] text-xs mt-8">
+              All plans include a 14-day money-back guarantee. No questions asked.
+            </p>
           </div>
-          <p className="text-center text-[#3D3630] text-xs mt-8">
-            All plans include a 14-day money-back guarantee. No questions asked.
-          </p>
-        </div>
-      </section>
+        </section>
+
+        </>
+      )}
 
       {/* ── FAQ ───────────────────────────────────────────── */}
       <section className="px-6 py-24 bg-[#0D0B09]">

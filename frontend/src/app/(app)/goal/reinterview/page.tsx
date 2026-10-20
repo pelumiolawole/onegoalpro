@@ -7,6 +7,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { trackEvent } from '@/lib/posthog'
+import { isAndroidApp } from '@/lib/platform'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -36,7 +37,9 @@ export default function ReinterviewPage() {
       } catch (err: any) {
         const code = err?.detail?.code
         if (code === 'identity_tier_required') {
-          setError('Re-interview is available on The Identity plan.')
+          setError(isAndroidApp()
+            ? 'Re-interview is not available on your account.'
+            : 'Re-interview is available on The Identity plan.')
         } else if (code === 'goal_not_approaching_completion') {
           setError('Re-interview becomes available when your current goal is approaching completion.')
         } else {

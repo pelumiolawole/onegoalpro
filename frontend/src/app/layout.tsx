@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google'
 import './globals.css'
 import PostHogInit from '@/components/PostHogInit'
-import CookieBanner from '@/components/CookieBanner'  
+import CookieBanner from '@/components/CookieBanner'
+import PlatformDetector from '@/components/PlatformDetector'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -80,6 +81,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="antialiased overflow-x-hidden">
+        <PlatformDetector />
         <PostHogInit />
         {children}
         <CookieBanner />

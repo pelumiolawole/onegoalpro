@@ -6,6 +6,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { Zap } from 'lucide-react'
+import { useIsAndroidApp, APP_LIMIT_MESSAGE } from '@/lib/platform'
 
 interface Message {
   id: string
@@ -65,6 +66,7 @@ export default function CoachPage() {
   const [loading, setLoading] = useState(true)
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null)
   const [quotaExhausted, setQuotaExhausted] = useState(false)
+  const isAndroidApp = useIsAndroidApp()
   const [taskStarter, setTaskStarter] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const msgId = useRef(0)
@@ -454,16 +456,22 @@ export default function CoachPage() {
             <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/15 flex items-center justify-center mx-auto mb-3">
               <Zap className="w-4 h-4 text-[#F59E0B]" />
             </div>
-            <p className="text-[#F5F1ED] text-sm font-medium mb-4">
-              You've used today's 5 messages. Forge is unlimited.
-            </p>
-            <a
-              href="/settings/upgrade?plan=forge"
-              className="inline-block px-5 py-2.5 rounded-xl bg-[#F59E0B] text-[#0A0908] text-sm font-medium hover:bg-[#D97706] transition-colors"
-            >
-              Upgrade to Forge
-            </a>
-            <p className="text-[#5C524A] text-xs mt-3">Resets at midnight</p>
+            {isAndroidApp === false ? (
+              <>
+                <p className="text-[#F5F1ED] text-sm font-medium mb-4">
+                  You've used today's 5 messages. Forge is unlimited.
+                </p>
+                <a
+                  href="/settings/upgrade?plan=forge"
+                  className="inline-block px-5 py-2.5 rounded-xl bg-[#F59E0B] text-[#0A0908] text-sm font-medium hover:bg-[#D97706] transition-colors"
+                >
+                  Upgrade to Forge
+                </a>
+                <p className="text-[#5C524A] text-xs mt-3">Resets at midnight</p>
+              </>
+            ) : (
+              <p className="text-[#F5F1ED] text-sm font-medium">{APP_LIMIT_MESSAGE}</p>
+            )}
           </motion.div>
         ) : (
           <div className="max-w-3xl mx-auto">

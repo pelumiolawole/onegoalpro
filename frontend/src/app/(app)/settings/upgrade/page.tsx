@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { Loader2, Sparkles, Shield, Check, ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import { trackEvent } from '@/lib/posthog'
+import WebOnly from '@/components/WebOnly'
 
 const plans = {
   forge: {
@@ -222,8 +223,10 @@ function UpgradeLoading() {
 
 export default function UpgradePage() {
   return (
-    <Suspense fallback={<UpgradeLoading />}>
-      <UpgradeContent />
-    </Suspense>
+    <WebOnly>
+      <Suspense fallback={<UpgradeLoading />}>
+        <UpgradeContent />
+      </Suspense>
+    </WebOnly>
   )
 }

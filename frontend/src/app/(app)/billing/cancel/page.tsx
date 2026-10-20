@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import WebOnly from '@/components/WebOnly';
 
-export default function BillingCancelPage() {
+function BillingCancelPageContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -69,5 +70,13 @@ export default function BillingCancelPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function BillingCancelPage() {
+  return (
+    <WebOnly>
+      <BillingCancelPageContent />
+    </WebOnly>
   );
 }

@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import CookieSettingsLink from '@/components/CookieSettingsLink'
+import { useIsAndroidApp } from '@/lib/platform'
 import { 
   CreditCard, 
   Calendar, 
@@ -77,6 +78,7 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const isAndroidApp = useIsAndroidApp()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -387,7 +389,7 @@ export default function SettingsPage() {
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
                   {subscription.status === 'active' && !subscription.cancel_at_period_end && (
                     <>
-                      {subscription.plan !== 'identity' && (
+                      {subscription.plan !== 'identity' && isAndroidApp === false && (
                         <button
                           onClick={handleUpgrade}
                           className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[#F59E0B] font-medium rounded-lg hover:bg-[#F59E0B]/20 transition-colors text-sm"
@@ -407,7 +409,7 @@ export default function SettingsPage() {
                     </>
                   )}
 
-                  {(subscription.status === 'ended' || subscription.cancel_at_period_end) && (
+                  {(subscription.status === 'ended' || subscription.cancel_at_period_end) && isAndroidApp === false && (
                     <button
                       onClick={handleResume}
                       disabled={actionLoading}
@@ -422,14 +424,14 @@ export default function SettingsPage() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-[#7A6E65] mb-4">You're on The Spark (Free)</p>
-                <button
+                {isAndroidApp === false && <button
                   onClick={handleUpgrade}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-[#F59E0B] text-black font-medium rounded-xl hover:bg-[#F59E0B]/90 transition-colors"
                 >
                   <Sparkles className="w-5 h-5" />
                   Upgrade
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </button>}
               </div>
             )}
           </section>

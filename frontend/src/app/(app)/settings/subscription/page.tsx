@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import WebOnly from '@/components/WebOnly';
 
 interface Subscription {
   plan: string;
@@ -12,7 +13,7 @@ interface Subscription {
   stripe_subscription_id: string | null;
 }
 
-export default function SubscriptionSettingsPage() {
+function SubscriptionSettingsPageContent() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -232,5 +233,13 @@ export default function SubscriptionSettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SubscriptionSettingsPage() {
+  return (
+    <WebOnly>
+      <SubscriptionSettingsPageContent />
+    </WebOnly>
   );
 }

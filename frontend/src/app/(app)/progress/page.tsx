@@ -7,8 +7,10 @@ import {
   ResponsiveContainer, CartesianGrid
 } from 'recharts'
 import { api } from '@/lib/api'
+import { useIsAndroidApp } from '@/lib/platform'
 
 export default function ProgressPage() {
+  const isAndroidApp = useIsAndroidApp()
   const { data: scores }   = useSWR('/progress/scores',          () => api.progress.getScores())
   const { data: timeline } = useSWR('/progress/timeline',        () => api.progress.getTimeline(30))
   const { data: traits }   = useSWR('/progress/traits/timeline', () => api.progress.getTraitsTimeline())
@@ -271,16 +273,22 @@ export default function ProgressPage() {
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </div>
-            <p className="text-[#5C524A] text-sm mb-1">Available on The Identity plan</p>
-            <p className="text-[#3D3630] text-xs mb-4">
-              The system is already learning your patterns. Upgrade to see what it knows.
-            </p>
-            <a
-              href="/settings/upgrade?plan=identity"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#008e97]/10 border border-[#008e97]/20 rounded-xl text-[#008e97] text-sm hover:bg-[#008e97]/20 transition-all"
-            >
-              Commit fully
-            </a>
+            {isAndroidApp === false ? (
+              <>
+                <p className="text-[#5C524A] text-sm mb-1">Available on The Identity plan</p>
+                <p className="text-[#3D3630] text-xs mb-4">
+                  The system is already learning your patterns. Upgrade to see what it knows.
+                </p>
+                <a
+                  href="/settings/upgrade?plan=identity"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#008e97]/10 border border-[#008e97]/20 rounded-xl text-[#008e97] text-sm hover:bg-[#008e97]/20 transition-all"
+                >
+                  Commit fully
+                </a>
+              </>
+            ) : (
+              <p className="text-[#5C524A] text-sm">Not available on your account.</p>
+            )}
           </div>
         ) : patterns.patterns?.length === 0 && !patterns.snapshot ? (
           <p className="text-[#3D3630] text-sm">
