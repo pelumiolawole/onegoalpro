@@ -237,3 +237,40 @@ async def get_unreviewed_count(
     )
     
     return {"unreviewed_count": result.scalar() or 0}
+
+
+@router.post(
+    "/dry-run/initial-tasks/{user_id}",
+    summary="Generate a user's first three tasks without saving them",
+)
+async def dry_run_initial_tasks(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Runs the activation batch (generate_initial_tasks) in dry-run mode for an
+    existing user and returns the three tasks. No daily_tasks rows are
+    written. OpenAI usage is still recorded in ai_interactions as normal.
+    """
+    from ai.engines.task_generator import TaskGeneratorEngine
+
+    engine = TaskGeneratorEngine()
+    tasks = await engine.generate_initial_tasks(user_id, db, dry_run=True)
+    await db.rollback()  # belt and braces: nothing in a dry run should be committed
+    logger.info("dry_run_initial_tasks", admin_id=str(current_user.id), user_id=user_id, count=len(tasks))
+    return {
+        "user_id": user_id,
+        "tasks": [
+            {
+                "scheduled_date": t.get("scheduled_date"),
+                "title": t.get("title"),
+                "task_type": t.get("task_type"),
+                "domain": t.get("domain"),
+                "time_estimate_minutes": t.get("time_estimate_minutes"),
+                "fallback": bool(t.get("fallback")),
+                "rejected_reasons": t.get("rejected_reasons", []),
+            }
+            for t in tasks
+        ],
+    }

@@ -279,23 +279,35 @@ class TaskGeneratorEngine(BaseAIEngine):
         target_date: date | None = None,
         db: AsyncSession | None = None,
         is_backlog: bool = False,
+        batch: list[dict] | None = None,
+        required_task_type: str | None = None,
+        dry_run: bool = False,
     ) -> dict:
+        """
+        batch / required_task_type: set by generate_initial_tasks so the first
+        three tasks differ from each other (domain, type, wording). None on the
+        nightly path, which keeps its existing checks.
+        dry_run: generate and validate but write nothing; returns the task dict.
+        """
         from core.database import get_db_context
 
         uid = str(user_id)
         task_date = target_date or date.today() + timedelta(days=1)
 
         async def _run(db: AsyncSession):
-            existing = await db.execute(
-                text("""
-                    SELECT id FROM daily_tasks
-                    WHERE user_id = :user_id
-                      AND scheduled_date = :date
-                      AND task_type = 'becoming'
-                """),
-                {"user_id": uid, "date": task_date},
-            )
-            if existing.scalar():
+            if dry_run:
+                existing = None
+            else:
+                existing = await db.execute(
+                    text("""
+                        SELECT id FROM daily_tasks
+                        WHERE user_id = :user_id
+                          AND scheduled_date = :date
+                          AND task_type = 'becoming'
+                    """),
+                    {"user_id": uid, "date": task_date},
+                )
+            if existing is not None and existing.scalar():
                 logger.info("task_already_exists", user_id=uid, date=str(task_date))
                 return None
 
@@ -342,11 +354,15 @@ class TaskGeneratorEngine(BaseAIEngine):
                     f"Choose from one of these domains instead: {alternatives}."
                 )
 
+            if batch is not None:
+                system_prompt += self._batch_prompt_block(batch, required_task_type)
+
             date_note = ""
             if is_backlog:
                 date_note = f"\n\nNOTE: This task is for {task_date.strftime('%A, %B %d')} (a missed day). Keep the tone supportive and non-judgmental. Focus on 'starting fresh' rather than 'catching up'."
 
             task_type_desc = "a catch-up" if is_backlog else "tomorrow's"
+            rejection_log: list[str] = []
 
             try:
                 response_raw = await self._complete(
@@ -354,7 +370,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                         {"role": "system", "content": system_prompt},
                         {
                             "role": "user",
-                            "content": f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}",
+                            "content": f"Generate {task_type_desc} task for {task_date.strftime('%A, %B %d')}.{date_note}",
                         },
                     ],
                     user_id=uid,
@@ -374,7 +390,8 @@ class TaskGeneratorEngine(BaseAIEngine):
                 # only named the violation: the model re-sampled the same verb pool.
                 # Deterministic checks in code - the prompt asks, the code verifies.
                 rejection = await self._validate_task(
-                    uid, task_data, dominant_domain, db
+                    uid, task_data, dominant_domain, db,
+                    batch=batch, required_task_type=required_task_type,
                 )
                 if rejection:
                     reason_code, rejection_reason = rejection
@@ -386,11 +403,13 @@ class TaskGeneratorEngine(BaseAIEngine):
                         reason_code=reason_code,
                         date=str(task_date),
                     )
+                    rejection_log.append(reason_code)
                     recent_titles = None
-                    if reason_code == "duplicate":
+                    if reason_code in ("duplicate", "near_duplicate"):
                         recent_titles = await self._get_recent_titles_sample(uid, db)
                     retry_guidance = self._retry_guidance(
-                        reason_code, rejection_reason, task_data, dominant_domain, recent_titles
+                        reason_code, rejection_reason, task_data, dominant_domain, recent_titles,
+                        batch=batch, required_task_type=required_task_type,
                     )
                     retry_raw = await self._complete(
                         messages=[
@@ -398,7 +417,7 @@ class TaskGeneratorEngine(BaseAIEngine):
                             {
                                 "role": "user",
                                 "content": (
-                                    f"Generate {task_type_desc} becoming task for {task_date.strftime('%A, %B %d')}.{date_note}\n\n"
+                                    f"Generate {task_type_desc} task for {task_date.strftime('%A, %B %d')}.{date_note}\n\n"
                                     f"{retry_guidance}"
                                 ),
                             },
@@ -414,11 +433,25 @@ class TaskGeneratorEngine(BaseAIEngine):
                     if not retry_data or not retry_data.get("title"):
                         raise ValueError(f"Retry returned empty after rejection: {rejection_reason}")
                     retry_rejection = await self._validate_task(
-                        uid, retry_data, dominant_domain, db
+                        uid, retry_data, dominant_domain, db,
+                        batch=batch, required_task_type=required_task_type,
                     )
                     if retry_rejection:
                         retry_code, retry_reason = retry_rejection
-                        if retry_code == "domain_saturated":
+                        rejection_log.append(retry_code)
+                        if retry_code == "task_type":
+                            # Content passed every content check (task_type is
+                            # checked after them); only the type label is off.
+                            # Same reasoning as the domain relabel below.
+                            logger.info(
+                                "task_type_auto_set",
+                                user_id=uid,
+                                title=retry_data.get("title"),
+                                declared=retry_data.get("task_type"),
+                                required=required_task_type,
+                            )
+                            retry_data["task_type"] = required_task_type
+                        elif retry_code == "domain_saturated":
                             # Content already cleared every other check (see
                             # _validate_task's order) - only the domain label
                             # is wrong. Fix the label in code rather than
@@ -443,9 +476,16 @@ class TaskGeneratorEngine(BaseAIEngine):
 
             except Exception as e:
                 logger.error("ai_task_generation_failed", user_id=uid, date=str(task_date), error=str(e))
-                fallback_index = task_date.day % len(self.FALLBACK_TASKS)
-                task_data = self.FALLBACK_TASKS[fallback_index].copy()
+                task_data = self._pick_fallback(task_date, batch, required_task_type)
                 task_data["fallback"] = True
+                task_data["fallback_reason"] = (rejection_log[-1] if rejection_log else "ai_error")
+
+            if rejection_log:
+                task_data["rejected_reasons"] = list(rejection_log)
+
+            if dry_run:
+                logger.info("task_dry_run", user_id=uid, date=str(task_date), title=task_data.get("title"))
+                return {**task_data, "id": None, "scheduled_date": str(task_date)}
 
             task_id = await self._persist_task(uid, task_date, task_data, context, db)
 
@@ -554,6 +594,8 @@ class TaskGeneratorEngine(BaseAIEngine):
         task_data: dict,
         dominant_domain: str | None,
         recent_titles: list[str] | None = None,
+        batch: list[dict] | None = None,
+        required_task_type: str | None = None,
     ) -> str:
         """
         Build a reason-specific retry instruction that REDIRECTS rather than
@@ -584,6 +626,33 @@ class TaskGeneratorEngine(BaseAIEngine):
                 "Do NOT output another task whose first step depends on another person agreeing "
                 "or an event existing. No reach out, attend, join, host, schedule, invite, "
                 "connect with, or find a group/mentor."
+            )
+
+        if reason_code in ("near_duplicate", "batch_domain") and batch is not None:
+            used = [(b.get("domain") or "").lower().strip() for b in batch]
+            free = ", ".join(f"'{d}'" for d in self.CANONICAL_DOMAINS if d not in used)
+            planned = "\n".join(f"- {b.get('title')} ({b.get('domain')})" for b in batch) or "(none)"
+            verb, words = self._title_tokens(title)
+            avoid = ", ".join(f"'{w}'" for w in sorted(words)) or "(none)"
+            verbs = ", ".join(f"'{v}'" for v in self.APPROVED_ACTION_VERBS if v != verb)
+            return header + (
+                f"Already planned for this user's first days:\n{planned}\n\n"
+                f"Design a task in one of these domains instead: {free}. "
+                "It must be a different kind of activity, not the same activity reworded. "
+                f"Do not use these words in the title: {avoid}"
+                + (f", or the verb '{verb}'" if verb else "") + ". "
+                f"Start the title with one of: {verbs}.\n"
+                "Example of the change wanted: if the planned task is a workout, today's task "
+                "could be preparing tomorrow's kit and route the night before (environment), "
+                "a 5-minute focus drill (skill-development), or writing down one sentence about "
+                "who they are becoming (reflection)."
+            )
+
+        if reason_code == "task_type" and required_task_type:
+            return header + (
+                f"Keep the same idea if it fits, but the task_type MUST be '{required_task_type}' "
+                f"and the task must be sized as {self.TASK_TYPE_SIZING.get(required_task_type, '')}. "
+                f"Set \"task_type\": \"{required_task_type}\" in the JSON."
             )
 
         if reason_code == "duplicate":
@@ -737,6 +806,8 @@ class TaskGeneratorEngine(BaseAIEngine):
         task_data: dict,
         dominant_domain: str | None,
         db: AsyncSession,
+        batch: list[dict] | None = None,
+        required_task_type: str | None = None,
     ) -> tuple[str, str] | None:
         """
         Run all deterministic checks on a generated task.
@@ -785,6 +856,35 @@ class TaskGeneratorEngine(BaseAIEngine):
             )
 
         task_domain = raw_domain.lower().strip()
+
+        # Activation batch only (batch is not None). The nightly path keeps
+        # exact-match duplicates only: fuzzy matching there was removed after it
+        # pushed too many users onto fallback templates.
+        if batch is not None:
+            history = await self._get_recent_titles_sample(user_id, db)
+            compare_titles = [b.get("title", "") for b in batch] + history
+            clash = next((t for t in compare_titles if self._is_near_duplicate(title, t)), None)
+            if clash:
+                return (
+                    "near_duplicate",
+                    f"'{title}' is the same activity as '{clash}', which is already planned "
+                    f"or recent. Different wording does not make a different task.",
+                )
+            used_domains = [(b.get("domain") or "").lower().strip() for b in batch]
+            if task_domain in used_domains:
+                return (
+                    "batch_domain",
+                    f"The domain '{task_domain}' is already used by another of this user's "
+                    f"first tasks. Each of the first three tasks must be in a different domain.",
+                )
+            declared_type = (task_data.get("task_type") or "").lower().strip()
+            if required_task_type and declared_type != required_task_type:
+                return (
+                    "task_type",
+                    f"task_type was '{declared_type or 'missing'}' but this task must be "
+                    f"'{required_task_type}'.",
+                )
+
         if dominant_domain and task_domain == dominant_domain:
             return (
                 "domain_saturated",
@@ -794,6 +894,98 @@ class TaskGeneratorEngine(BaseAIEngine):
             )
 
         return None
+
+    # Words that carry no meaning for "is this the same activity?".
+    _TITLE_STOPWORDS = frozenset({
+        "a", "an", "the", "to", "of", "for", "and", "or", "in", "on", "at", "by",
+        "with", "about", "from", "into", "that", "this", "it", "your", "you", "my",
+        "one", "new", "short", "quick", "brief", "simple", "small", "today",
+        "daily", "session", "minute", "minutes", "min", "mins", "hour", "hours",
+        "goal", "goals", "step", "steps", "task",
+    })
+
+    @classmethod
+    def _title_tokens(cls, title: str) -> tuple[str, set[str]]:
+        """(first word, content words) of a title, lower-cased, numbers and filler removed."""
+        import re
+        words = re.findall(r"[a-z]+", (title or "").lower())
+        verb = words[0] if words else ""
+        content = set()
+        for w in words[1:]:
+            if w in cls._TITLE_STOPWORDS or len(w) < 3:
+                continue
+            content.add(w[:-1] if w.endswith("s") and len(w) > 4 else w)
+        return verb, content
+
+    @classmethod
+    def _is_near_duplicate(cls, a: str, b: str) -> bool:
+        """
+        Same activity in different words, e.g. "Complete a 20-minute workout
+        session" vs "Try a new 20-minute workout" (20 Oct 2026, reviewer
+        account). Near-duplicate when the content words overlap by half or
+        more, or the titles share both the verb and a content word.
+        """
+        if not a or not b:
+            return False
+        if a.strip().lower() == b.strip().lower():
+            return True
+        verb_a, words_a = cls._title_tokens(a)
+        verb_b, words_b = cls._title_tokens(b)
+        if not words_a or not words_b:
+            return False
+        overlap = words_a & words_b
+        jaccard = len(overlap) / len(words_a | words_b)
+        return jaccard >= 0.5 or (verb_a == verb_b and bool(overlap))
+
+    # First three tasks at activation: one type per slot, so a new user meets
+    # more than one kind of task. Slot 1 is the guaranteed first win (the
+    # prompt's own rule for streak < 3), slot 2 the identity ritual, slot 3
+    # the core practice they'll do most days.
+    ACTIVATION_SLOT_TYPES = ["micro_action", "identity_anchor", "becoming"]
+
+    TASK_TYPE_SIZING = {
+        "micro_action": "the smallest meaningful step, done in a few minutes, a guaranteed win",
+        "identity_anchor": "a short ritual that signals who they are becoming: low effort, high identity signal",
+        "becoming": "the core practice that builds their required identity",
+        "challenge": "a stretch experience at the edge of what they can do",
+    }
+
+    def _batch_prompt_block(self, batch: list[dict], required_task_type: str | None) -> str:
+        used = [(b.get("domain") or "").lower().strip() for b in batch]
+        free = [d for d in self.CANONICAL_DOMAINS if d not in used]
+        lines = ["\n\nFIRST-DAYS PLAN (computed in code, mandatory):",
+                 "This user is new. You are writing one of their first three tasks."]
+        if batch:
+            lines.append("Already planned for them:")
+            for b in batch:
+                lines.append(f"- '{b.get('title')}' (type {b.get('task_type')}, domain {b.get('domain')})")
+            lines.append(
+                "This task must be a different activity from each of those, in a different domain. "
+                f"Choose its domain from: {', '.join(free)}."
+            )
+        if required_task_type:
+            lines.append(
+                f"task_type MUST be '{required_task_type}': "
+                f"{self.TASK_TYPE_SIZING.get(required_task_type, '')}."
+            )
+        return "\n".join(lines)
+
+    def _pick_fallback(
+        self, task_date: date, batch: list[dict] | None, required_task_type: str | None
+    ) -> dict:
+        """Template fallback. In an activation batch, avoid a domain or type already planned."""
+        index = task_date.day % len(self.FALLBACK_TASKS)
+        if batch:
+            used_domains = {(b.get("domain") or "").lower() for b in batch}
+            used_titles = {b.get("title") for b in batch}
+            candidates = [f for f in self.FALLBACK_TASKS
+                          if f["domain"] not in used_domains and f["title"] not in used_titles]
+            if not candidates:
+                candidates = [f for f in self.FALLBACK_TASKS if f["title"] not in used_titles]
+            typed = [f for f in candidates if f["task_type"] == required_task_type]
+            pick = (typed or candidates or [self.FALLBACK_TASKS[index]])[0]
+            return pick.copy()
+        return self.FALLBACK_TASKS[index].copy()
 
     async def _is_title_duplicate(
         self, user_id: str, title: str, db: AsyncSession
@@ -859,7 +1051,18 @@ class TaskGeneratorEngine(BaseAIEngine):
         self,
         user_id: UUID | str,
         db: AsyncSession,
+        dry_run: bool = False,
     ) -> list[dict]:
+        """
+        The first three tasks at activation. Each one is generated knowing the
+        ones before it (batch), with a fixed type per slot, and is checked in
+        code for a different domain, a different type and a different activity.
+        Before 20 Oct 2026 this called the nightly path three times with no
+        knowledge of the batch: domain rotation needs 3 tasks of history to
+        fire and duplicates were exact-match only, so a new user could get
+        "Complete a 20-minute workout session" and "Try a new 20-minute
+        workout" on consecutive days, all typed 'becoming', all 'execution'.
+        """
         uid = str(user_id)
         tasks = []
         today = date.today()
@@ -867,7 +1070,12 @@ class TaskGeneratorEngine(BaseAIEngine):
         for i in range(3):
             task_date = today + timedelta(days=i)
             try:
-                task = await self.generate_task_for_user(uid, target_date=task_date, db=db)
+                task = await self.generate_task_for_user(
+                    uid, target_date=task_date, db=db,
+                    batch=list(tasks),
+                    required_task_type=self.ACTIVATION_SLOT_TYPES[i],
+                    dry_run=dry_run,
+                )
                 if task:
                     tasks.append(task)
             except Exception as e:
@@ -1047,6 +1255,8 @@ class TaskGeneratorEngine(BaseAIEngine):
             "streak": context.get("scores", {}).get("streak"),
             "top_trait_gap": (context.get("traits") or [{}])[0].get("name") if context.get("traits") else None,
             "is_fallback": task_data.get("fallback", False),
+            **({"reason": task_data["fallback_reason"]} if task_data.get("fallback_reason") else {}),
+            **({"rejected_reasons": task_data["rejected_reasons"]} if task_data.get("rejected_reasons") else {}),
             "domain": (
                 (task_data.get("domain") or "").lower().strip()
                 or self._infer_domain_from_title(task_data.get("title", ""))
