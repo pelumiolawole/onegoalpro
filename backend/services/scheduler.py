@@ -404,7 +404,9 @@ async def run_reengagement_emails() -> None:
                 JOIN goals g ON g.user_id = u.id AND g.status IN ('active', 'approaching_completion')
                 JOIN daily_tasks dt ON dt.user_id = u.id
                     AND dt.status = 'pending' AND dt.scheduled_date < CURRENT_DATE
-                WHERE u.is_active = TRUE AND u.onboarding_status = 'active'
+                WHERE u.is_active = TRUE
+                  AND NOT u.is_internal  -- founder and Play reviewer accounts (migration 016)
+                  AND u.onboarding_status = 'active'
                   AND NOT EXISTS (
                     SELECT 1 FROM daily_tasks completed
                     WHERE completed.user_id = u.id AND completed.status = 'completed'
@@ -489,6 +491,7 @@ async def run_activation_reengagement_day3() -> None:
                     AND dt.scheduled_date = CURRENT_DATE
                     AND dt.status = 'pending'
                 WHERE u.is_active = TRUE
+                  AND NOT u.is_internal  -- founder and Play reviewer accounts (migration 016)
                   AND u.onboarding_status = 'active'
                   AND g.started_at <= NOW() - INTERVAL '48 hours'
                   AND ip.activation_reengagement_sent_at IS NULL
@@ -609,6 +612,7 @@ async def run_activation_reengagement_day7() -> None:
                     AND dt.status = 'pending'
                 LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
                 WHERE u.is_active = TRUE
+                  AND NOT u.is_internal  -- founder and Play reviewer accounts (migration 016)
                   AND u.onboarding_status = 'active'
                   AND g.started_at <= NOW() - INTERVAL '7 days'
                   AND ip.activation_reengagement_sent_at IS NOT NULL
@@ -739,6 +743,7 @@ async def run_activation_reengagement_day14() -> None:
                 JOIN identity_profiles ip ON ip.user_id = u.id
                 LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
                 WHERE u.is_active = TRUE
+                  AND NOT u.is_internal  -- founder and Play reviewer accounts (migration 016)
                   AND u.onboarding_status = 'active'
                   AND g.started_at <= NOW() - INTERVAL '14 days'
                   AND ip.activation_reengagement_day7_sent_at IS NOT NULL
@@ -1171,7 +1176,9 @@ async def run_interview_nudge(hours_since_signup: int) -> None:
                 FROM users u
                 LEFT JOIN goals g ON g.user_id = u.id
                 LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
-                WHERE u.is_active = TRUE AND g.id IS NULL
+                WHERE u.is_active = TRUE
+                  AND NOT u.is_internal  -- founder and Play reviewer accounts (migration 016)
+                  AND g.id IS NULL
                   AND u.created_at >= NOW() - INTERVAL '{window_end} hours'
                   AND u.created_at < NOW() - INTERVAL '{window_start} hours'
             """))
