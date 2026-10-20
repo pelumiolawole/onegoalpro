@@ -2,7 +2,7 @@
 // Handles: offline fallback for page navigations, push notifications, notification clicks.
 // Bump CACHE_VERSION whenever offline.html changes, so users get the new copy.
 
-const CACHE_VERSION = 'onegoal-offline-v1';
+const CACHE_VERSION = 'onegoal-offline-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Install: cache the offline page so it is available with no connection.
@@ -57,7 +57,7 @@ self.addEventListener('push', function(event) {
   const options = {
     body: data.body || 'Your identity task for today is ready.',
     icon: '/icon-192.png',
-    badge: '/icon-72.png',
+    badge: '/icon-monochrome.png',
     tag: 'onegoal-daily-task',
     renotify: true,
     data: {
