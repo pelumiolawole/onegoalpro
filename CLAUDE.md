@@ -1,5 +1,5 @@
 OneGoal Pro — Master Claude Skill File
-Version: 2.4 | Last updated: 20 October 2026
+Version: 2.5 | Last updated: 20 October 2026
 READ THIS ENTIRE FILE BEFORE DOING ANYTHING ELSE IN THIS SESSION
 
 CHANGE NOTE 1: v1.1 (March 25, 2026) was stale — pasted into FOUR separate
@@ -78,6 +78,12 @@ pelumi.olawole@icloud.com, iicnetworksng@gmail.com, and tomolawblog@gmail.com (t
 subscriber; confirmed by Pelumi 15 October 2026, and confirmed in users/subscriptions to be the
 account holding the only active Forge subscription). Other accounts were NOT excluded — a shared
 surname or company domain is not proof an account is internal.
+SIXTH INTERNAL ACCOUNT (20 October 2026): review@onegoalpro.app (user id
+21f31d19-080a-4249-8db8-b6b4aad68236), the Google Play reviewer demo account, created by Pelumi on
+20 October 2026 as the 101st users row. Exclude it from every metric like the five above.
+In the database: users.is_internal = true for all six (migration 016, set by hand 20 October 2026).
+Prefer WHERE NOT is_internal over an email list in metric queries, and set the flag for any new
+internal account. Re-engagement and nudge email jobs already skip is_internal users.
 
 PAYING CUSTOMERS EXCLUDING INTERNAL ACCOUNTS: 0. There has never been an external paying
 subscriber. The only paying subscription (The Forge, tomolawblog@gmail.com, monthly; per Stripe,
@@ -338,8 +344,33 @@ source only. Privacy policy updated. Nobody reviews reports automatically: check
 (WHERE NOT reviewed) regularly.
 PENDING FROM PELUMI: build 2 of the TWA with start URL /dashboard?source=android (build 1 opens
 /dashboard with no parameter, so the purchase-path hiding only works from build 2).
-PENDING: reviewer demo account review@onegoalpro.app (Pelumi creates it; then add to the internal
-accounts list and verify goal, commitment gate and today's task).
+Done: reviewer demo account review@onegoalpro.app (20 October 2026). Internal (see user/revenue
+block, users.is_internal). Verified 20 October: one active goal, 185-character commitment (passes the
+gate), today's task present, not scheduled for deletion, no deletion request. Its display_name and
+daily_minutes were still empty; Pelumi sets both through the new name card and time screens, which
+also tests them.
+ONBOARDING QUALITY FIXES (20 October 2026, from Pelumi's end-to-end run with the reviewer account):
+- Display name required (commit a41b43c). Sign-up form and SignUpRequest require "What should we call
+  you?" (1-50 chars, letters, spaces, hyphens, apostrophes; core/names.py and lib/names.ts). Google
+  sign-in takes given_name. Users with no name get a one-time dashboard card; Settings can edit it.
+  The coach greeting used to crash for users with no name ("".split()[0]); emails and push used the
+  email address as a name or put "there" mid-sentence. All fixed. 2 of 101 users had no name.
+- Interview ending (commit ab082e1). No auto-redirect: the closing message stays, "See my goal →"
+  appears after it renders, 300ms fade, double tap navigates once.
+- Activation tasks (commits 53ffc40, ae0fd0a). First three tasks get one type per slot
+  (micro_action, identity_anchor, becoming), different domains, and no near-duplicate titles, checked
+  in code with reason-coded retries. Admin dry run: POST /api/admin/dry-run/initial-tasks/{user_id}.
+- Daily time budget (commit 5ded2bd). identity_profiles.daily_minutes and preferred_time (migration
+  015), asked on the activate screen (required), in Settings and as a dashboard card for existing
+  users. The generator rejects any task over budget, then falls back to a template sized to it.
+- Interview coverage gate (commit 2241dea). Up to 3 extra questions for missing essentials (life
+  direction, motivation style, main obstacle, core values); extraction now reads the whole
+  transcript. Admin before/after: POST /api/admin/dry-run/interview-extraction/{user_id}. Existing
+  profiles were not reprocessed.
+- Internal accounts excluded from re-engagement and nudge emails (commit 3201ebe, migration 016).
+Not run against the live model: this session had no OpenAI access, so the activation batch and the
+extraction were tested with a stand-in model replaying the reviewer account's real outputs. Run both
+admin dry runs on review@ to see live output.
 Remaining before Play production, in order:
 - Upload build 2 (start URL /dashboard?source=android)
 - Phone checklist on a physical device: purchase paths hidden (including after a notification tap),
@@ -347,6 +378,8 @@ Remaining before Play production, in order:
   account
 - Screenshots and feature graphic 1024x500
 - Store listing text
+- Reviewer account ready: review@onegoalpro.app must have a display name, a daily time budget and at
+  least one completed task before submission (reviewers judge the app from that account)
 - App content declarations: data safety form (docs/PLAY_DATA_SAFETY_AUDIT.md), Advertising ID (No),
   AI-generated content, reviewer login details (review@onegoalpro.app)
 - Then submit for production review
@@ -375,6 +408,21 @@ Interview Engine V2
 → crystallise identity anchor. One question at a time, reflects before asking, uses the user's exact
 words, ends with "I have a clear picture of who you are and where you want to go. Let's define your
 One Goal."
+Coverage gate (20 October 2026, commit 2241dea), in code in ai/engines/interview.py:
+- Essential fields: life_direction, motivation_style, obstacle (resistance_triggers or weaknesses),
+  core_values. These are what the coach and generator read.
+- From the crystallise phase or the 7th user turn, each still-missing area gets one natural question,
+  at most 3 in total, then the interview concludes anyway.
+- The older quality gate (personal_vision, identity_anchor, resistance_triggers) is capped at 2
+  prompts so it can't trap the user.
+- Extraction reads the last 24 messages each turn, not one exchange. Merge rules are in code: a
+  non-empty value replaces, an empty one never erases, and motivation_style must be one of 4 values.
+- State lives in onboarding_interview_state.extracted_data._coverage (asked, fields, depth_prompts).
+SEND TIMES (assessed 20 October 2026, not changed): the daily task email goes out right after
+generation at the user's local midnight. Daily push goes at a fixed 08:00 UTC. Matching
+preferred_time is feasible: add an hourly job that picks users whose local hour matches (for example
+07:00 morning, 12:00 midday, 18:00 evening, 08:00 varies or unset), sends the email and push for
+today's task, and records a sent-at column to avoid duplicates. Generation stays at midnight.
 Coach PO (system prompt version V2)
 PMOS framework (Forge / Field / Harbor / War Room domains) plus integrated coaching perspectives
 (self-determination theory, stages of change, implementation intentions, ACT, adult development,
@@ -425,11 +473,28 @@ then fixed within hours. One day is not enough data to declare victory on Stage 
 targets (forbidden-pattern, saturation) — re-run this check a few days out. Query pattern:
 compare Sentry issues matching "ai_task_generation_failed" / "Retry also failed validation"
 before and after July 12, and cross-check daily_tasks.generation_context->>'is_fallback' rate.
-KNOWN OBSERVABILITY GAP (not yet fixed): generation_context for fallback tasks created via the
-main nightly path (generate_task_for_user's except block) does not write a "reason" key — only
-the backlog path (_create_fallback_task) does. You can currently only learn WHY a given fallback
-happened by cross-referencing Sentry, not from the database alone. Minor, not urgent, worth fixing
-if fallback-rate analysis becomes a regular activity.
+OBSERVABILITY GAP CLOSED (20 October 2026, commit 53ffc40): main-path fallbacks now write a "reason"
+(the last rejection code, or ai_error), and every task records rejected_reasons, rejected_reason
+(the first) and time_budget in generation_context.
+STAGE 6 (20 October 2026):
+- Activation batch. Before this, activation called the nightly path three times with no knowledge
+  of the batch. Domain rotation needs 3 of the last 5 tasks in one domain, so it never fires in the
+  first three, and duplicates were exact-match only. Now generate_initial_tasks passes the planned
+  tasks and a type per slot, and _validate_task checks near-duplicates, the batch domain and the
+  slot type, in batch mode only. The nightly path keeps exact-match duplicates; fuzzy matching was
+  removed there before because it pushed users onto fallbacks.
+- Task type. 94% of tasks in the 30 days to 20 October were 'becoming'. The prompt's own rule
+  (streak < 3 means micro_action or identity_anchor) was never checked, and the user message said
+  "Generate tomorrow's becoming task". That wording is removed on every path. The nightly path still
+  doesn't enforce type rules in code; check whether the type mix moves.
+- Time budget. The generator read identity.time_availability with weekday/weekend keys the interview
+  never wrote, so every task got a 30-minute default (45 at weekends). It now uses
+  identity_profiles.daily_minutes (20 if unanswered) as a hard cap. Any task whose estimate, or a
+  duration in its text, is over budget is rejected and retried once with the limit, then replaced by
+  a fallback sized to the budget. A final guard clamps the estimate. Measure:
+  generation_context->>'rejected_reason' = 'over_time_budget'.
+- "Task already exists" checks any task type (it looked for 'becoming' only). The unique index
+  idx_daily_tasks_one_per_day still covers 'becoming' only.
 KNOWN RESIDUAL GAP, PARTIALLY ADDRESSED: for goal domains that are inherently social (community,
 networking, security/tech fields with strong community culture), first-attempt AND retry
 forbidden-pattern double-failures were observed repeatedly before July 12. The Stage 4 fix targets
@@ -465,6 +530,11 @@ check actual completion rates for previously-churned users a few days after Stag
 whether generation failures dropped.
 Active but inconsistent — the small group of engaged users, still below the consistency needed
 for the product's own retention math to work.
+
+UNENFORCED IN THE BACKEND (found 20 October 2026, not changed): the 30-character commitment gate
+is checked only in the browser. POST /onboarding/activate accepts a missing commitment_statement.
+Under the "ask, then verify in code" rule it should be enforced server-side; decide before relying on
+the gate as a metric.
 
 Do not treat "we improved the task generator" as "we solved retention." It's a necessary condition,
 not sufficient — and as of 15 October 2026 the sharper diagnosis is that the commitment gate
@@ -636,6 +706,11 @@ the moment that block exits, even if you're still inside the same function. Do n
 usable in code that runs after the `with` block closes (e.g. inside a loop that follows it) — open
 a fresh context for any work that needs to happen after the original query's block has exited.
 
+Structured input for generation facts — onboarding facts that drive generation (name, time budget)
+are collected by structured input, not inferred by the AI interview. The interview captured time for
+4 of 50 users, and the generator read those 4 with the wrong keys anyway. If generation depends on
+it, ask for it with a required field and store it in its own column.
+
 One-off bulk emails — must run as a scheduled backend job or an admin-authenticated endpoint,
 NEVER an open endpoint. The March 2026 bulk send used an endpoint with no authentication (commits
 5b83384 and 7b0d7e1, reverted in 42e0576). Every one-off send needs: duplicate protection recorded
@@ -674,17 +749,22 @@ This has not been acted on — noting it here so it isn't lost, not because a de
 DATABASE — KEY TABLES (not exhaustive — extensive AI/analytics schema exists beyond this list)
 Core
 
-users — subscription_plan, stripe_customer_id, stripe_subscription_id. COUNT(*) = 100 as of
-15 October 2026 (95 external).
+users — subscription_plan, stripe_customer_id, stripe_subscription_id, is_internal (migration 016).
+COUNT(*) = 100 as of 15 October 2026 (95 external); 101 from 20 October with the reviewer account.
 goals — refined_statement, required_identity, status (including approaching_completion).
 COUNT(DISTINCT user_id) = 49 as of 15 October 2026 (45 external); all 49 have an 'active' goal.
 identity_profiles — transformation_score, streak, days_active, commitment_statement. Only 3 users
 have a commitment_statement of 30+ characters as of 15 October 2026 — this is the real activation
-number.
-daily_tasks — task_type: becoming / identity_anchor / micro_action / challenge; generation_context
-JSONB column stores domain, momentum_state, streak, is_fallback at generation time. Fallback tasks
-created via the main nightly path do NOT currently get a "reason" key (see AI SYSTEMS observability
-gap) — only the backlog path (_create_fallback_task) writes one.
+number. (From 20 October the internal reviewer account also passes; external count unchanged.)
+daily_minutes (10/20/30/45/60) and preferred_time (morning/midday/evening/varies), migration 015, are
+the single source of truth for the time budget. time_availability and peak_performance_time are
+SUPERSEDED: no longer read or written by the app (5 old profiles still hold values).
+Fill rates across 50 profiles with a goal (20 October 2026): life_direction 43, core_values 11,
+strengths 16, weaknesses 31, motivation_style 34, personal_vision 50, resistance_triggers 45,
+execution_style 0. Empty arrays are not counted; counting them gives strengths 18, weaknesses 32.
+daily_tasks — task_type: becoming / identity_anchor / micro_action / challenge (enum also has
+reflection_prompt); generation_context JSONB stores domain, momentum_state, streak, is_fallback,
+reason (fallbacks), rejected_reason(s) and time_budget at generation time.
 objectives, identity_traits
 reflections — questions_answers JSONB, depth_score
 coach_sessions, coach_moments, coach_patterns, coach_interventions, coach_safety_flags
